@@ -2,9 +2,10 @@ import json
 import os
 from filelock import FileLock
 
-# --- 핵심 설정: 두 봇이 공통으로 바라볼 절대 경로 ---
 SHARED_FILE_PATH = "/home/hxxsx4/shared_data/stats.json"
 LOCK_FILE_PATH = "/home/hxxsx4/shared_data/stats.json.lock"
+os.makedirs(os.path.dirname(SHARED_FILE_PATH), exist_ok=True)
+lock = FileLock(LOCK_FILE_PATH)
 
 # 폴더가 혹시 없다면 자동으로 생성해주는 안전장치
 os.makedirs(os.path.dirname(SHARED_FILE_PATH), exist_ok=True)
@@ -13,22 +14,16 @@ os.makedirs(os.path.dirname(SHARED_FILE_PATH), exist_ok=True)
 lock = FileLock(LOCK_FILE_PATH)
 
 def load_stats() -> dict:
-    """포인트 데이터를 불러옵니다. 파일이 겹치지 않게 Lock을 사용합니다."""
-    # 파일이 아예 없으면 빈 딕셔너리 반환
     if not os.path.exists(SHARED_FILE_PATH):
         return {}
-
-    # 누군가 파일을 쓰고 있다면 대기하다가 읽음
     with lock:
         try:
             with open(SHARED_FILE_PATH, "r", encoding="utf-8") as f:
                 return json.load(f)
         except json.JSONDecodeError:
-            print("[ERROR] stats.json 파일이 손상되었습니다. 빈 데이터로 시작합니다.")
             return {}
 
 def save_stats(data: dict):
-    """포인트 데이터를 저장합니다. 봇 2개가 동시에 접근해도 꼬이지 않게 줄을 세웁니다."""
     with lock:
         with open(SHARED_FILE_PATH, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
