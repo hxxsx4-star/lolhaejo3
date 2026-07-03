@@ -48,11 +48,11 @@ class EconomyCog(commands.Cog):
         else:
             print(f"[ERROR] 채널을 찾을 수 없음: ID {channel_id} 에 해당하는 텍스트 채널이 없습니다.")
 
-    @app_commands.command(name="지갑", description="포인트 보유량을 확인합니다.")
-    @app_commands.describe(유저="확인할 유저 (선택)")
-    async def wallet(self, interaction: discord.Interaction, 유저: Optional[discord.Member] = None):
-        target = 유저 or interaction.user
-        await interaction.response.send_message(f"{target.mention} 님은 **{format_num(get_points(target.id))} {CURRENCY}**를 보유하고 있어요!")
+    # @app_commands.command(name="지갑", description="포인트 보유량을 확인합니다.")
+    # @app_commands.describe(유저="확인할 유저 (선택)")
+    # async def wallet(self, interaction: discord.Interaction, 유저: Optional[discord.Member] = None):
+    #     target = 유저 or interaction.user
+    #     await interaction.response.send_message(f"{target.mention} 님은 **{format_num(get_points(target.id))} {CURRENCY}**를 보유하고 있어요!")
 
     @app_commands.command(name="출석", description="하루에 한 번 출석하여 포인트를 받습니다.")
     async def attendance(self, interaction: discord.Interaction):
@@ -79,26 +79,26 @@ class EconomyCog(commands.Cog):
         embed = discord.Embed(title="🏆 서버 포인트 랭킹 (상위 10명)", description="\n".join(lines), color=discord.Color.blue())
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="지급", description="관리자 전용: 특정 유저에게 포인트를 지급합니다.")
-    @app_commands.describe(유저="포인트를 받을 유저", 금액="지급할 포인트 양")
-    @app_commands.default_permissions(manage_guild=True)
-    async def grant_points(self, interaction: discord.Interaction, 유저: discord.Member, 금액: int):
-        if 금액 <= 0: await interaction.response.send_message("금액은 1 이상이어야 합니다.", ephemeral=True); return
-        add_points(유저.id, 금액)
-        await interaction.response.send_message(f"{유저.mention}님에게 **{format_num(금액)} {CURRENCY}**를 지급했습니다.", ephemeral=True)
-        log_embed = discord.Embed(title="💰 포인트 지급 로그", color=discord.Color.gold()).add_field(name="실행자", value=interaction.user.mention, inline=False).add_field(name="대상", value=유저.mention, inline=False).add_field(name="금액", value=f"{format_num(금액)} {CURRENCY}", inline=False)
-        await self._send_log(interaction.guild, GRANT_LOG_CHANNEL_ID, log_embed)
+    # @app_commands.command(name="지급", description="관리자 전용: 특정 유저에게 포인트를 지급합니다.")
+    # @app_commands.describe(유저="포인트를 받을 유저", 금액="지급할 포인트 양")
+    # @app_commands.default_permissions(manage_guild=True)
+    # async def grant_points(self, interaction: discord.Interaction, 유저: discord.Member, 금액: int):
+    #     if 금액 <= 0: await interaction.response.send_message("금액은 1 이상이어야 합니다.", ephemeral=True); return
+    #     add_points(유저.id, 금액)
+    #     await interaction.response.send_message(f"{유저.mention}님에게 **{format_num(금액)} {CURRENCY}**를 지급했습니다.", ephemeral=True)
+    #     log_embed = discord.Embed(title="💰 포인트 지급 로그", color=discord.Color.gold()).add_field(name="실행자", value=interaction.user.mention, inline=False).add_field(name="대상", value=유저.mention, inline=False).add_field(name="금액", value=f"{format_num(금액)} {CURRENCY}", inline=False)
+    #     await self._send_log(interaction.guild, GRANT_LOG_CHANNEL_ID, log_embed)
 
-    @app_commands.command(name="회수", description="관리자 전용: 특정 유저의 포인트를 회수합니다.")
-    @app_commands.describe(유저="포인트를 회수할 유저", 금액="회수할 포인트 양")
-    @app_commands.default_permissions(manage_guild=True)
-    async def revoke_points(self, interaction: discord.Interaction, 유저: discord.Member, 금액: int):
-        if 금액 <= 0: await interaction.response.send_message("금액은 1 이상이어야 합니다.", ephemeral=True); return
-        if get_points(유저.id) < 금액: await interaction.response.send_message("대상의 포인트가 부족합니다.", ephemeral=True); return
-        spend_points(유저.id, 금액)
-        await interaction.response.send_message(f"{유저.mention}님에게서 **{format_num(금액)} {CURRENCY}**를 회수했습니다.", ephemeral=True)
-        log_embed = discord.Embed(title="💸 포인트 회수 로그", color=discord.Color.dark_red()).add_field(name="실행자", value=interaction.user.mention, inline=False).add_field(name="대상", value=유저.mention, inline=False).add_field(name="금액", value=f"{format_num(금액)} {CURRENCY}", inline=False)
-        await self._send_log(interaction.guild, REVOKE_LOG_CHANNEL_ID, log_embed)
+    # @app_commands.command(name="회수", description="관리자 전용: 특정 유저의 포인트를 회수합니다.")
+    # @app_commands.describe(유저="포인트를 회수할 유저", 금액="회수할 포인트 양")
+    # @app_commands.default_permissions(manage_guild=True)
+    # async def revoke_points(self, interaction: discord.Interaction, 유저: discord.Member, 금액: int):
+    #     if 금액 <= 0: await interaction.response.send_message("금액은 1 이상이어야 합니다.", ephemeral=True); return
+    #     if get_points(유저.id) < 금액: await interaction.response.send_message("대상의 포인트가 부족합니다.", ephemeral=True); return
+    #     spend_points(유저.id, 금액)
+    #     await interaction.response.send_message(f"{유저.mention}님에게서 **{format_num(금액)} {CURRENCY}**를 회수했습니다.", ephemeral=True)
+    #     log_embed = discord.Embed(title="💸 포인트 회수 로그", color=discord.Color.dark_red()).add_field(name="실행자", value=interaction.user.mention, inline=False).add_field(name="대상", value=유저.mention, inline=False).add_field(name="금액", value=f"{format_num(금액)} {CURRENCY}", inline=False)
+    #     await self._send_log(interaction.guild, REVOKE_LOG_CHANNEL_ID, log_embed)
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(EconomyCog(bot))
