@@ -32,16 +32,11 @@ async def on_ready():
     print(f'✅ {bot.user}으로 로그인 성공!')
     print(f'봇 ID: {bot.user.id}')
     
-    # 슬래시 커맨드 동기화
-    # 특정 길드에만 즉시 적용하려면 guild 인자를 사용합니다.
-    # 전역으로 적용하려면 시간이 걸릴 수 있습니다.
+    # 슬래시 커맨드 동기화 (수정된 부분)
     try:
-        # 현재 봇이 속한 모든 길드에 커맨드를 동기화합니다.
-        synced_count = 0
-        for guild in bot.guilds:
-            await bot.tree.sync(guild=guild)
-            synced_count += 1
-        print(f'🌀 {synced_count}개의 길드에 슬래시 커맨드를 동기화했습니다.')
+        # 기존의 길드별 동기화를 제거하고, 전역(Global) 슬래시 커맨드를 동기화합니다.
+        synced = await bot.tree.sync()
+        print(f'🌀 {len(synced)}개의 전역 슬래시 커맨드를 동기화했습니다.')
     except Exception as e:
         print(f'❌ 커맨드 동기화 중 오류 발생: {e}')
 
