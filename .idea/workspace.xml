@@ -4,7 +4,10 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f1982c64-012d-4ef1-a9cd-954fbe80761a" name="변경" comment="기본 세팅" />
+    <list default="true" id="f1982c64-012d-4ef1-a9cd-954fbe80761a" name="변경" comment="기본 세팅">
+      <change beforePath="$PROJECT_DIR$/.idea/lolhaejo2.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/lolhaejo3.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config.ini" beforeDir="false" afterPath="$PROJECT_DIR$/config.ini" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -12,6 +15,7 @@
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="UPDATE_TYPE" value="REBASE" />
   </component>
   <component name="GitHubPullRequestSearchHistory">{
   &quot;lastFilter&quot;: {
@@ -19,31 +23,31 @@
     &quot;assignee&quot;: &quot;hxxsx4-star&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/hxxsx4-star/lolhaejo3.git",
-    "accountId": "5a83c640-86ec-4939-adf2-6b43b97ddea4"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/hxxsx4-star/lolhaejo3.git&quot;,
+    &quot;accountId&quot;: &quot;5a83c640-86ec-4939-adf2-6b43b97ddea4&quot;
   }
-}]]></component>
+}</component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
       <entry key="MS100" value="1.0" />
       <entry key="MS500" value="1.0" />
-      <entry key="S2" value="1.0" />
-      <entry key="S5" value="1.0000000000000004" />
-      <entry key="S10" value="1.0000000486033178" />
-      <entry key="S30" value="1.0227211219445267" />
-      <entry key="S60" value="1.8091091908804748" />
-      <entry key="M2" value="6.422120270523284" />
-      <entry key="M5" value="18.909277490589364" />
-      <entry key="M10" value="27.992003776206477" />
-      <entry key="M15" value="31.99845039601859" />
-      <entry key="M30" value="36.632485957596515" />
-      <entry key="H1" value="39.21721081722988" />
-      <entry key="H2" value="40.5828582164536" />
-      <entry key="H4" value="41.28486391898605" />
-      <entry key="D1" value="41.87988769476931" />
-      <entry key="W1" value="41.98281834952893" />
+      <entry key="S2" value="1.0000000064997554" />
+      <entry key="S5" value="1.0030602313609787" />
+      <entry key="S10" value="1.2472303707249415" />
+      <entry key="S30" value="6.382533771182414" />
+      <entry key="S60" value="14.282689036524378" />
+      <entry key="M2" value="23.970687349345546" />
+      <entry key="M5" value="40.67639071779397" />
+      <entry key="M10" value="54.439437777969125" />
+      <entry key="M15" value="61.20166167638381" />
+      <entry key="M30" value="69.57088857424077" />
+      <entry key="H1" value="74.49480698124783" />
+      <entry key="H2" value="77.17011001978109" />
+      <entry key="H4" value="78.56511852516861" />
+      <entry key="D1" value="79.75803043328916" />
+      <entry key="W1" value="79.96536308113495" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
@@ -65,23 +69,23 @@
       <entry key="W1" value="0.0" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="0.8585654364377537" />
-      <entry key="MS500" value="0.9699619103417348" />
-      <entry key="S2" value="0.9924043746858185" />
-      <entry key="S5" value="0.996954798466252" />
-      <entry key="S10" value="0.9984762828523462" />
-      <entry key="S30" value="1.021833118433561" />
-      <entry key="S60" value="1.80434776903859" />
-      <entry key="M2" value="6.410862620639653" />
-      <entry key="M5" value="18.897528093078254" />
-      <entry key="M10" value="27.98389155026377" />
-      <entry key="M15" value="31.9924259587232" />
-      <entry key="M30" value="36.629129872551445" />
-      <entry key="H1" value="39.21543945746772" />
-      <entry key="H2" value="40.58194822661162" />
-      <entry key="H4" value="41.2844027199136" />
-      <entry key="D1" value="41.87980995562383" />
-      <entry key="W1" value="41.98280722242203" />
+      <entry key="MS100" value="0.9265880618903709" />
+      <entry key="MS500" value="0.9848664428955506" />
+      <entry key="S2" value="0.9961949545979447" />
+      <entry key="S5" value="1.001529510742847" />
+      <entry key="S10" value="1.2461816223600704" />
+      <entry key="S30" value="6.380024025799477" />
+      <entry key="S60" value="14.279423275611952" />
+      <entry key="M2" value="23.96584959784616" />
+      <entry key="M5" value="40.668770951995484" />
+      <entry key="M10" value="54.43274675906174" />
+      <entry key="M15" value="61.196238907039145" />
+      <entry key="M30" value="69.56758227813485" />
+      <entry key="H1" value="74.49297957868802" />
+      <entry key="H2" value="77.16914914033572" />
+      <entry key="H4" value="78.5646258097942" />
+      <entry key="D1" value="79.75794656683762" />
+      <entry key="W1" value="79.96535105686301" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -93,29 +97,29 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "codeWithMe.voiceChat.enabledByDefault": "false",
-    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "master",
-    "junie.onboarding.icon.badge.shown": "true",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.standard": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.standard": "",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
-    "to.speed.mode.migration.done": "true",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.standard&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.standard&quot;: &quot;&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\polar\PycharmProjects\lolhaejo2" />
@@ -136,7 +140,7 @@
       <option name="presentableId" value="Default" />
       <updated>1783066393672</updated>
       <workItem from="1783066394798" duration="9036000" />
-      <workItem from="1783080266553" duration="1141000" />
+      <workItem from="1783080266553" duration="1483000" />
     </task>
     <task id="LOCAL-00001" summary="기본 세팅">
       <option name="closed" value="true" />
@@ -146,7 +150,15 @@
       <option name="project" value="LOCAL" />
       <updated>1783081387891</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="기본 세팅">
+      <option name="closed" value="true" />
+      <created>1783081424025</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1783081424025</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
