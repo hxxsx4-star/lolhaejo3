@@ -4,19 +4,7 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f1982c64-012d-4ef1-a9cd-954fbe80761a" name="변경" comment="">
-      <change afterPath="$PROJECT_DIR$/cogs/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/PythonProject.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/PythonProject.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.ini" beforeDir="false" afterPath="$PROJECT_DIR$/config.ini" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/poker.py" beforeDir="false" afterPath="$PROJECT_DIR$/poker.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/seotda.py" beforeDir="false" afterPath="$PROJECT_DIR$/seotda.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/stats.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/stats.py" afterDir="false" />
-    </list>
+    <list default="true" id="f1982c64-012d-4ef1-a9cd-954fbe80761a" name="변경" comment="기본 세팅" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -39,23 +27,23 @@
 }]]></component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.2636808890878877" />
-      <entry key="MS500" value="2.57032070489275" />
-      <entry key="S2" value="6.608439990471458" />
-      <entry key="S5" value="9.66948663188997" />
-      <entry key="S10" value="11.228064338077635" />
-      <entry key="S30" value="15.054540639122944" />
-      <entry key="S60" value="20.002942425579086" />
-      <entry key="M2" value="25.201724987032048" />
-      <entry key="M5" value="30.195111505121577" />
-      <entry key="M10" value="32.39563860839899" />
-      <entry key="M15" value="33.21292310913961" />
-      <entry key="M30" value="34.079271030294194" />
-      <entry key="H1" value="34.53247411305391" />
-      <entry key="H2" value="34.76439822584085" />
-      <entry key="H4" value="34.88173314517848" />
-      <entry key="D1" value="34.98022359884816" />
-      <entry key="W1" value="34.99717319454413" />
+      <entry key="MS100" value="1.0" />
+      <entry key="MS500" value="1.0" />
+      <entry key="S2" value="1.0" />
+      <entry key="S5" value="1.0000000000000004" />
+      <entry key="S10" value="1.0000000486033178" />
+      <entry key="S30" value="1.0227211219445267" />
+      <entry key="S60" value="1.8091091908804748" />
+      <entry key="M2" value="6.422120270523284" />
+      <entry key="M5" value="18.909277490589364" />
+      <entry key="M10" value="27.992003776206477" />
+      <entry key="M15" value="31.99845039601859" />
+      <entry key="M30" value="36.632485957596515" />
+      <entry key="H1" value="39.21721081722988" />
+      <entry key="H2" value="40.5828582164536" />
+      <entry key="H4" value="41.28486391898605" />
+      <entry key="D1" value="41.87988769476931" />
+      <entry key="W1" value="41.98281834952893" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
@@ -77,23 +65,23 @@
       <entry key="W1" value="0.0" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="1.0768770341079372" />
-      <entry key="MS500" value="2.114697496272298" />
-      <entry key="S2" value="6.329428472225239" />
-      <entry key="S5" value="9.530068731817474" />
-      <entry key="S10" value="11.152450333561962" />
-      <entry key="S30" value="15.026501055659704" />
-      <entry key="S60" value="19.987595634605132" />
-      <entry key="M2" value="25.193422252448237" />
-      <entry key="M5" value="30.191564519571088" />
-      <entry key="M10" value="32.39381743033368" />
-      <entry key="M15" value="33.21169738383912" />
-      <entry key="M30" value="34.07865207279119" />
-      <entry key="H1" value="34.53216305149442" />
-      <entry key="H2" value="34.764242291544676" />
-      <entry key="H4" value="34.88165507614588" />
-      <entry key="D1" value="34.98021057310538" />
-      <entry key="W1" value="34.997171333373934" />
+      <entry key="MS100" value="0.8585654364377537" />
+      <entry key="MS500" value="0.9699619103417348" />
+      <entry key="S2" value="0.9924043746858185" />
+      <entry key="S5" value="0.996954798466252" />
+      <entry key="S10" value="0.9984762828523462" />
+      <entry key="S30" value="1.021833118433561" />
+      <entry key="S60" value="1.80434776903859" />
+      <entry key="M2" value="6.410862620639653" />
+      <entry key="M5" value="18.897528093078254" />
+      <entry key="M10" value="27.98389155026377" />
+      <entry key="M15" value="31.9924259587232" />
+      <entry key="M30" value="36.629129872551445" />
+      <entry key="H1" value="39.21543945746772" />
+      <entry key="H2" value="40.58194822661162" />
+      <entry key="H4" value="41.2844027199136" />
+      <entry key="D1" value="41.87980995562383" />
+      <entry key="W1" value="41.98280722242203" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -148,11 +136,25 @@
       <option name="presentableId" value="Default" />
       <updated>1783066393672</updated>
       <workItem from="1783066394798" duration="9036000" />
-      <workItem from="1783080266553" duration="825000" />
+      <workItem from="1783080266553" duration="1141000" />
     </task>
+    <task id="LOCAL-00001" summary="기본 세팅">
+      <option name="closed" value="true" />
+      <created>1783081387891</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1783081387891</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Initial commit" />
+    <MESSAGE value="기본 세팅" />
+    <option name="LAST_COMMIT_MESSAGE" value="기본 세팅" />
   </component>
 </project>
