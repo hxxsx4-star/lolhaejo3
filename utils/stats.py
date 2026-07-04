@@ -41,6 +41,11 @@ def load_stats() -> dict:
     with lock:
         return _load_stats_nolock()
 
+def save_stats(stats: dict):
+    """외부에서 통계 데이터를 덮어쓸 때 사용하는 안전한 저장 함수"""
+    with lock:
+        _save_stats_nolock(stats)
+
 # --- 경제 시스템 (트랜잭션 안전 보장) ---
 def get_points(user_id: int) -> int:
     with lock:
