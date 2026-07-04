@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import datetime
 
 # ==========================================
 # DB 헬퍼 함수
@@ -9,9 +10,11 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS users
                  (user_id INTEGER PRIMARY KEY, max_star_reached INTEGER,
                   egg_legendary INTEGER, egg_mythic INTEGER, egg_prestige INTEGER)''')
+    # last_updated 컬럼 추가 (Unix timestamp 저장)
     c.execute('''CREATE TABLE IF NOT EXISTS user_legends
                  (user_id INTEGER PRIMARY KEY, name TEXT, rarity TEXT,
-                  level INTEGER, exp INTEGER, fullness INTEGER, intimacy INTEGER, fatigue INTEGER)''')
+                  level INTEGER, exp INTEGER, fullness INTEGER, intimacy INTEGER, fatigue INTEGER,
+                  last_updated INTEGER)''')
     conn.commit()
     conn.close()
 
@@ -39,7 +42,8 @@ def update_user_egg(user_id, rarity, amount=1):
 def get_legend(user_id):
     conn = sqlite3.connect('legends.db')
     c = conn.cursor()
-    c.execute("SELECT name, rarity, level, exp, fullness, intimacy, fatigue FROM user_legends WHERE user_id = ?", (user_id,))
+    # last_updated 컬럼도 함께 조회
+    c.execute("SELECT name, rarity, level, exp, fullness, intimacy, fatigue, last_updated FROM user_legends WHERE user_id = ?", (user_id,))
     data = c.fetchone()
     conn.close()
     return data
@@ -47,10 +51,12 @@ def get_legend(user_id):
 def save_legend(user_id, name, rarity, level, exp, fullness, intimacy, fatigue):
     conn = sqlite3.connect('legends.db')
     c = conn.cursor()
+    # 저장 시 현재 시간을 last_updated로 기록
+    current_timestamp = int(datetime.now().timestamp())
     c.execute('''INSERT OR REPLACE INTO user_legends
-                 (user_id, name, rarity, level, exp, fullness, intimacy, fatigue)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
-              (user_id, name, rarity, level, exp, fullness, intimacy, fatigue))
+                 (user_id, name, rarity, level, exp, fullness, intimacy, fatigue, last_updated)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+              (user_id, name, rarity, level, exp, fullness, intimacy, fatigue, current_timestamp))
     conn.commit()
     conn.close()
 

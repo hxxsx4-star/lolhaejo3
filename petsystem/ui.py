@@ -10,7 +10,7 @@ from utils.stats import get_points, spend_points, add_points
 # 임베드(상태창) 생성 함수
 # ==========================================
 def create_status_embed(member: discord.Member, legend_data):
-    name, rarity, level, exp, fullness, intimacy, fatigue = legend_data
+    name, rarity, level, exp, fullness, intimacy, fatigue, _ = legend_data # last_updated는 UI에 표시 안 함
     points = get_points(member.id)
 
     is_egg = (level == 0)
@@ -27,25 +27,30 @@ def create_status_embed(member: discord.Member, legend_data):
 
     color_map = {"서사": discord.Color.purple(), "전설": discord.Color.red(), "신화": discord.Color.gold(), "프레스티지": discord.Color.dark_theme()}
     embed = discord.Embed(
-        title=f"{member.display_name}님의 {display_name} 상태창",
-        description=f"등급: {rarity}\n보유 포인트: {points:,} P",
+        title=f"{member.display_name}님의 {display_name}",
+        description=f"**등급** {rarity} | **보유 포인트** {points:,} P",
         color=color_map.get(rarity, discord.Color.blue())
     )
     embed.set_thumbnail(url=member.display_avatar.url)
     
-    exp_bar = "█" * exp_percent + "─" * (10 - exp_percent)
+    # 상태 바 UI 개선
+    exp_bar = f"**`[{'█' * exp_percent}{'─' * (10 - exp_percent)}]`**"
     
     embed.add_field(name="⭐ 성장", value=star_text, inline=True)
     if not is_egg:
-        embed.add_field(name="❤️ 친밀도", value=f"{intimacy} pt", inline=True)
-        embed.add_field(name="💤 피로도", value=f"{fatigue} pt", inline=True)
-    embed.add_field(name="🩺 상태", value=f"건강: {health_status}\n기분: {mood_status}", inline=False)
+        # 'pt' 단위 제거
+        embed.add_field(name="❤️ 친밀도", value=f"{intimacy}", inline=True)
+        embed.add_field(name="💤 피로도", value=f"{fatigue}", inline=True)
+    
+    embed.add_field(name="🩺 상태", value=f"**건강** {health_status}\n**기분** {mood_status}", inline=False)
     embed.add_field(name=f"✨ 경험치 ({exp_text})", value=exp_bar, inline=False)
+    
     if not is_egg:
-        fullness_bar = "█" * (fullness // 10) + "─" * (10 - (fullness // 10))
+        fullness_bar = f"**`[{'█' * (fullness // 10)}{'─' * (10 - (fullness // 10))}]`**"
         embed.add_field(name=f"🍖 포만감 ({fullness}/100)", value=fullness_bar, inline=False)
     else:
         embed.add_field(name="안내", value="통화방 활동으로 경험치를 쌓아 알을 부화시켜보세요!", inline=False)
+    
     return embed
 
 # ==========================================
@@ -61,7 +66,7 @@ class LegendActionView(discord.ui.View):
         if interaction.user.id != self.user_id:
             return await interaction.response.send_message("남의 전설이에게는 간식을 줄 수 없습니다!", ephemeral=True)
         data = get_legend(self.user_id)
-        name, rarity, level, exp, fullness, intimacy, fatigue = data
+        name, rarity, level, exp, fullness, intimacy, fatigue, last_updated = data
         if level == 0:
             return await interaction.response.send_message("알은 아직 간식을 먹을 수 없어요! 통화방 활동으로 먼저 부화시켜주세요.", ephemeral=True)
         if get_points(self.user_id) < 50:
@@ -73,7 +78,7 @@ class LegendActionView(discord.ui.View):
         new_fullness = min(fullness + 20, 100)
         save_legend(self.user_id, name, rarity, level, exp, new_fullness, intimacy, fatigue)
 
-        new_data = (name, rarity, level, exp, new_fullness, intimacy, fatigue)
+        new_data = (name, rarity, level, exp, new_fullness, intimacy, fatigue, last_updated)
         embed = create_status_embed(interaction.user, new_data)
         await interaction.response.edit_message(embed=embed, view=self)
         await interaction.followup.send("냠냠! 50P를 사용하여 포만감을 20 채웠습니다.", ephemeral=True)
@@ -82,7 +87,7 @@ class LegendActionView(discord.ui.View):
         if interaction.user.id != self.user_id:
             return await interaction.response.send_message("남의 전설이와는 산책할 수 없습니다!", ephemeral=True)
         data = get_legend(self.user_id)
-        name, rarity, level, exp, fullness, intimacy, fatigue = data
+        name, rarity, level, exp, fullness, intimacy, fatigue, last_updated = data
         if level == 0:
             return await interaction.response.send_message("알과는 산책을 할 수 없어요! 통화방 활동으로 먼저 부화시켜주세요.", ephemeral=True)
         if fullness == 0:
@@ -113,7 +118,7 @@ class LegendActionView(discord.ui.View):
         drop_text = "".join([f"{'🟪 전설' if r=='전설' else '🟨 신화' if r=='신화' else '⬛ 프레스티지'}급 알 {a}개 획득!\n" for r, a in drops.items() if a > 0])
         result_embed.add_field(name="🎁 특별 획득", value=drop_text if drop_text else "특별한 아이템을 줍지 못했습니다.", inline=False)
 
-        new_data = (name, rarity, level, exp, fullness, new_intimacy, new_fatigue)
+        new_data = (name, rarity, level, exp, fullness, new_intimacy, new_fatigue, last_updated)
         embed = create_status_embed(interaction.user, new_data)
         await interaction.response.edit_message(embed=embed, view=self)
         await interaction.followup.send(embed=result_embed, ephemeral=True)

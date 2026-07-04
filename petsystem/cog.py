@@ -19,6 +19,62 @@ class PetSystemCog(commands.Cog):
         init_db()
         self.voice_sessions = {}
 
+    # --- 패시브 로직 ---
+    async def apply_passive_changes(self, user_id):
+        """
+        마지막 업데이트 이후 경과 시간을 계산하여 패시브 경험치와 피로도 감소를 적용합니다.
+        """
+        data = get_legend(user_id)
+        if not data: return None
+
+        name, rarity, level, exp, fullness, intimacy, fatigue, last_updated = data
+        
+        # 이미 만렙이거나 알 상태면 패시브 로직 적용 안함
+        if level >= 3 and level != 0:
+            return data
+
+        now_ts = int(datetime.now().timestamp())
+        elapsed_minutes = (now_ts - last_updated) // 60
+
+        if elapsed_minutes <= 0:
+            return data
+
+        # 1. 패시브 피로도 감소 (분당 1, 최소 0)
+        new_fatigue = max(0, fatigue - elapsed_minutes)
+
+        # 2. 패시브 경험치 획득 (분당 1)
+        new_exp = exp + elapsed_minutes
+        
+        # 3. 레벨업 체크
+        new_level = level
+        level_ups = []
+        max_exp = EXP_TABLE[rarity].get(new_level, 0)
+
+        while new_level < 3 and max_exp > 0 and new_exp >= max_exp:
+            new_exp -= max_exp
+            new_level += 1
+            level_ups.append(new_level)
+            max_exp = EXP_TABLE[rarity].get(new_level, 0)
+            if new_level == 3:
+                new_exp = 0
+                break
+        
+        # 변경사항 저장
+        save_legend(user_id, name, rarity, new_level, new_exp, fullness, intimacy, new_fatigue)
+        
+        # 레벨업 시 알림
+        if level_ups:
+            check_and_update_max_star(user_id, new_level)
+            try:
+                user = await self.bot.fetch_user(user_id)
+                msg = f"🎉 앗! 알에서 빛이 납니다...\n알을 깨고 1성 {name}(이)가 성공적으로 부화했습니다!" if 1 in level_ups else f"🎉 축하합니다! {name}의 모습이... {new_level}성으로 진화했습니다!"
+                await user.send(msg)
+            except:
+                pass
+        
+        return get_legend(user_id) # 최신 데이터 반환
+
+    # --- 음성 채널 경험치 로직 (기존과 동일) ---
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
         if member.bot: return
@@ -31,21 +87,23 @@ class PetSystemCog(commands.Cog):
                 if minutes > 0: await self.add_exp_to_pet(member, minutes)
 
     async def add_exp_to_pet(self, member, gained_exp):
+        await self.apply_passive_changes(member.id) # 경험치 추가 전 패시브 먼저 적용
         data = get_legend(member.id)
         if not data: return
-        name, rarity, level, exp, fullness, intimacy, fatigue = data
+        name, rarity, level, exp, fullness, intimacy, fatigue, _ = data
         if level >= 3: return
 
         max_exp = EXP_TABLE[rarity][level]
         new_exp = exp + gained_exp
         new_level = level
         level_ups = []
-        while new_level < 3 and new_exp >= max_exp:
+        while new_level < 3 and max_exp > 0 and new_exp >= max_exp:
             new_exp -= max_exp
             new_level += 1
             level_ups.append(new_level)
             max_exp = EXP_TABLE[rarity].get(new_level, 0)
             if new_level == 3: new_exp = 0; break
+        
         save_legend(member.id, name, rarity, new_level, new_exp, fullness, intimacy, fatigue)
         if level_ups:
             check_and_update_max_star(member.id, new_level)
@@ -54,6 +112,7 @@ class PetSystemCog(commands.Cog):
                 await member.send(msg)
             except: pass
 
+    # --- 슬래시 커맨드 ---
     @app_commands.command(name="알까기", description="새로운 전설이 알을 뽑습니다.")
     async def hatch_egg(self, interaction: discord.Interaction):
         user_id = interaction.user.id
@@ -81,13 +140,42 @@ class PetSystemCog(commands.Cog):
 
     @app_commands.command(name="상태창", description="내 전설이의 상태를 확인하고 돌봅니다.")
     async def status_window(self, interaction: discord.Interaction):
-        data = get_legend(interaction.user.id)
+        # 상태창을 보여주기 전에 패시브 변경사항을 적용하고 최신 데이터를 가져옴
+        data = await self.apply_passive_changes(interaction.user.id)
         if not data:
             return await interaction.response.send_message("아직 전설이가 없습니다. `/알까기` 명령어로 알을 먼저 받아주세요!", ephemeral=True)
+        
         embed = create_status_embed(interaction.user, data)
         view = LegendActionView(interaction.user.id)
         await interaction.response.send_message(embed=embed, view=view)
 
+    @app_commands.command(name="보관함", description="보유 중인 알과 아이템을 확인합니다.")
+    async def inventory(self, interaction: discord.Interaction):
+        user_id = interaction.user.id
+        user_pet_data = get_user_pet_data(user_id)
+        
+        legendary_eggs = user_pet_data[2]
+        mythic_eggs = user_pet_data[3]
+        prestige_eggs = user_pet_data[4]
+        
+        embed = discord.Embed(
+            title=f"📦 {interaction.user.display_name}님의 보관함",
+            color=discord.Color.dark_gold()
+        )
+        embed.set_thumbnail(url=interaction.user.display_avatar.url)
+        
+        egg_description = (
+            f"🟥 전설급 알: **{legendary_eggs}**개\n"
+            f"🟨 신화급 알: **{mythic_eggs}**개\n"
+            f"⬛ 프레스티지급 알: **{prestige_eggs}**개"
+        )
+        
+        embed.add_field(name="🥚 보유 중인 알", value=egg_description, inline=False)
+        embed.add_field(name="💎 기타 아이템", value="보유 중인 아이템이 없습니다.", inline=False)
+        
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    # ... (관리자 명령어들은 변경 없음) ...
     @app_commands.command(name="알지급", description="[관리자 전용] 유저에게 특수 알을 지급합니다.")
     @app_commands.default_permissions(administrator=True)
     @app_commands.choices(rarity=[
@@ -119,7 +207,7 @@ class PetSystemCog(commands.Cog):
         if not data:
             return await interaction.response.send_message(f"❌ {user.display_name}님은 알 또는 전설이를 가지고 있지 않습니다.", ephemeral=True)
         
-        name, rarity, level, exp, fullness, intimacy, fatigue = data
+        name, rarity, level, exp, fullness, intimacy, fatigue, _ = data
         if level != 0:
             return await interaction.response.send_message(f"❌ {user.display_name}님의 전설이는 이미 부화한 상태입니다.", ephemeral=True)
             
@@ -132,6 +220,5 @@ class PetSystemCog(commands.Cog):
         except:
             pass
 
-# 메인 봇이 이 파일을 로드할 수 있도록 setup 함수 추가
 async def setup(bot):
     await bot.add_cog(PetSystemCog(bot))
