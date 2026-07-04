@@ -1,6 +1,11 @@
 import discord
+import time
 from .data import ITEMS_INFO, EXP_TABLE
-from .database import consume_item, update_user_points, add_buff
+from .database import (
+    consume_item, update_user_points, add_buff,
+    get_legend_data, save_legend_data, get_user,
+    get_active_buffs, add_item
+)
 
 def create_status_embed(member: discord.Member, pet_data, user_points, buffs, is_annoyed, is_diseased):
     is_egg = (pet_data['level'] == 0)
@@ -72,30 +77,34 @@ class InventoryView(discord.ui.View):
             return await interaction.response.send_message("자신의 보관함만 조작할 수 있습니다.", ephemeral=True)
 
         self.selected_item = self.select_menu.values[0]
+        if self.selected_item == "no_item":
+            return await interaction.response.defer()
+
         btn = discord.ui.Button(label=f"[{self.selected_item}] 사용하기", style=discord.ButtonStyle.success)
         btn.callback = self.use_callback
-        
+
         view = discord.ui.View()
         view.add_item(btn)
-        await interaction.response.edit_message(content=f"**선택됨: {self.selected_item}**\n{ITEMS_INFO[self.selected_item]['desc']}", view=view)
+        await interaction.response.edit_message(content=f"선택됨: {self.selected_item}\n{ITEMS_INFO[self.selected_item]['desc']}", view=view)
 
     async def use_callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.user_id: return
 
-        if consume_item(self.user_id, self.selected_item, 1):
+        success = await consume_item(self.user_id, self.selected_item, 1)
+        if success:
             msg = f"✅ `{self.selected_item}` 아이템을 사용했습니다!"
             if "포인트 교환권" in self.selected_item:
                 pts = int(self.selected_item.split("포인트")[0])
-                update_user_points(self.user_id, pts)
+                await update_user_points(self.user_id, pts)
                 msg += f"\n포인트 {pts}P를 얻었습니다."
             elif "부스터" in self.selected_item:
-                add_buff(self.user_id, self.selected_item, vc_sec=10800)
+                await add_buff(self.user_id, self.selected_item, vc_sec=10800)
                 msg += "\n통화방 활동 3시간 동안 경험치 부스터가 적용됩니다."
             elif "신비한 알약" in self.selected_item:
-                add_buff(self.user_id, "신비한 알약", duration_sec=1209600)
+                await add_buff(self.user_id, "신비한 알약", duration_sec=1209600)
                 msg += "\n2주 동안 전설이의 모든 능력치가 MAX로 유지됩니다."
             elif "할인권" not in self.selected_item:
-                add_buff(self.user_id, self.selected_item, duration_sec=86400)
+                await add_buff(self.user_id, self.selected_item, duration_sec=86400)
                 msg += "\n24시간 동안 버프 효과가 적용됩니다."
             await interaction.response.edit_message(content=msg, view=None, embed=None)
         else:
@@ -121,8 +130,164 @@ class LegendActionView(discord.ui.View):
     @discord.ui.button(label="산책 100회", style=discord.ButtonStyle.primary, emoji="🏃")
     async def walk_100_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.handle_walk(interaction, 100)
-    
+
     async def handle_action(self, interaction: discord.Interaction, action: str):
-        pass
+        if interaction.user.id != self.user_id:
+            return await interaction.response.send_message("자신의 전설이만 돌볼 수 있습니다!", ephemeral=True)
+
+        data = await get_legend_data(self.user_id)
+        if not data or data['level'] == 0:
+            return await interaction.response.send_message("전설이가 알 상태이거나 존재하지 않습니다.", ephemeral=True)
+
+        user_info = await get_user(self.user_id)
+        current_points = user_info[1]
+
+        now = time.time()
+        is_annoyed = (data.get('low_full_since', 0) > 0 and now - data.get('low_full_since', 0) >= 86400)
+        is_diseased = (data.get('low_clean_since', 0) > 0 and now - data.get('low_clean_since', 0) >= 86400)
+
+        msg = ""
+
+        if action == "feed":
+            if data['fullness'] >= 100:
+                return await interaction.response.send_message("전설이가 이미 배가 부릅니다!", ephemeral=True)
+
+            cost = 100 if is_annoyed else 50 # 짜증 상태면 식비 2배
+            if current_points < cost:
+                return await interaction.response.send_message(f"포인트가 부족합니다! (필요: {cost}P)", ephemeral=True)
+
+            await update_user_points(self.user_id, -cost)
+            data['fullness'] = min(100, data['fullness'] + 30)
+            data['low_full_since'] = 0 # 배고픔 시간 초기화
+            msg = f"🍖 밥을 먹였습니다! (포만감 +30, -{cost}P)"
+            if is_annoyed: msg += "\n💢 전설이의 짜증이 풀렸습니다!"
+
+        elif action == "shower":
+            if data.get('cleanliness', 100) >= 100:
+                return await interaction.response.send_message("전설이가 이미 깨끗합니다!", ephemeral=True)
+
+            cost = 100 if is_diseased else 50 # 질병 상태면 비용 2배
+            if current_points < cost:
+                return await interaction.response.send_message(f"포인트가 부족합니다! (필요: {cost}P)", ephemeral=True)
+
+            await update_user_points(self.user_id, -cost)
+            data['cleanliness'] = 100
+            data['low_clean_since'] = 0 # 지저분함 시간 초기화
+            msg = f"🚿 깨끗하게 씻겼습니다! (청결도 MAX, -{cost}P)"
+            if is_diseased: msg += "\n🔴 전설이의 질병이 치료되었습니다!"
+
+        # 데이터 저장
+        await save_legend_data(self.user_id, data)
+
+        # 엠베드 갱신
+        active_buffs = await get_active_buffs(self.user_id)
+        buffs = {b[0] for b in active_buffs}
+        new_user_info = await get_user(self.user_id)
+        new_points = new_user_info[1]
+
+        is_annoyed_now = (data.get('low_full_since', 0) > 0 and now - data.get('low_full_since', 0) >= 86400)
+        is_diseased_now = (data.get('low_clean_since', 0) > 0 and now - data.get('low_clean_since', 0) >= 86400)
+
+        embed = create_status_embed(interaction.user, data, new_points, buffs, is_annoyed_now, is_diseased_now)
+        await interaction.response.edit_message(embed=embed, view=self)
+        await interaction.followup.send(msg, ephemeral=True)
+
     async def handle_walk(self, interaction: discord.Interaction, count: int):
-        pass
+        if interaction.user.id != self.user_id:
+            return await interaction.response.send_message("자신의 전설이만 돌볼 수 있습니다!", ephemeral=True)
+
+        data = await get_legend_data(self.user_id)
+        if not data or data['level'] == 0:
+            return await interaction.response.send_message("전설이가 알 상태이거나 존재하지 않습니다.", ephemeral=True)
+
+        if data['level'] >= 3:
+            return await interaction.response.send_message("전설이가 이미 최대 레벨(3성)에 도달했습니다!", ephemeral=True)
+
+        # 짜증 상태(is_annoyed) 체크 - 산책 거부
+        now = time.time()
+        is_annoyed = (data.get('low_full_since', 0) > 0 and now - data.get('low_full_since', 0) >= 86400)
+        if is_annoyed:
+            return await interaction.response.send_message("전설이가 짜증이 나서 산책을 거부합니다! (밥을 먼저 주세요)", ephemeral=True)
+
+        user_info = await get_user(self.user_id)
+        current_points = user_info[1]
+        active_buffs = await get_active_buffs(self.user_id)
+        buffs = {b[0] for b in active_buffs}
+
+        # 산책 비용 계산 (1회당 5P)
+        cost = 5 * count
+        used_discount = False
+
+        if count >= 100:
+            success = await consume_item(self.user_id, "100회 산책 할인권", 1)
+            if success:
+                cost = 300
+                used_discount = True
+
+        if current_points < cost:
+            if used_discount: await add_item(self.user_id, "100회 산책 할인권", 1) # 아이템 환불
+            return await interaction.response.send_message(f"포인트가 부족합니다! (필요: {cost}P)", ephemeral=True)
+
+        # --- 신규 산책 로직 (20회당 1칸(10 포인트)) ---
+        # 1회 산책 시 꼼수 방지를 위해 최소 1은 깎이도록 설계 (100회면 50 포인트 깎임)
+        stat_change = max(1, int(count * 0.5))
+
+        # 버프가 없을 경우에만 페널티(감소량) 적용
+        full_decrease = 0 if ("배부름을 부르는 약" in buffs or "신비한 알약" in buffs) else stat_change
+        clean_decrease = 0 if ("트위치 나가라약" in buffs or "신비한 알약" in buffs) else stat_change
+        fatigue_increase = 0 if ("쌩쌩한약" in buffs or "신비한 알약" in buffs) else stat_change
+
+        # 친밀도는 버프 중이면 이미 MAX일 것이므로 자연 증가만 계산
+        intimacy_increase = stat_change
+
+        if data['fatigue'] + fatigue_increase > 100 and fatigue_increase > 0:
+            if used_discount: await add_item(self.user_id, "100회 산책 할인권", 1)
+            return await interaction.response.send_message("전설이가 너무 피곤해합니다! 휴식이 필요합니다. (피로도 한도 초과 예정)", ephemeral=True)
+
+        # 경험치 계산 (1회당 100 예시)
+        exp_gain = 100 * count
+        exp_multiplier = 1
+        if data['intimacy'] >= 80: exp_multiplier *= 2 # 친밀도 높으면 2배
+        total_exp = int(exp_gain * exp_multiplier)
+
+        # DB 및 데이터에 수치 적용
+        await update_user_points(self.user_id, -cost)
+        data['exp'] += total_exp
+
+        data['fullness'] = max(0, data['fullness'] - full_decrease)
+        data['cleanliness'] = max(0, data.get('cleanliness', 100) - clean_decrease)
+        data['intimacy'] = min(100, data['intimacy'] + intimacy_increase)
+        data['fatigue'] = min(100, data['fatigue'] + fatigue_increase)
+
+        # 레벨업 체크
+        max_exp = EXP_TABLE[data['rarity']][data['level']]
+        leveled_up = False
+        while data['level'] < 3 and data['exp'] >= max_exp:
+            data['exp'] -= max_exp
+            data['level'] += 1
+            leveled_up = True
+            if data['level'] < 3:
+                max_exp = EXP_TABLE[data['rarity']][data['level']]
+
+        if data['level'] >= 3:
+            data['exp'] = 0
+
+        await save_legend_data(self.user_id, data)
+
+        # 결과 메시지
+        msg = f"🏃 산책 {count}회를 완료했습니다! (경험치 +{total_exp}, 비용 -{cost}P)\n"
+        msg += f"📉 포만감 -{full_decrease}, 청결도 -{clean_decrease} | 📈 친밀도 +{intimacy_increase}, 피로도 +{fatigue_increase}"
+
+        if used_discount:
+            msg += "\n🎫 `100회 산책 할인권`을 사용했습니다!"
+        if leveled_up:
+            msg += f"\n🎉 축하합니다! 전설이가 {data['level']}성으로 레벨업했습니다!"
+
+        # 엠베드 갱신
+        new_user_info = await get_user(self.user_id)
+        new_points = new_user_info[1]
+        is_diseased = (data.get('low_clean_since', 0) > 0 and now - data.get('low_clean_since', 0) >= 86400)
+
+        embed = create_status_embed(interaction.user, data, new_points, buffs, is_annoyed, is_diseased)
+        await interaction.response.edit_message(embed=embed, view=self)
+        await interaction.followup.send(msg, ephemeral=True)
