@@ -18,8 +18,8 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # 앞으로 추가될 기능 파일들을 여기에 추가하면 됩니다.
 extensions = [
     'cogs.gacha',
-    'cogs.poker',
-    'cogs.seotda',
+    # 'cogs.poker',
+    # 'cogs.seotda',
     # 'cogs.economy',
     'cogs.help',
     'cogs.sync'  # 동기화 Cog 추가

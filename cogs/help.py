@@ -23,24 +23,6 @@ class HelpCog(commands.Cog):
                   "`/주사위`: 1부터 6까지의 주사위를 굴립니다.",
             inline=False
         )
-
-        # 2. 포커 게임 명령어
-        embed.add_field(
-            name="🃏 텍사스 홀덤 포커",
-            value="`/포커 시작`: 포커 게임 대기실을 만듭니다.\n"
-                  "`/포커 참여`: 만들어진 게임에 참여합니다.\n"
-                  "`/포커 진행`: (방장) 게임을 시작합니다.",
-            inline=False
-        )
-
-        # 3. 섯다 게임 명령어
-        embed.add_field(
-            name="🎴 섯다",
-            value="`/섯다 시작 [모드]`: 섯다 게임 대기실을 만듭니다. (2장/3장 모드 선택 가능)\n"
-                  "`/섯다 참여`: 만들어진 게임에 참여합니다.\n"
-                  "`/섯다 진행`: (방장) 게임을 시작합니다.",
-            inline=False
-        )
         
         embed.set_footer(text=f"요청자: {interaction.user.display_name}", icon_url=interaction.user.avatar.url if interaction.user.avatar else None)
         
