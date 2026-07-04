@@ -2,6 +2,55 @@ import discord
 from .data import ITEMS_INFO, EXP_TABLE
 from .database import consume_item, update_user_points, add_buff
 
+def create_status_embed(member: discord.Member, pet_data, user_points, buffs, is_annoyed, is_diseased):
+    is_egg = (pet_data['level'] == 0)
+    name, rarity, level = pet_data['name'], pet_data['rarity'], pet_data['level']
+
+    display_name = f"미확인 알 ({rarity})" if is_egg else name
+    star_text = "🥚 부화 대기 중" if is_egg else f"{level}성"
+
+    health_status = "보통 🟢"
+    if is_egg: health_status = "알 🥚"
+    elif is_diseased: health_status = "질병 🔴 (비용 2배! 샤워 필요)"
+    elif pet_data.get('cleanliness', 100) <= 20: health_status = "지저분 🟠"
+
+    mood_status = "행복 😊"
+    if is_egg: mood_status = "알 🥚"
+    elif is_annoyed: mood_status = "짜증 💢 (산책 거부, 식비 2배!)"
+    elif pet_data['fullness'] <= 20: mood_status = "배고픔 🟠"
+
+    buff_text = "적용중인 버프: " + (", ".join(buffs) if buffs else "없음")
+
+    embed = discord.Embed(
+        title=f"{member.display_name}님의 {display_name} 상태창",
+        description=f"등급: {rarity} | 보유 포인트: {user_points:,} P\n{buff_text}",
+        color=discord.Color.purple() if rarity == "서사" else (discord.Color.red() if rarity == "전설" else discord.Color.gold())
+    )
+    embed.set_thumbnail(url=member.display_avatar.url)
+
+    if level == 3:
+        exp_text, exp_percent = "MAX", 10
+    else:
+        max_exp = EXP_TABLE[rarity][level]
+        exp_text = f"{pet_data['exp']:,} / {max_exp:,}"
+        exp_percent = int((pet_data['exp'] / max_exp) * 10)
+
+    embed.add_field(name="⭐ 성장", value=star_text, inline=True)
+    if not is_egg:
+        embed.add_field(name="❤️ 친밀도", value=f"{pet_data['intimacy']} pt", inline=True)
+        embed.add_field(name="💤 피로도", value=f"{pet_data['fatigue']} pt", inline=True)
+
+    embed.add_field(name="🩺 상태", value=f"건강: {health_status}\n기분: {mood_status}", inline=False)
+    embed.add_field(name=f"✨ 경험치 ({exp_text})", value="🟩" * exp_percent + "⬜" * (10 - exp_percent), inline=False)
+
+    if not is_egg:
+        f_val = pet_data['fullness'] // 10
+        embed.add_field(name=f"🍖 포만감 ({pet_data['fullness']}/100)", value="🟧" * f_val + "⬜" * (10 - f_val), inline=False)
+        c_val = pet_data.get('cleanliness', 100) // 10
+        embed.add_field(name=f"🚿 청결도 ({pet_data.get('cleanliness', 100)}/100)", value="🟦" * c_val + "⬜" * (10 - c_val), inline=False)
+
+    return embed
+
 class InventoryView(discord.ui.View):
     def __init__(self, user_id, items_dict):
         super().__init__(timeout=120)
@@ -73,8 +122,6 @@ class LegendActionView(discord.ui.View):
     async def walk_100_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.handle_walk(interaction, 100)
     
-    # 이 아래는 Cog에서 호출할 실제 로직이므로, 이 파일에 있을 필요가 없습니다.
-    # Cog로 옮겨서 이벤트 기반으로 처리하는 것이 더 좋습니다.
     async def handle_action(self, interaction: discord.Interaction, action: str):
         pass
     async def handle_walk(self, interaction: discord.Interaction, count: int):
