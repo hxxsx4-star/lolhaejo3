@@ -19,7 +19,8 @@ class HelpCog(commands.Cog):
         embed.add_field(
             name="🐾 전설이 키우기",
             value="`/알까기`: 새로운 전설이 알을 받습니다.\n"
-                  "`/상태창`: 내 전설이의 상태를 확인하고 돌봅니다.",
+                  "`/상태창`: 내 전설이의 상태를 확인하고 돌봅니다.\n"
+                  "`/보관함`: 보유 중인 알과 아이템을 확인합니다.",
             inline=False
         )
 
@@ -58,7 +59,7 @@ class HelpCog(commands.Cog):
         guide_embed.add_field(
             name="3️⃣ 전설이 돌보기: `/상태창`",
             value="`/상태창` 명령어로 내 전설이의 상태를 확인하고, 버튼을 눌러 돌봐줄 수 있습니다.\n"
-                  "🍖 **간식 주기**: 50P를 사용하여 포만감을 채웁니다.\n"
+                  "🍖 **간식 주기**: 5P를 사용하여 포만감을 채웁니다.\n"
                   "👟 **산책하기**: 포인트를 얻거나 잃을 수 있으며, 낮은 확률로 **상위 등급의 알**을 주워올 수 있습니다!",
             inline=False
         )
@@ -77,5 +78,5 @@ class HelpCog(commands.Cog):
         await interaction.response.send_message("✅ 사용법 안내를 현재 채널에 게시했습니다.", ephemeral=True)
         await interaction.channel.send(embed=guide_embed)
 
-async def setup(bot: commands.Bot):
+async def setup(bot):
     await bot.add_cog(HelpCog(bot))

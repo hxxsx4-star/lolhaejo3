@@ -86,7 +86,7 @@ class LegendActionView(discord.ui.View):
         super().__init__(timeout=None)
         self.user_id = user_id
 
-    @discord.ui.button(label="먹이주기 (50P)", style=discord.ButtonStyle.secondary, emoji="🍗")
+    @discord.ui.button(label="먹이주기 (5P)", style=discord.ButtonStyle.secondary, emoji="🍗")
     async def feed_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id != self.user_id:
             return await interaction.response.send_message("남의 전설이에게는 간식을 줄 수 없습니다!", ephemeral=True)
@@ -96,19 +96,19 @@ class LegendActionView(discord.ui.View):
 
         if level == 0:
             return await interaction.response.send_message("알은 아직 간식을 먹을 수 없어요!", ephemeral=True)
-        if get_points(self.user_id) < 50:
-            return await interaction.response.send_message("포인트가 부족합니다! (필요: 50P)", ephemeral=True)
+        if get_points(self.user_id) < 5:
+            return await interaction.response.send_message("포인트가 부족합니다! (필요: 5P)", ephemeral=True)
         if fullness >= 100:
             return await interaction.response.send_message("배가 불러서 더 이상 먹을 수 없어요!", ephemeral=True)
 
-        spend_points(self.user_id, 50)
+        spend_points(self.user_id, 5)
         new_fullness = min(fullness + 20, 100)
         save_legend(self.user_id, name, rarity, level, exp, new_fullness, intimacy, fatigue)
 
         new_data = (name, rarity, level, exp, new_fullness, intimacy, fatigue, last_updated)
         embed = create_status_embed(interaction.user, new_data)
         await interaction.response.edit_message(embed=embed, view=self)
-        await interaction.followup.send("냠냠! 50P를 사용하여 포만감을 20 채웠습니다.", ephemeral=True)
+        await interaction.followup.send("냠냠! 5P를 사용하여 포만감을 20 채웠습니다.", ephemeral=True)
 
     # 산책 처리용 통합 로직
     async def handle_walk(self, interaction: discord.Interaction, count: int):
