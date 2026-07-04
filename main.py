@@ -36,6 +36,10 @@ class LegendBot(commands.Bot):
             except Exception as e:
                 print(f'🚨 {extension} 로드 실패: {e}')
 
+        # --- 👇 여기에 강제 동기화 코드를 추가합니다 👇 ---
+        synced = await self.tree.sync()
+        print(f"🌀 디스코드에 총 {len(synced)}개의 커맨드를 강제 동기화했습니다!")
+
 # --- 봇 인스턴스 생성 ---
 bot = LegendBot()
 
