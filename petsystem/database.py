@@ -1,119 +1,104 @@
 import sqlite3
-from datetime import datetime
+import time
 
 def init_db():
     conn = sqlite3.connect('legends.db')
     c = conn.cursor()
-    # 유저 기본 정보 (알 보유량)
     c.execute('''CREATE TABLE IF NOT EXISTS users
-                 (user_id INTEGER PRIMARY KEY, max_star_reached INTEGER,
-                  egg_legendary INTEGER, egg_mythic INTEGER, egg_prestige INTEGER)''')
-    # 펫 상세 스탯 (상태 시간 추적용 컬럼 추가)
+                 (user_id INTEGER PRIMARY KEY, points INTEGER, max_star_reached INTEGER,
+                 egg_legendary INTEGER, egg_mythic INTEGER, egg_prestige INTEGER)''')
     c.execute('''CREATE TABLE IF NOT EXISTS user_legends
                  (user_id INTEGER PRIMARY KEY, name TEXT, rarity TEXT,
-                  level INTEGER, exp INTEGER, fullness INTEGER, intimacy INTEGER, fatigue INTEGER, cleanliness INTEGER,
-                  last_updated INTEGER, last_fed INTEGER, last_cleaned INTEGER)''')
-    # 유저 아이템 인벤토리
+                 level INTEGER, exp INTEGER, fullness INTEGER, intimacy INTEGER, fatigue INTEGER,
+                 cleanliness INTEGER, low_clean_since REAL, low_full_since REAL)''')
     c.execute('''CREATE TABLE IF NOT EXISTS user_items
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, item_name TEXT, quantity INTEGER,
-                  UNIQUE(user_id, item_name))''')
-    # 유저 버프 상태
-    c.execute('''CREATE TABLE IF NOT EXISTS user_buffs
-                 (user_id INTEGER, buff_name TEXT, end_timestamp INTEGER,
-                  UNIQUE(user_id, buff_name))''')
+                 (user_id INTEGER, item_name TEXT, amount INTEGER,
+                 PRIMARY KEY (user_id, item_name))''')
+    c.execute('''CREATE TABLE IF NOT EXISTS active_buffs
+                 (user_id INTEGER, buff_name TEXT, expires_at REAL, vc_seconds_left REAL,
+                 PRIMARY KEY (user_id, buff_name))''')
     conn.commit()
     conn.close()
 
-# --- User Pet Data ---
-def get_user_pet_data(user_id):
+def get_user(user_id):
     conn = sqlite3.connect('legends.db')
     c = conn.cursor()
     c.execute("SELECT * FROM users WHERE user_id = ?", (user_id,))
     data = c.fetchone()
     if not data:
-        c.execute("INSERT INTO users VALUES (?, 0, 0, 0, 0)", (user_id,))
+        c.execute("INSERT INTO users VALUES (?, 3000, 0, 0, 0, 0)", (user_id,))
         conn.commit()
-        data = (user_id, 0, 0, 0, 0)
+        data = (user_id, 3000, 0, 0, 0, 0)
     conn.close()
     return data
 
-def update_user_egg(user_id, rarity, amount=1):
-    if rarity == "서사": return
-    column = {"전설": "egg_legendary", "신화": "egg_mythic", "프레스티지": "egg_prestige"}[rarity]
+def update_user_points(user_id, points_change):
     conn = sqlite3.connect('legends.db')
     c = conn.cursor()
-    c.execute(f"UPDATE users SET {column} = MAX(0, {column} + ?) WHERE user_id = ?", (amount, user_id))
+    c.execute("UPDATE users SET points = MAX(0, points + ?) WHERE user_id = ?", (points_change, user_id))
     conn.commit()
     conn.close()
 
-# --- Legend Data ---
-def get_legend(user_id):
+def get_legend_data(user_id):
     conn = sqlite3.connect('legends.db')
+    conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT * FROM user_legends WHERE user_id = ?", (user_id,))
-    data = c.fetchone()
+    row = c.fetchone()
     conn.close()
-    return data
+    return dict(row) if row else None
 
-def save_legend(user_id, name, rarity, level, exp, fullness, intimacy, fatigue, cleanliness, is_new=False):
+def save_legend_data(user_id, data: dict):
     conn = sqlite3.connect('legends.db')
     c = conn.cursor()
-    now = int(datetime.now().timestamp())
-    if is_new: # 새로 생성될 때만 last_fed, last_cleaned를 현재로
-        c.execute('''INSERT OR REPLACE INTO user_legends VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                  (user_id, name, rarity, level, exp, fullness, intimacy, fatigue, cleanliness, now, now, now))
-    else: # 업데이트 시에는 last_fed, last_cleaned는 유지
-        c.execute('''UPDATE user_legends SET name=?, rarity=?, level=?, exp=?, fullness=?, intimacy=?, fatigue=?, cleanliness=?, last_updated=?
-                     WHERE user_id=?''',
-                  (name, rarity, level, exp, fullness, intimacy, fatigue, cleanliness, now, user_id))
+    c.execute('''INSERT OR REPLACE INTO user_legends
+                 (user_id, name, rarity, level, exp, fullness, intimacy, fatigue,
+                  cleanliness, low_clean_since, low_full_since)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+              (user_id, data['name'], data['rarity'], data['level'], data['exp'],
+               data['fullness'], data['intimacy'], data['fatigue'],
+               data.get('cleanliness', 100), data.get('low_clean_since', 0), data.get('low_full_since', 0)))
     conn.commit()
     conn.close()
 
-def update_legend_specific(user_id, **kwargs):
-    """특정 스탯만 업데이트. 예: update_legend_specific(123, fullness=100, last_fed=167...)"""
+def add_item(user_id, item_name, amount=1):
     conn = sqlite3.connect('legends.db')
     c = conn.cursor()
-    
-    # last_updated는 항상 현재 시간으로 갱신
-    kwargs['last_updated'] = int(datetime.now().timestamp())
-    
-    set_clause = ', '.join([f"{key} = ?" for key in kwargs])
-    values = list(kwargs.values()) + [user_id]
-    
-    c.execute(f"UPDATE user_legends SET {set_clause} WHERE user_id = ?", values)
+    c.execute("INSERT INTO user_items (user_id, item_name, amount) VALUES (?, ?, ?) ON CONFLICT(user_id, item_name) DO UPDATE SET amount = amount + ?", (user_id, item_name, amount, amount))
     conn.commit()
     conn.close()
 
-
-def check_and_update_max_star(user_id, level):
-    user_data = get_user_pet_data(user_id)
-    if level > user_data[1]:
-        conn = sqlite3.connect('legends.db')
-        c = conn.cursor()
-        c.execute("UPDATE users SET max_star_reached = ? WHERE user_id = ?", (level, user_id))
-        conn.commit()
+def consume_item(user_id, item_name, amount=1) -> bool:
+    conn = sqlite3.connect('legends.db')
+    c = conn.cursor()
+    c.execute("SELECT amount FROM user_items WHERE user_id = ? AND item_name = ?", (user_id, item_name))
+    row = c.fetchone()
+    if not row or row[0] < amount:
         conn.close()
-
-# --- Item Data ---
-def get_user_items(user_id):
-    conn = sqlite3.connect('legends.db')
-    c = conn.cursor()
-    c.execute("SELECT item_name, quantity FROM user_items WHERE user_id = ? AND quantity > 0", (user_id,))
-    items = c.fetchall()
+        return False
+    c.execute("UPDATE user_items SET amount = amount - ? WHERE user_id = ? AND item_name = ?", (amount, user_id, item_name))
+    c.execute("DELETE FROM user_items WHERE amount <= 0")
+    conn.commit()
     conn.close()
-    return items
+    return True
 
-def add_user_item(user_id, item_name, quantity=1):
+def add_buff(user_id, buff_name, duration_sec=0, vc_sec=0):
     conn = sqlite3.connect('legends.db')
     c = conn.cursor()
-    c.execute("INSERT OR IGNORE INTO user_items (user_id, item_name, quantity) VALUES (?, ?, 0)", (user_id, item_name))
-    c.execute("UPDATE user_items SET quantity = quantity + ? WHERE user_id = ? AND item_name = ?", (quantity, user_id, item_name))
+    expires_at = time.time() + duration_sec if duration_sec > 0 else 0
+    c.execute('''INSERT OR REPLACE INTO active_buffs (user_id, buff_name, expires_at, vc_seconds_left)
+                 VALUES (?, ?, ?, ?)''', (user_id, buff_name, expires_at, vc_sec))
     conn.commit()
     conn.close()
 
-def remove_user_item(user_id, item_name, quantity=1):
+def get_active_buffs(user_id):
     conn = sqlite3.connect('legends.db')
     c = conn.cursor()
-    c.execute("UPDATE user_items SET quantity = MAX(0, quantity - ?) WHERE user_id = ? AND item_name = ?", (quantity, user_id, item_name))
+    now = time.time()
+    c.execute("DELETE FROM active_buffs WHERE expires_at > 0 AND expires_at < ?", (now,))
+    c.execute("DELETE FROM active_buffs WHERE expires_at = 0 AND vc_seconds_left <= 0")
     conn.commit()
+    c.execute("SELECT buff_name, expires_at, vc_seconds_left FROM active_buffs WHERE user_id = ?", (user_id,))
+    rows = c.fetchall()
     conn.close()
+    return rows
