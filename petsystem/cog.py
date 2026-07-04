@@ -19,12 +19,40 @@ class PetSystemCog(commands.Cog):
     async def get_debuffs(self, user_id, data):
         debuffs = []
         now_ts = int(datetime.now().timestamp())
-        if data and data[2] > 0: # level > 0
-            if (now_ts - data[10]) > 86400: debuffs.append("짜증") # last_fed
-            if (now_ts - data[11]) > 86400: debuffs.append("질병") # last_cleaned
+        if data and data[3] > 0: # level > 0
+            if (now_ts - data[10]) > 86400: debuffs.append("짜증")
+            if (now_ts - data[11]) > 86400: debuffs.append("질병")
         return debuffs
 
-    # --- Listeners for UI events ---
+    async def process_pet_state(self, user_id):
+        data = get_legend(user_id)
+        if not data: return None, []
+        
+        now = datetime.now()
+        now_ts = int(now.timestamp())
+        
+        name, rarity, level, exp, fullness, intimacy, fatigue, cleanliness, last_updated, last_fed, last_cleaned = data
+        
+        elapsed_minutes = (now_ts - last_updated) // 60
+        if elapsed_minutes > 0:
+            fatigue = max(0, fatigue - elapsed_minutes)
+            
+            exp_multiplier = 1
+            if intimacy >= 80: exp_multiplier *= 2
+            
+            exp += int(elapsed_minutes * exp_multiplier)
+            
+            max_exp = EXP_TABLE[rarity].get(level, 0)
+            if level < 3 and max_exp > 0 and exp >= max_exp:
+                level += 1
+                exp = 0
+                check_and_update_max_star(user_id, level)
+            
+            update_legend_specific(user_id, exp=exp, fatigue=fatigue, last_updated=now_ts)
+
+        debuffs = await self.get_debuffs(user_id, get_legend(user_id))
+        return get_legend(user_id), debuffs
+
     @commands.Cog.listener()
     async def on_legend_action(self, interaction: discord.Interaction, action_type: str):
         user_id = interaction.user.id
@@ -37,71 +65,83 @@ class PetSystemCog(commands.Cog):
                 return await interaction.response.send_message(f"비용이 부족합니다! (필요: {cost}P)", ephemeral=True)
             spend_points(user_id, cost)
             update_legend_specific(user_id, cleanliness=100, last_cleaned=int(datetime.now().timestamp()))
-            await interaction.response.edit_message(embed=create_status_embed(interaction.user, get_legend(user_id), debuffs))
-            await interaction.followup.send(f"뽀득뽀득! {cost}P를 사용하여 전설이를 씻겼습니다.", ephemeral=True)
+            await interaction.message.edit(embed=create_status_embed(interaction.user, get_legend(user_id), await self.get_debuffs(user_id, get_legend(user_id))))
+            await interaction.response.send_message(f"뽀득뽀득! {cost}P를 사용하여 전설이를 씻겼습니다.", ephemeral=True)
         
         elif action_type == "feed":
             cost = 10 if "짜증" in debuffs else 5
             if get_points(user_id) < cost:
                 return await interaction.response.send_message(f"비용이 부족합니다! (필요: {cost}P)", ephemeral=True)
-            if data[5] >= 100: # fullness
+            if data[5] >= 100:
                 return await interaction.response.send_message("배가 불러서 더 이상 먹을 수 없어요!", ephemeral=True)
             spend_points(user_id, cost)
             update_legend_specific(user_id, fullness=min(data[5] + 20, 100), last_fed=int(datetime.now().timestamp()))
-            await interaction.response.edit_message(embed=create_status_embed(interaction.user, get_legend(user_id), debuffs))
-            await interaction.followup.send(f"냠냠! {cost}P를 사용하여 포만감을 20 채웠습니다.", ephemeral=True)
+            await interaction.message.edit(embed=create_status_embed(interaction.user, get_legend(user_id), await self.get_debuffs(user_id, get_legend(user_id))))
+            await interaction.response.send_message(f"냠냠! {cost}P를 사용하여 포만감을 20 채웠습니다.", ephemeral=True)
 
         elif action_type == "walk":
             if "짜증" in debuffs:
-                return await interaction.followup.send("전설이가 짜증이 나서 산책에 응하지 않습니다...", ephemeral=True)
-            # ... (산책 로직) ...
-            gained_pts, lost_pts, drops = 0, 0, {rarity: 0 for rarity in SELL_PRICES.keys()}
-            # ... (산책 결과 계산) ...
-            add_user_item(user_id, "서사급 아이템", 1) # 예시
-            await interaction.followup.send("산책 결과...", ephemeral=True)
-
-
-    @commands.Cog.listener()
-    async def on_legend_item_use(self, interaction: discord.Interaction, item_name: str):
-        user_id = interaction.user.id
-        # ... (아이템 사용 로직) ...
-        remove_user_item(user_id, item_name, 1)
-        await interaction.followup.send(f"{item_name}을(를) 사용했습니다!", ephemeral=True)
-
-    # ... (기존 나머지 코드) ...
-
-    @app_commands.command(name="전설이목록", description="게임에 등장하는 모든 전설이의 종류를 확인합니다.")
-    async def pet_list(self, interaction: discord.Interaction):
-        embed = discord.Embed(title="🐾 전설이 도감", color=0x7289da)
-        for rarity, pets in PET_POOLS.items():
-            embed.add_field(name=f"**{rarity}**", value="- " + "\n- ".join(pets), inline=False)
-        await interaction.response.send_message(embed=embed)
-
-    @app_commands.command(name="아이템목록", description="게임에 등장하는 모든 아이템의 정보를 확인합니다.")
-    async def item_list(self, interaction: discord.Interaction):
-        embed = discord.Embed(title="💎 아이템 도감", color=0x7289da)
-        for name, data in SHOP_ITEMS.items():
-            embed.add_field(name=f"**{name}** ({data['rarity']})", value=data['description'], inline=False)
-        await interaction.response.send_message(embed=embed)
-
-    @app_commands.command(name="판매", description="보유한 아이템을 판매하여 포인트를 얻습니다.")
-    async def sell_item(self, interaction: discord.Interaction, 아이템: str):
-        user_id = interaction.user.id
-        user_items = dict(get_user_items(user_id))
-        
-        if 아이템 not in user_items or user_items[아이템] <= 0:
-            return await interaction.response.send_message("해당 아이템을 보유하고 있지 않습니다.", ephemeral=True)
+                return await interaction.response.send_message("전설이가 짜증이 나서 산책에 응하지 않습니다...", ephemeral=True)
             
-        item_rarity = SHOP_ITEMS.get(아이템, {}).get("rarity")
-        if not item_rarity:
-            return await interaction.response.send_message("알 수 없는 아이템입니다.", ephemeral=True)
+            # 산책 로직
+            gained_pts, drops = 0, {}
+            for _ in range(10): # 10회 산책 기준
+                rand = random.uniform(0, 100)
+                if rand < 10: # 서사 아이템
+                    item = random.choice([k for k, v in SHOP_ITEMS.items() if v['rarity'] == '서사'])
+                    drops[item] = drops.get(item, 0) + 1
+                elif rand < 11: # 전설 아이템
+                    item = random.choice([k for k, v in SHOP_ITEMS.items() if v['rarity'] == '전설'])
+                    drops[item] = drops.get(item, 0) + 1
+                # ... 신화, 프레스티지 확률 추가
             
-        sell_price = SELL_PRICES[item_rarity]
+            for item, qty in drops.items():
+                add_user_item(user_id, item, qty)
+            
+            update_legend_specific(user_id, fatigue=min(data[7] + 10, 100))
+            await interaction.message.edit(embed=create_status_embed(interaction.user, get_legend(user_id), await self.get_debuffs(user_id, get_legend(user_id))))
+            await interaction.response.send_message(f"산책 결과... {drops}", ephemeral=True)
+
+    @app_commands.command(name="알까기", description="새로운 전설이 알을 뽑습니다.")
+    async def hatch_egg(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+        # ... (알까기 로직) ...
+        await interaction.followup.send("알을 획득했습니다!")
+
+    @app_commands.command(name="상태창", description="내 전설이의 상태를 확인하고 돌봅니다.")
+    async def status_window(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+        data, debuffs = await self.process_pet_state(interaction.user.id)
+        if not data:
+            return await interaction.followup.send("아직 전설이가 없습니다. `/알까기`로 시작해주세요.", ephemeral=True)
         
-        remove_user_item(user_id, 아이템, 1)
-        add_points(user_id, sell_price)
+        embed = create_status_embed(interaction.user, data, debuffs)
+        view = LegendActionView(interaction.user, debuffs)
+        await interaction.followup.send(embed=embed, view=view)
+
+    @app_commands.command(name="보관함", description="보유 중인 알과 아이템을 확인합니다.")
+    async def inventory(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        items = get_user_items(interaction.user.id)
+        embed = discord.Embed(title=f"📦 {interaction.user.display_name}님의 보관함")
         
-        await interaction.response.send_message(f"`{아이템}` 1개를 판매하여 {sell_price}P를 얻었습니다!", ephemeral=True)
+        item_list = "\n".join([f"- {name} ({qty}개)" for name, qty in items]) or "보유한 아이템이 없습니다."
+        embed.add_field(name="아이템", value=item_list)
+        
+        view = ItemUseView(self.bot, interaction.user.id, items)
+        await interaction.followup.send(embed=embed, view=view)
+
+    @app_commands.command(name="알지급", description="[관리자] 유저에게 알을 지급합니다.")
+    @app_commands.default_permissions(administrator=True)
+    async def admin_give_egg(self, interaction: discord.Interaction, user: discord.Member, rarity: str, amount: int = 1):
+        # ... (알지급 로직) ...
+        await interaction.response.send_message(f"{user.mention}에게 {rarity} 알 {amount}개를 지급했습니다.", ephemeral=True)
+
+    @app_commands.command(name="알회수", description="[관리자] 유저의 알을 회수합니다.")
+    @app_commands.default_permissions(administrator=True)
+    async def admin_take_egg(self, interaction: discord.Interaction, user: discord.Member, rarity: str, amount: int = 1):
+        # ... (알회수 로직) ...
+        await interaction.response.send_message(f"{user.mention}의 {rarity} 알 {amount}개를 회수했습니다.", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(PetSystemCog(bot))
