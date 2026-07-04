@@ -8,12 +8,8 @@ class HelpCog(commands.Cog):
 
     @app_commands.command(name="도움말", description="봇의 모든 명령어를 확인합니다.")
     async def help_command(self, interaction: discord.Interaction):
-        embed = discord.Embed(
-            title="🎲 꼬물이 봇 도움말 🎲",
-            description="봇이 제공하는 모든 명령어 목록입니다.",
-            color=discord.Color.blue()
-        )
-        embed.set_thumbnail(url=self.bot.user.avatar.url if self.bot.user.avatar else None)
+        embed = discord.Embed(title="🎲 꼬물이 봇 도움말 🎲", color=discord.Color.blue())
+        embed.set_thumbnail(url=self.bot.user.avatar.url)
 
         embed.add_field(
             name="🐾 전설이 키우기",
@@ -30,7 +26,7 @@ class HelpCog(commands.Cog):
             inline=False
         )
         embed.add_field(
-            name="🎉 기타 명령어",
+            name="🎉 기타",
             value="`/가챠 라인`: LOL 라인을 무작위로 뽑습니다.\n"
                   "`/가챠 챔피언`: LOL 챔피언을 무작위로 뽑습니다.\n",
             inline=False
@@ -38,24 +34,21 @@ class HelpCog(commands.Cog):
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @app_commands.command(name="사용법게시", description="[관리자 전용] 채널에 펫 시스템 사용법 안내를 게시합니다.")
+    @app_commands.command(name="사용법게시", description="[관리자] 채널에 펫 시스템 사용법 안내를 게시합니다.")
     @app_commands.default_permissions(manage_guild=True)
     async def post_guide(self, interaction: discord.Interaction):
-        guide_embed = discord.Embed(
-            title="🐾 꼬물이 키우기 가이드 🐾",
-            description="나만의 작은 전설이를 키워 3성으로 진화시켜보세요!",
-            color=discord.Color.gold()
-        )
-        guide_embed.add_field(
-            name="3️⃣ 전설이 돌보기: `/상태창`",
-            value="`/상태창` 명령어로 내 전설이의 상태를 확인하고, 버튼을 눌러 돌봐줄 수 있습니다.\n"
-                  "🚿 **샤워하기**: 10P를 사용하여 청결도를 채웁니다. (질병 시 20P)\n"
-                  "🍖 **간식 주기**: 5P를 사용하여 포만감을 채웁니다. (짜증 시 10P)\n"
-                  "🌲 **산책하기**: 포인트를 얻거나 잃으며, 낮은 확률로 **아이템**이나 **상위 등급의 알**을 줍습니다!",
-            inline=False
-        )
-        # ... (기존 다른 필드들) ...
-        await interaction.channel.send(embed=guide_embed)
+        guide = discord.Embed(title="🐾 꼬물이 키우기 가이드 🐾", color=discord.Color.gold())
+        guide.set_thumbnail(url="https://i.imgur.com/lJ4A637.png")
+        
+        guide.add_field(name="1️⃣ 시작하기", value="`/알까기`로 첫 전설이 알을 받으세요. 음성 채널에 접속해 경험치를 모으면 알이 부화합니다.", inline=False)
+        guide.add_field(name="2️⃣ 돌보기", value="`/상태창`에서 펫을 돌보세요.\n"
+                                              "🚿 **샤워 (10P)**: 청결도를 회복합니다. 24시간 방치 시 `질병` 상태가 되어 비용이 2배가 됩니다.\n"
+                                              "🍗 **먹이주기 (5P)**: 포만감을 회복합니다. 24시간 방치 시 `짜증` 상태가 되어 비용이 2배가 되고 산책을 거부합니다.\n"
+                                              "🌲 **산책 (10P)**: 피로도와 친밀도가 오르며, 낮은 확률로 아이템이나 희귀 알을 발견합니다.", inline=False)
+        guide.add_field(name="3️⃣ 성장과 버프", value="음성 채널에 접속하면 시간이 지남에 따라 경험치가 오릅니다. 친밀도가 높으면 경험치 획득량이 **2배**가 됩니다. 3성을 달성하면 새로운 알을 뽑을 수 있습니다.", inline=False)
+        guide.add_field(name="4️⃣ 아이템", value="`/보관함`에서 아이템을 확인하고 사용할 수 있습니다. `/판매` 명령어로 아이템을 팔아 포인트를 얻을 수도 있습니다.", inline=False)
+
+        await interaction.channel.send(embed=guide)
         await interaction.response.send_message("✅ 사용법 안내를 현재 채널에 게시했습니다.", ephemeral=True)
 
 async def setup(bot):

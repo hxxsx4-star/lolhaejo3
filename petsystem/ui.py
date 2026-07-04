@@ -24,7 +24,7 @@ def create_status_embed(member: discord.Member, legend_data, debuffs, points):
         exp_text = "MAX" if level >= 3 else f"{exp_percent}%"
 
         desc += f"**경험치** {exp_bar} ({exp_text})\n\n"
-
+        
         fullness_icon = "🤢" if "짜증" in debuffs else ("😊" if fullness > 50 else "😐")
         intimacy_icon = "💖" if intimacy > 50 else "🙂"
         fatigue_icon = "😴" if fatigue > 50 else "😐"
@@ -47,10 +47,17 @@ class LegendActionView(discord.ui.View):
         shower_cost = 20 if "질병" in debuffs else 10
         feed_cost = 10 if "짜증" in debuffs else 5
 
-        # 버튼 라벨 동적 설정
+        # 버튼 라벨을 동적으로 변경
         self.children[0].label = f"샤워 ({shower_cost}P)"
         self.children[1].label = f"먹이주기 ({feed_cost}P)"
         # 산책 버튼들은 고정 비용이므로 그대로 둠
+
+    async def dispatch_action(self, interaction, action_type, count=None):
+        if interaction.user.id != self.user_id:
+            return await interaction.response.send_message("다른 사람의 전설이를 돌볼 수 없습니다!", ephemeral=True)
+        # Cog에 이벤트 전달
+        self.bot.dispatch("legend_action", interaction, action_type, count)
+        await interaction.response.defer()
 
     @discord.ui.button(label="샤워 (10P)", style=discord.ButtonStyle.primary, emoji="🚿")
     async def shower_button(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -71,12 +78,6 @@ class LegendActionView(discord.ui.View):
     @discord.ui.button(label="100회 산책 (1000P)", style=discord.ButtonStyle.success, emoji="🌴")
     async def walk_100_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.dispatch_action(interaction, "walk", 100)
-
-    async def dispatch_action(self, interaction, action_type, count=None):
-        if interaction.user.id != self.user_id:
-            return await interaction.response.send_message("다른 사람의 전설이를 돌볼 수 없습니다!", ephemeral=True)
-        self.bot.dispatch("legend_action", interaction, action_type, count)
-        await interaction.response.defer()
 
 class ItemSelect(discord.ui.Select):
     def __init__(self, items):
