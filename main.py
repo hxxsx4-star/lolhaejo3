@@ -22,7 +22,8 @@ extensions = [
     # 'cogs.seotda',
     # 'cogs.economy',
     'cogs.help',
-    'cogs.sync'  # 동기화 Cog 추가
+    'cogs.sync',  # 동기화 Cog 추가
+    'petsystem' # 펫 시스템 Cog 추가
 ]
 
 # --- 봇 이벤트 ---
