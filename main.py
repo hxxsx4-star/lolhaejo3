@@ -4,7 +4,7 @@ import configparser
 import asyncio
 
 # DB 초기화 함수 임포트
-from database import init_db
+from cogs.petsystem.database import init_db
 
 # --- 설정 로드 ---
 config = configparser.ConfigParser()
