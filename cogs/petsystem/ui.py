@@ -2,10 +2,14 @@ import discord
 import time
 from .data import ITEMS_INFO, EXP_TABLE
 from .database import (
-    consume_item, update_user_points, add_buff,
+    consume_item, add_buff,
     get_legend_data, save_legend_data, get_user,
     get_active_buffs, add_item
 )
+# 기존 .database의 update_user_points 대신 메인 봇의 stats 모듈을 불러옵니다.
+# (경로는 실제 폴더 구조에 맞게 수정해야 할 수 있습니다.)
+from utils.stats import get_points, add_points
+
 
 def create_status_embed(member: discord.Member, pet_data, user_points, buffs, is_annoyed, is_diseased):
     is_egg = (pet_data['level'] == 0)
@@ -15,21 +19,28 @@ def create_status_embed(member: discord.Member, pet_data, user_points, buffs, is
     star_text = "🥚 부화 대기 중" if is_egg else f"{level}성"
 
     health_status = "보통 🟢"
-    if is_egg: health_status = "알 🥚"
-    elif is_diseased: health_status = "질병 🔴 (비용 2배! 샤워 필요)"
-    elif pet_data.get('cleanliness', 100) <= 20: health_status = "지저분 🟠"
+    if is_egg:
+        health_status = "알 🥚"
+    elif is_diseased:
+        health_status = "질병 🔴 (비용 2배! 샤워 필요)"
+    elif pet_data.get('cleanliness', 100) <= 20:
+        health_status = "지저분 🟠"
 
     mood_status = "행복 😊"
-    if is_egg: mood_status = "알 🥚"
-    elif is_annoyed: mood_status = "짜증 💢 (산책 거부, 식비 2배!)"
-    elif pet_data['fullness'] <= 20: mood_status = "배고픔 🟠"
+    if is_egg:
+        mood_status = "알 🥚"
+    elif is_annoyed:
+        mood_status = "짜증 💢 (산책 거부, 식비 2배!)"
+    elif pet_data['fullness'] <= 20:
+        mood_status = "배고픔 🟠"
 
     buff_text = "적용중인 버프: " + (", ".join(buffs) if buffs else "없음")
 
     embed = discord.Embed(
         title=f"{member.display_name}님의 {display_name} 상태창",
         description=f"등급: {rarity} | 보유 포인트: {user_points:,} P\n{buff_text}",
-        color=discord.Color.purple() if rarity == "서사" else (discord.Color.red() if rarity == "전설" else discord.Color.gold())
+        color=discord.Color.purple() if rarity == "서사" else (
+            discord.Color.red() if rarity == "전설" else discord.Color.gold())
     )
     embed.set_thumbnail(url=member.display_avatar.url)
 
@@ -50,11 +61,14 @@ def create_status_embed(member: discord.Member, pet_data, user_points, buffs, is
 
     if not is_egg:
         f_val = pet_data['fullness'] // 10
-        embed.add_field(name=f"🍖 포만감 ({pet_data['fullness']}/100)", value="🟧" * f_val + "⬜" * (10 - f_val), inline=False)
+        embed.add_field(name=f"🍖 포만감 ({pet_data['fullness']}/100)", value="🟧" * f_val + "⬜" * (10 - f_val),
+                        inline=False)
         c_val = pet_data.get('cleanliness', 100) // 10
-        embed.add_field(name=f"🚿 청결도 ({pet_data.get('cleanliness', 100)}/100)", value="🟦" * c_val + "⬜" * (10 - c_val), inline=False)
+        embed.add_field(name=f"🚿 청결도 ({pet_data.get('cleanliness', 100)}/100)", value="🟦" * c_val + "⬜" * (10 - c_val),
+                        inline=False)
 
     return embed
+
 
 class InventoryView(discord.ui.View):
     def __init__(self, user_id, items_dict):
@@ -63,8 +77,9 @@ class InventoryView(discord.ui.View):
         self.items = items_dict
         self.selected_item = None
 
-        options = [discord.SelectOption(label=f"{name} (보유: {amount}개)", value=name, description=ITEMS_INFO[name]["desc"][:50])
-                   for name, amount in items_dict.items()]
+        options = [
+            discord.SelectOption(label=f"{name} (보유: {amount}개)", value=name, description=ITEMS_INFO[name]["desc"][:50])
+            for name, amount in items_dict.items()]
         if not options:
             options.append(discord.SelectOption(label="사용할 아이템이 없습니다.", value="no_item"))
 
@@ -85,7 +100,8 @@ class InventoryView(discord.ui.View):
 
         view = discord.ui.View()
         view.add_item(btn)
-        await interaction.response.edit_message(content=f"선택됨: {self.selected_item}\n{ITEMS_INFO[self.selected_item]['desc']}", view=view)
+        await interaction.response.edit_message(
+            content=f"선택됨: {self.selected_item}\n{ITEMS_INFO[self.selected_item]['desc']}", view=view)
 
     async def use_callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.user_id: return
@@ -95,7 +111,8 @@ class InventoryView(discord.ui.View):
             msg = f"✅ `{self.selected_item}` 아이템을 사용했습니다!"
             if "포인트 교환권" in self.selected_item:
                 pts = int(self.selected_item.split("포인트")[0])
-                await update_user_points(self.user_id, pts)
+                # 메인 봇의 포인트 추가 함수 사용
+                await add_points(self.user_id, pts)
                 msg += f"\n포인트 {pts}P를 얻었습니다."
             elif "부스터" in self.selected_item:
                 await add_buff(self.user_id, self.selected_item, vc_sec=10800)
@@ -109,6 +126,7 @@ class InventoryView(discord.ui.View):
             await interaction.response.edit_message(content=msg, view=None, embed=None)
         else:
             await interaction.response.send_message("아이템이 부족합니다.", ephemeral=True)
+
 
 class LegendActionView(discord.ui.View):
     def __init__(self, user_id):
@@ -139,8 +157,8 @@ class LegendActionView(discord.ui.View):
         if not data or data['level'] == 0:
             return await interaction.response.send_message("전설이가 알 상태이거나 존재하지 않습니다.", ephemeral=True)
 
-        user_info = await get_user(self.user_id)
-        current_points = user_info[1]
+        # 메인 봇의 포인트를 불러옵니다.
+        current_points = await get_points(self.user_id)
 
         now = time.time()
         is_annoyed = (data.get('low_full_since', 0) > 0 and now - data.get('low_full_since', 0) >= 86400)
@@ -152,13 +170,14 @@ class LegendActionView(discord.ui.View):
             if data['fullness'] >= 100:
                 return await interaction.response.send_message("전설이가 이미 배가 부릅니다!", ephemeral=True)
 
-            cost = 100 if is_annoyed else 50 # 짜증 상태면 식비 2배
+            cost = 100 if is_annoyed else 50  # 짜증 상태면 식비 2배
             if current_points < cost:
                 return await interaction.response.send_message(f"포인트가 부족합니다! (필요: {cost}P)", ephemeral=True)
 
-            await update_user_points(self.user_id, -cost)
+            # 포인트 차감 (add_points에 음수 값을 전달)
+            await add_points(self.user_id, -cost)
             data['fullness'] = min(100, data['fullness'] + 30)
-            data['low_full_since'] = 0 # 배고픔 시간 초기화
+            data['low_full_since'] = 0  # 배고픔 시간 초기화
             msg = f"🍖 밥을 먹였습니다! (포만감 +30, -{cost}P)"
             if is_annoyed: msg += "\n💢 전설이의 짜증이 풀렸습니다!"
 
@@ -166,13 +185,14 @@ class LegendActionView(discord.ui.View):
             if data.get('cleanliness', 100) >= 100:
                 return await interaction.response.send_message("전설이가 이미 깨끗합니다!", ephemeral=True)
 
-            cost = 100 if is_diseased else 50 # 질병 상태면 비용 2배
+            cost = 100 if is_diseased else 50  # 질병 상태면 비용 2배
             if current_points < cost:
                 return await interaction.response.send_message(f"포인트가 부족합니다! (필요: {cost}P)", ephemeral=True)
 
-            await update_user_points(self.user_id, -cost)
+            # 포인트 차감
+            await add_points(self.user_id, -cost)
             data['cleanliness'] = 100
-            data['low_clean_since'] = 0 # 지저분함 시간 초기화
+            data['low_clean_since'] = 0  # 지저분함 시간 초기화
             msg = f"🚿 깨끗하게 씻겼습니다! (청결도 MAX, -{cost}P)"
             if is_diseased: msg += "\n🔴 전설이의 질병이 치료되었습니다!"
 
@@ -182,8 +202,9 @@ class LegendActionView(discord.ui.View):
         # 엠베드 갱신
         active_buffs = await get_active_buffs(self.user_id)
         buffs = {b[0] for b in active_buffs}
-        new_user_info = await get_user(self.user_id)
-        new_points = new_user_info[1]
+
+        # 갱신된 메인 봇 포인트 불러오기
+        new_points = await get_points(self.user_id)
 
         is_annoyed_now = (data.get('low_full_since', 0) > 0 and now - data.get('low_full_since', 0) >= 86400)
         is_diseased_now = (data.get('low_clean_since', 0) > 0 and now - data.get('low_clean_since', 0) >= 86400)
@@ -209,8 +230,8 @@ class LegendActionView(discord.ui.View):
         if is_annoyed:
             return await interaction.response.send_message("전설이가 짜증이 나서 산책을 거부합니다! (밥을 먼저 주세요)", ephemeral=True)
 
-        user_info = await get_user(self.user_id)
-        current_points = user_info[1]
+        # 메인 봇의 포인트를 불러옵니다.
+        current_points = await get_points(self.user_id)
         active_buffs = await get_active_buffs(self.user_id)
         buffs = {b[0] for b in active_buffs}
 
@@ -225,7 +246,7 @@ class LegendActionView(discord.ui.View):
                 used_discount = True
 
         if current_points < cost:
-            if used_discount: await add_item(self.user_id, "100회 산책 할인권", 1) # 아이템 환불
+            if used_discount: await add_item(self.user_id, "100회 산책 할인권", 1)  # 아이템 환불
             return await interaction.response.send_message(f"포인트가 부족합니다! (필요: {cost}P)", ephemeral=True)
 
         # --- 신규 산책 로직 (20회당 1칸(10 포인트)) ---
@@ -247,11 +268,11 @@ class LegendActionView(discord.ui.View):
         # 경험치 계산 (1회당 100 예시)
         exp_gain = 100 * count
         exp_multiplier = 1
-        if data['intimacy'] >= 80: exp_multiplier *= 2 # 친밀도 높으면 2배
+        if data['intimacy'] >= 80: exp_multiplier *= 2  # 친밀도 높으면 2배
         total_exp = int(exp_gain * exp_multiplier)
 
-        # DB 및 데이터에 수치 적용
-        await update_user_points(self.user_id, -cost)
+        # 메인 봇 포인트 차감
+        await add_points(self.user_id, -cost)
         data['exp'] += total_exp
 
         data['fullness'] = max(0, data['fullness'] - full_decrease)
@@ -283,9 +304,8 @@ class LegendActionView(discord.ui.View):
         if leveled_up:
             msg += f"\n🎉 축하합니다! 전설이가 {data['level']}성으로 레벨업했습니다!"
 
-        # 엠베드 갱신
-        new_user_info = await get_user(self.user_id)
-        new_points = new_user_info[1]
+        # 엠베드 갱신 시 갱신된 메인 봇 포인트 불러오기
+        new_points = await get_points(self.user_id)
         is_diseased = (data.get('low_clean_since', 0) > 0 and now - data.get('low_clean_since', 0) >= 86400)
 
         embed = create_status_embed(interaction.user, data, new_points, buffs, is_annoyed, is_diseased)
