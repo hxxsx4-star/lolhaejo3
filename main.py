@@ -23,7 +23,7 @@ extensions = [
     # 'cogs.economy',
     'cogs.help',
     'cogs.sync',  # 동기화 Cog 추가
-    'petsystem' # 펫 시스템 Cog 추가
+    'petsystem.cog' # 펫 시스템 Cog 경로 수정
 ]
 
 # --- 봇 이벤트 ---
