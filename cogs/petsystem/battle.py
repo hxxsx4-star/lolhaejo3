@@ -4,7 +4,7 @@ from discord import app_commands
 import asyncio
 import random
 from cogs.petsystem.database import get_or_migrate_data
-from utils.stats import get_points, add_points, spend_points # 💡 포인트 함수 연동
+from utils.stats import get_points, add_points, spend_points
 
 active_battles = {}
 
@@ -102,8 +102,8 @@ class BattleCog(commands.Cog):
             loser = 상대 if is_challenger_win else interaction.user
             w_pet = c_pet['name'] if is_challenger_win else t_pet['name']
 
-            # 💡 [중요] 포인트 변동 적용 (100 ~ 1000 사이)
-            bet_points = random.randint(100, 1000)
+            # 💡 [수정됨] 배틀 보상/차감을 10포인트로 고정
+            bet_points = 10
 
             # 승자 보상
             await add_points(winner.id, bet_points)
