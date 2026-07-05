@@ -4,11 +4,7 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f1982c64-012d-4ef1-a9cd-954fbe80761a" name="변경" comment="디버깅">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cogs/petsystem/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/petsystem/data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cogs/petsystem/ui_action.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/petsystem/ui_action.py" afterDir="false" />
-    </list>
+    <list default="true" id="f1982c64-012d-4ef1-a9cd-954fbe80761a" name="변경" comment="디버깅" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -147,15 +143,7 @@
       <workItem from="1783082148064" duration="37160000" />
       <workItem from="1783249688743" duration="76000" />
       <workItem from="1783249778143" duration="5173000" />
-      <workItem from="1783264957959" duration="7426000" />
-    </task>
-    <task id="LOCAL-00011" summary="기본 세팅">
-      <option name="closed" value="true" />
-      <created>1783153748750</created>
-      <option name="number" value="00011" />
-      <option name="presentableId" value="LOCAL-00011" />
-      <option name="project" value="LOCAL" />
-      <updated>1783153748750</updated>
+      <workItem from="1783264957959" duration="7888000" />
     </task>
     <task id="LOCAL-00012" summary="기본 세팅">
       <option name="closed" value="true" />
@@ -541,7 +529,15 @@
       <option name="project" value="LOCAL" />
       <updated>1783271112257</updated>
     </task>
-    <option name="localTasksCounter" value="60" />
+    <task id="LOCAL-00060" summary="디버깅">
+      <option name="closed" value="true" />
+      <created>1783278032782</created>
+      <option name="number" value="00060" />
+      <option name="presentableId" value="LOCAL-00060" />
+      <option name="project" value="LOCAL" />
+      <updated>1783278032782</updated>
+    </task>
+    <option name="localTasksCounter" value="61" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

@@ -189,8 +189,6 @@ class LegendActionView(discord.ui.View):
             else:
                 data['fatigue'] = min(100, data.get('fatigue', 0) + (20 * stat_triggers))
 
-        lost_points = 0
-        lose_count = 0
         found_eggs = []
         found_items = []
 
@@ -199,11 +197,9 @@ class LegendActionView(discord.ui.View):
         mythic_items = [k for k, v in ITEMS_INFO.items() if v['rarity'] == '신화']
         prestige_items = [k for k, v in ITEMS_INFO.items() if v['rarity'] == '프레스티지']
 
-        for _ in range(num_walks):
-            if random.random() < 0.50:
-                lost_points += 45
-                lose_count += 1
+        # 💡 포인트 손실 관련 로직 삭제됨 (lost_points, lose_count 제거)
 
+        for _ in range(num_walks):
             r_egg = random.random()
             if r_egg < 0.0001: found_eggs.append("프레스티지")
             elif r_egg < 0.0021: found_eggs.append("신화")
@@ -241,16 +237,6 @@ class LegendActionView(discord.ui.View):
             if data.get('level', 0) >= 3:
                 await update_max_star(user_id, 3)
 
-        # 💡 포인트 차감 로직 (획득이 없으므로 항상 마이너스)
-        net_points = -lost_points
-        if net_points < 0:
-            deduct_amount = abs(net_points)
-            current_user_points = await get_points(user_id)
-            if current_user_points < deduct_amount:
-                await spend_points(user_id, current_user_points) # 가진 돈 전부 차감 (마이너스 방지)
-            else:
-                await spend_points(user_id, deduct_amount)
-
         for egg in found_eggs: await add_item(user_id, f"{egg}급 알", 1)
         for rarity, item_name in found_items: await add_item(user_id, item_name, 1)
 
@@ -265,16 +251,6 @@ class LegendActionView(discord.ui.View):
         if gained_exp > 0:
             desc += f"📈 산책을 하며 경험치를 얻었다! (+{gained_exp} XP)\n"
 
-        if num_walks == 1:
-            if lose_count: desc += f"💩 산책하다가 똥을 밟았다.. (-{lost_points}P)\n"
-        else:
-            if lose_count: desc += f"💩 산책하다가 똥을 밟았다.. ({lose_count}번, -{lost_points}P)\n"
-
-        if lost_points > 0:
-            desc += f"*(정산 결과: -{lost_points}P)*\n"
-        else:
-            desc += f"*(정산 결과: 추가 포인트 소모 없음)*\n"
-
         for egg in found_eggs: desc += f"🥚 {egg}급 알을 발견했다!\n"
         for rarity, item_name in found_items: desc += f"🎁 {rarity}급 아이템 [{item_name}]을 발견했다!\n"
         if stat_msg: desc += f"\n{stat_msg}"
@@ -287,7 +263,6 @@ class LegendActionView(discord.ui.View):
 
         log_desc = f"🐾 {data['name']} 산책\n💸 소모 유지비: -{cost}P\n"
         if gained_exp > 0: log_desc += f"📈 획득 경험치: +{gained_exp} XP\n"
-        if lost_points > 0: log_desc += f"💩 잃은 포인트: -{lost_points}P\n"
         if found_eggs: log_desc += f"🥚 획득한 알: {', '.join(found_eggs)}급 알\n"
         if found_items: log_desc += f"🎁 획득한 아이템: {', '.join([i[1] for i in found_items])}\n"
 

@@ -185,7 +185,8 @@ class PetSystemCog(commands.Cog):
 
         if not is_first_time: await add_points(user_id, -cost) # 💡 연동
 
-        rarity = "서사" if is_first_time else random.choices(list(PET_POOLS.keys()), weights=[85, 14, 0.9, 0.1], k=1)[0]
+        # 💡 [수정됨] 첫 알까기도 가챠 확률과 동일하게 적용
+        rarity = random.choices(list(PET_POOLS.keys()), weights=[85, 14, 0.9, 0.1], k=1)[0]
         pet_type = random.choice(PET_POOLS[rarity])
 
         new_pet_data = {
