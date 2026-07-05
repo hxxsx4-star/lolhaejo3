@@ -12,7 +12,7 @@ class AdminCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    # 💡 [추가됨] 권한 부족 시 오류를 잡아내서 깔끔하게 안내하는 핸들러
+    # 💡 권한 부족 시 오류를 잡아내서 깔끔하게 안내하는 핸들러
     async def cog_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.MissingPermissions):
             await interaction.response.send_message("❌ 이 명령어를 사용할 수 있는 관리자 권한이 없습니다.", ephemeral=True)
@@ -21,7 +21,7 @@ class AdminCog(commands.Cog):
 
     @app_commands.command(name="알지급", description="[관리자] 유저에게 특정 등급의 알을 지급합니다.")
     @app_commands.default_permissions(administrator=True)
-    @app_commands.checks.has_permissions(administrator=True) # 💡 [추가됨] 강력한 권한 검사
+    @app_commands.checks.has_permissions(administrator=True)
     @app_commands.choices(등급=[
         app_commands.Choice(name="서사", value="서사"), app_commands.Choice(name="전설", value="전설"),
         app_commands.Choice(name="신화", value="신화"), app_commands.Choice(name="프레스티지", value="프레스티지")
@@ -51,7 +51,7 @@ class AdminCog(commands.Cog):
 
     @app_commands.command(name="알회수", description="[관리자] 유저의 활성화된 전설이를 회수(삭제)합니다.")
     @app_commands.default_permissions(administrator=True)
-    @app_commands.checks.has_permissions(administrator=True) # 💡 [추가됨] 강력한 권한 검사
+    @app_commands.checks.has_permissions(administrator=True)
     async def remove_egg(self, interaction: discord.Interaction, 유저: discord.Member):
         await interaction.response.defer(ephemeral=True)
         try:
@@ -74,7 +74,7 @@ class AdminCog(commands.Cog):
 
     @app_commands.command(name="강제부화", description="[관리자] 유저의 활성화된 알을 즉시 부화(1성)시킵니다.")
     @app_commands.default_permissions(administrator=True)
-    @app_commands.checks.has_permissions(administrator=True) # 💡 [추가됨] 강력한 권한 검사
+    @app_commands.checks.has_permissions(administrator=True)
     async def force_hatch_cmd(self, interaction: discord.Interaction, 유저: discord.Member):
         await interaction.response.defer(ephemeral=True)
         try:
@@ -93,6 +93,99 @@ class AdminCog(commands.Cog):
             wrapper['pets'][active_idx] = data
             await save_legend_data(유저.id, wrapper)
             await interaction.followup.send(f"✅ {유저.display_name}님의 알(`{pet_name}`)을 강제로 부화시켰습니다!")
+        except Exception:
+            traceback.print_exc()
+            await interaction.followup.send("❌ 오류가 발생했습니다.")
+
+    # 💡 [새로 추가된 명령어] 성급 상승
+    @app_commands.command(name="성급상승", description="[관리자] 유저의 특정 전설이 성급을 1단계 올립니다.")
+    @app_commands.default_permissions(administrator=True)
+    @app_commands.checks.has_permissions(administrator=True)
+    async def level_up_pet(self, interaction: discord.Interaction, 유저: discord.Member, 알이름: str):
+        await interaction.response.defer(ephemeral=True)
+        try:
+            wrapper = await get_or_migrate_data(유저.id)
+            if not wrapper.get('pets'): return await interaction.followup.send("❌ 해당 유저는 보유한 전설이가 없습니다.")
+
+            target_idx = -1
+            for i, pet in enumerate(wrapper['pets']):
+                if pet.get('name') == 알이름:
+                    target_idx = i
+                    break
+
+            if target_idx == -1:
+                return await interaction.followup.send(f"❌ {유저.display_name}님의 전설이 중 이름이 `{알이름}`인 펫을 찾을 수 없습니다.")
+
+            pet_data = wrapper['pets'][target_idx]
+            if pet_data.get('level', 0) >= 3:
+                return await interaction.followup.send(f"❌ `{알이름}`은(는) 이미 최대 성급(3성)입니다.")
+
+            pet_data['level'] += 1
+            pet_data['exp'] = 0 # 성급이 오르면 경험치 초기화
+            wrapper['pets'][target_idx] = pet_data
+
+            await save_legend_data(유저.id, wrapper)
+            await interaction.followup.send(f"✅ {유저.display_name}님의 `{알이름}` 성급을 {pet_data['level']}성으로 상승시켰습니다!")
+        except Exception:
+            traceback.print_exc()
+            await interaction.followup.send("❌ 오류가 발생했습니다.")
+
+    # 💡 [새로 추가된 명령어] 성급 하락
+    @app_commands.command(name="성급하락", description="[관리자] 유저의 특정 전설이 성급을 1단계 내립니다.")
+    @app_commands.default_permissions(administrator=True)
+    @app_commands.checks.has_permissions(administrator=True)
+    async def level_down_pet(self, interaction: discord.Interaction, 유저: discord.Member, 알이름: str):
+        await interaction.response.defer(ephemeral=True)
+        try:
+            wrapper = await get_or_migrate_data(유저.id)
+            if not wrapper.get('pets'): return await interaction.followup.send("❌ 해당 유저는 보유한 전설이가 없습니다.")
+
+            target_idx = -1
+            for i, pet in enumerate(wrapper['pets']):
+                if pet.get('name') == 알이름:
+                    target_idx = i
+                    break
+
+            if target_idx == -1:
+                return await interaction.followup.send(f"❌ {유저.display_name}님의 전설이 중 이름이 `{알이름}`인 펫을 찾을 수 없습니다.")
+
+            pet_data = wrapper['pets'][target_idx]
+            if pet_data.get('level', 0) <= 0:
+                return await interaction.followup.send(f"❌ `{알이름}`은(는) 이미 최하 성급(알, 0성)입니다.")
+
+            pet_data['level'] -= 1
+            pet_data['exp'] = 0 # 성급이 내려가면 경험치 초기화
+            wrapper['pets'][target_idx] = pet_data
+
+            await save_legend_data(유저.id, wrapper)
+            await interaction.followup.send(f"✅ {유저.display_name}님의 `{알이름}` 성급을 {pet_data['level']}성으로 하락시켰습니다!")
+        except Exception:
+            traceback.print_exc()
+            await interaction.followup.send("❌ 오류가 발생했습니다.")
+
+    # 💡 [새로 추가된 명령어] 이름 변경
+    @app_commands.command(name="이름변경", description="[관리자] 유저의 특정 전설이 이름을 변경합니다.")
+    @app_commands.default_permissions(administrator=True)
+    @app_commands.checks.has_permissions(administrator=True)
+    async def admin_rename_pet(self, interaction: discord.Interaction, 유저: discord.Member, 알이름: str, 변경할이름: str):
+        await interaction.response.defer(ephemeral=True)
+        try:
+            wrapper = await get_or_migrate_data(유저.id)
+            if not wrapper.get('pets'): return await interaction.followup.send("❌ 해당 유저는 보유한 전설이가 없습니다.")
+
+            target_idx = -1
+            for i, pet in enumerate(wrapper['pets']):
+                if pet.get('name') == 알이름:
+                    target_idx = i
+                    break
+
+            if target_idx == -1:
+                return await interaction.followup.send(f"❌ {유저.display_name}님의 전설이 중 이름이 `{알이름}`인 펫을 찾을 수 없습니다.")
+
+            wrapper['pets'][target_idx]['name'] = 변경할이름
+
+            await save_legend_data(유저.id, wrapper)
+            await interaction.followup.send(f"✅ {유저.display_name}님의 전설이 이름을 `{알이름}`에서 `{변경할이름}`(으)로 변경했습니다!")
         except Exception:
             traceback.print_exc()
             await interaction.followup.send("❌ 오류가 발생했습니다.")
