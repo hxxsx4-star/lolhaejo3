@@ -129,3 +129,30 @@ async def get_match_ban_expiry(user_id: int) -> Optional[datetime]:
 
             return expiry_dt
     return await asyncio.to_thread(_task)
+
+# ===== ✨ 추가: 경고 부여/차감 원자적(Atomic) 처리 함수 =====
+async def add_warning(user_id: int, count: int) -> tuple[int, int]:
+    """경고를 부여하고 (이전 경고 수, 새로운 경고 수)를 반환합니다."""
+    def _task():
+        with lock:
+            stats = _load_stats_nolock()
+            rec = ensure_user(stats, str(user_id))
+            old_warn = int(rec.get("경고", 0))
+            new_warn = old_warn + count
+            rec["경고"] = new_warn
+            _save_stats_nolock(stats)
+            return old_warn, new_warn
+    return await asyncio.to_thread(_task)
+
+async def reduce_warning(user_id: int, count: int) -> tuple[int, int]:
+    """경고를 차감하고 (이전 경고 수, 새로운 경고 수)를 반환합니다."""
+    def _task():
+        with lock:
+            stats = _load_stats_nolock()
+            rec = ensure_user(stats, str(user_id))
+            old_warn = int(rec.get("경고", 0))
+            new_warn = max(0, old_warn - count)
+            rec["경고"] = new_warn
+            _save_stats_nolock(stats)
+            return old_warn, new_warn
+    return await asyncio.to_thread(_task)
