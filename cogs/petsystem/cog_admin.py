@@ -12,8 +12,16 @@ class AdminCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    # 💡 [추가됨] 권한 부족 시 오류를 잡아내서 깔끔하게 안내하는 핸들러
+    async def cog_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, app_commands.MissingPermissions):
+            await interaction.response.send_message("❌ 이 명령어를 사용할 수 있는 관리자 권한이 없습니다.", ephemeral=True)
+        else:
+            await interaction.response.send_message(f"❌ 명령어를 처리하는 중 오류가 발생했습니다: {error}", ephemeral=True)
+
     @app_commands.command(name="알지급", description="[관리자] 유저에게 특정 등급의 알을 지급합니다.")
     @app_commands.default_permissions(administrator=True)
+    @app_commands.checks.has_permissions(administrator=True) # 💡 [추가됨] 강력한 권한 검사
     @app_commands.choices(등급=[
         app_commands.Choice(name="서사", value="서사"), app_commands.Choice(name="전설", value="전설"),
         app_commands.Choice(name="신화", value="신화"), app_commands.Choice(name="프레스티지", value="프레스티지")
@@ -43,6 +51,7 @@ class AdminCog(commands.Cog):
 
     @app_commands.command(name="알회수", description="[관리자] 유저의 활성화된 전설이를 회수(삭제)합니다.")
     @app_commands.default_permissions(administrator=True)
+    @app_commands.checks.has_permissions(administrator=True) # 💡 [추가됨] 강력한 권한 검사
     async def remove_egg(self, interaction: discord.Interaction, 유저: discord.Member):
         await interaction.response.defer(ephemeral=True)
         try:
@@ -65,6 +74,7 @@ class AdminCog(commands.Cog):
 
     @app_commands.command(name="강제부화", description="[관리자] 유저의 활성화된 알을 즉시 부화(1성)시킵니다.")
     @app_commands.default_permissions(administrator=True)
+    @app_commands.checks.has_permissions(administrator=True) # 💡 [추가됨] 강력한 권한 검사
     async def force_hatch_cmd(self, interaction: discord.Interaction, 유저: discord.Member):
         await interaction.response.defer(ephemeral=True)
         try:

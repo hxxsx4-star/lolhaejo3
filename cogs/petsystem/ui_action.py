@@ -159,16 +159,36 @@ class LegendActionView(discord.ui.View):
 
         stat_msg = ""
         if stat_triggers > 0:
-            data['fullness'] = max(0, data.get('fullness', 100) - (20 * stat_triggers))
-            data['cleanliness'] = max(0, data.get('cleanliness', 100) - (20 * stat_triggers))
-            data['intimacy'] = min(100, data.get('intimacy', 50) + (20 * stat_triggers))
-            if "쌩쌩한약" in buffs or "신비한 알약" in buffs:
-                stat_msg += "💊 [쌩쌩한약] 효과로 피로도가 오르지 않았습니다!\n"
+            stat_msg += f"✨ {stat_triggers * 20}회 산책 분량 달성!\n"
+
+            # 💡 1. 포만도 체크
+            if "신비한 알약" in buffs or "배부름을 부르는 약" in buffs:
+                data['fullness'] = 100
+                stat_msg += "💊 [배부름 약] 효과로 포만도가 100으로 유지되었습니다!\n"
+            else:
+                data['fullness'] = max(0, data.get('fullness', 100) - (20 * stat_triggers))
+
+            # 💡 2. 청결도 체크
+            if "신비한 알약" in buffs or "트위치 나가라약" in buffs:
+                data['cleanliness'] = 100
+                stat_msg += "💊 [나가라 약] 효과로 청결도가 100으로 유지되었습니다!\n"
+            else:
+                data['cleanliness'] = max(0, data.get('cleanliness', 100) - (20 * stat_triggers))
+
+            # 💡 3. 친밀도 체크
+            if "신비한 알약" in buffs or "아무무도 인싸로 만드는 약" in buffs:
+                data['intimacy'] = 100
+                stat_msg += "💊 [인싸 약] 효과로 친밀도가 100으로 유지되었습니다!\n"
+            else:
+                data['intimacy'] = min(100, data.get('intimacy', 50) + (20 * stat_triggers))
+
+            # 💡 4. 피로도 체크
+            if "신비한 알약" in buffs or "쌩쌩한약" in buffs:
+                data['fatigue'] = 0
+                stat_msg += "💊 [쌩쌩한약] 효과로 피로도가 0으로 유지되었습니다!\n"
             else:
                 data['fatigue'] = min(100, data.get('fatigue', 0) + (20 * stat_triggers))
-            stat_msg += f"✨ {stat_triggers * 20}회 산책 분량 달성! 친밀도가 오르고 배고픔/더러움이 증가했습니다.\n"
 
-        # 💡 산책 시 포인트 획득 확률 삭제
         lost_points = 0
         lose_count = 0
         found_eggs = []
@@ -190,7 +210,6 @@ class LegendActionView(discord.ui.View):
             elif r_egg < 0.0221: found_eggs.append("전설")
             elif r_egg < 0.1221: found_eggs.append("서사")
 
-            # 💡 아이템 드랍률 하향 조정 (프레스티지 0.01%, 신화 0.04%, 전설 0.1%, 서사 10%)
             r_item = random.random()
             if r_item < 0.0001 and prestige_items: found_items.append(("프레스티지", random.choice(prestige_items)))
             elif r_item < 0.0005 and mythic_items: found_items.append(("신화", random.choice(mythic_items)))
