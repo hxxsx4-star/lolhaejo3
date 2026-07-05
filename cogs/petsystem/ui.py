@@ -7,7 +7,8 @@ from .database import (
     get_legend_data, save_legend_data, get_user,
     get_active_buffs, add_item
 )
-from utils.stats import get_points, add_points
+# utils.stats에서 spend_points를 추가로 불러옵니다.
+from utils.stats import get_points, add_points, spend_points
 
 def create_status_embed(member: discord.Member, pet_data, user_points, buffs, is_annoyed, is_diseased):
     is_egg = (pet_data['level'] == 0)
@@ -76,7 +77,7 @@ def create_status_embed(member: discord.Member, pet_data, user_points, buffs, is
     return embed
 
 class InventoryView(discord.ui.View):
-    # (기존 InventoryView 코드는 변경사항이 없어 동일하게 유지하시면 됩니다. 내용 생략)
+    # (기존 InventoryView 코드 그대로 유지)
     ...
 
 class LegendActionView(discord.ui.View):
@@ -116,7 +117,6 @@ class LegendActionView(discord.ui.View):
         if not data or data['level'] == 0:
             return await interaction.response.send_message("전설이가 알 상태이거나 존재하지 않습니다.", ephemeral=True)
 
-        current_points = await get_points(self.user_id)
         now = time.time()
         is_annoyed = (data.get('low_full_since', 0) > 0 and now - data.get('low_full_since', 0) >= 86400)
         is_diseased = (data.get('low_clean_since', 0) > 0 and now - data.get('low_clean_since', 0) >= 86400)
@@ -126,9 +126,11 @@ class LegendActionView(discord.ui.View):
             if data['fullness'] >= 100:
                 return await interaction.response.send_message("전설이가 이미 배가 부릅니다!", ephemeral=True)
             cost = 100 if is_annoyed else 50
-            if current_points < cost:
+
+            # spend_points로 동시성 이슈 방지 및 잔액 확인, 자동차감을 동시에 진행합니다.
+            if not await spend_points(self.user_id, cost):
                 return await interaction.response.send_message(f"포인트가 부족합니다! (필요: {cost}P)", ephemeral=True)
-            await add_points(self.user_id, -cost)
+
             data['fullness'] = min(100, data['fullness'] + 30)
             data['low_full_since'] = 0
             msg = f"🍖 밥을 먹였습니다! (포만감 +30, -{cost}P)"
@@ -138,9 +140,11 @@ class LegendActionView(discord.ui.View):
             if data.get('cleanliness', 100) >= 100:
                 return await interaction.response.send_message("전설이가 이미 깨끗합니다!", ephemeral=True)
             cost = 100 if is_diseased else 50
-            if current_points < cost:
+
+            # spend_points 활용
+            if not await spend_points(self.user_id, cost):
                 return await interaction.response.send_message(f"포인트가 부족합니다! (필요: {cost}P)", ephemeral=True)
-            await add_points(self.user_id, -cost)
+
             data['cleanliness'] = 100
             data['low_clean_since'] = 0
             msg = f"🚿 깨끗하게 씻겼습니다! (청결도 MAX, -{cost}P)"
@@ -176,9 +180,15 @@ class LegendActionView(discord.ui.View):
         if is_annoyed:
             return await interaction.response.send_message("전설이가 짜증이 나서 산책을 거부합니다! (밥을 먼저 주세요)", ephemeral=True)
 
-        current_points = await get_points(self.user_id)
         active_buffs = await get_active_buffs(self.user_id)
         buffs = {b[0] for b in active_buffs}
+
+        stat_change = max(1, int(count * 0.5))
+        fatigue_increase = 0 if ("쌩쌩한약" in buffs or "신비한 알약" in buffs) else stat_change
+
+        # 포인트를 결제하기 '전'에 피로도 조건에 의해 실패하는지 미리 확인합니다.
+        if data['fatigue'] + fatigue_increase > 100 and fatigue_increase > 0:
+            return await interaction.response.send_message("전설이가 너무 피곤해합니다! 휴식이 필요합니다.", ephemeral=True)
 
         cost = 5 * count
         used_discount = False
@@ -189,26 +199,20 @@ class LegendActionView(discord.ui.View):
                 cost = 300
                 used_discount = True
 
-        if current_points < cost:
+        # 잔액 부족시 사용된 아이템 환불 후 에러 처리
+        if not await spend_points(self.user_id, cost):
             if used_discount: await add_item(self.user_id, "100회 산책 할인권", 1)
             return await interaction.response.send_message(f"포인트가 부족합니다! (필요: {cost}P)", ephemeral=True)
 
-        stat_change = max(1, int(count * 0.5))
+        # 피로도 통과, 포인트 지불 완료이므로 안전하게 능력치를 반영합니다.
         full_decrease = 0 if ("배부름을 부르는 약" in buffs or "신비한 알약" in buffs) else stat_change
         clean_decrease = 0 if ("트위치 나가라약" in buffs or "신비한 알약" in buffs) else stat_change
-        fatigue_increase = 0 if ("쌩쌩한약" in buffs or "신비한 알약" in buffs) else stat_change
         intimacy_increase = stat_change
-
-        if data['fatigue'] + fatigue_increase > 100 and fatigue_increase > 0:
-            if used_discount: await add_item(self.user_id, "100회 산책 할인권", 1)
-            return await interaction.response.send_message("전설이가 너무 피곤해합니다! 휴식이 필요합니다.", ephemeral=True)
-
         exp_gain = 100 * count
         exp_multiplier = 1
         if data['intimacy'] >= 80: exp_multiplier *= 2
         total_exp = int(exp_gain * exp_multiplier)
 
-        await add_points(self.user_id, -cost)
         data['exp'] += total_exp
         data['fullness'] = max(0, data['fullness'] - full_decrease)
         data['cleanliness'] = max(0, data.get('cleanliness', 100) - clean_decrease)
