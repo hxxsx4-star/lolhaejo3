@@ -190,41 +190,49 @@ class PetSystemCog(commands.Cog):
     ])
     async def give_egg(self, interaction: discord.Interaction, 유저: discord.Member, 등급: app_commands.Choice[str],
                        이름: str = "관리자지급알"):
-        # 1. 타임아웃 방지 (잠시만 기다려주세요 상태)
+        # 1. 타임아웃 방지 (명령어 씹힘 방지)
         await interaction.response.defer(ephemeral=True)
 
         try:
+            # 2. 안전하게 유저 데이터 불러오기
             wrapper = await self.get_or_migrate_data(유저.id)
-            if len(wrapper.get('pets', [])) >= 3:
-                return await interaction.followup.send("❌ 해당 유저는 이미 3마리의 전설이를 보유하고 있습니다.")
 
-            # 혹시 모를 에러 방지 (등급.value 사용)
-            pet_type = random.choice(PET_POOLS.get(등급.value, ["알 수 없음"]))
-            new_pet_data = {
-                'name': 이름, 'type': pet_type, 'rarity': 등급.value,
-                'level': 0, 'exp': 0, 'fullness': 100, 'intimacy': 50, 'fatigue': 0, 'cleanliness': 100
-            }
-
+            # pets 바구니가 아예 존재하지 않는 경우 빈 바구니 만들어주기 방어
             if 'pets' not in wrapper:
                 wrapper['pets'] = []
 
+            if len(wrapper['pets']) >= 3:
+                return await interaction.followup.send(f"❌ {유저.display_name}님은 이미 3마리의 전설이를 보유하고 있습니다.")
+
+            # 3. PET_POOLS에서 등급을 찾을 때도 KeyError가 나지 않도록 get() 사용
+            pet_type = random.choice(PET_POOLS.get(등급.value, ["알 수 없음"]))
+
+            # 4. 새 알 데이터 생성 (여기에 'name'을 포함하여 모든 필수 항목을 꼼꼼히 넣습니다)
+            new_pet_data = {
+                'name': 이름,
+                'type': pet_type,
+                'rarity': 등급.value,
+                'level': 0, 'exp': 0, 'fullness': 100, 'intimacy': 50, 'fatigue': 0, 'cleanliness': 100
+            }
+
+            # 알 지급
             wrapper['pets'].append(new_pet_data)
 
-            # 첫 펫 지급인 경우 자동으로 0번 슬롯 활성화
+            # 첫 펫 지급인 경우 자동으로 첫 번째 슬롯 활성화
             if len(wrapper['pets']) == 1:
                 wrapper['active_idx'] = 0
 
+            # 5. DB 저장 및 결과 메시지 출력
             await save_legend_data(유저.id, wrapper)
-            await interaction.followup.send(f"✅ {유저.display_name}님에게 `{등급.value}` 등급의 알을 지급했습니다.")
+            await interaction.followup.send(f"✅ {유저.display_name}님에게 `{이름}` ({등급.value}) 알을 성공적으로 지급했습니다!")
 
         except Exception as e:
-            print(f"[알지급 에러] {e}")
+            print(f"[알지급 에러] {repr(e)}")
             await interaction.followup.send("❌ 명령어를 처리하는 도중 오류가 발생했습니다. 봇 콘솔을 확인해주세요.")
 
     @app_commands.command(name="알회수", description="[관리자] 유저의 활성화된 전설이를 회수(삭제)합니다.")
     @app_commands.default_permissions(administrator=True)
     async def remove_egg(self, interaction: discord.Interaction, 유저: discord.Member):
-        # 1. 타임아웃 방지
         await interaction.response.defer(ephemeral=True)
 
         try:
@@ -232,7 +240,6 @@ class PetSystemCog(commands.Cog):
             if not wrapper.get('pets'):
                 return await interaction.followup.send("❌ 해당 유저는 보유한 전설이가 없습니다.")
 
-            # 2. 인덱스 꼬임 방어 (active_idx가 pets 배열 길이보다 클 경우 강제로 0으로 조정)
             active_idx = wrapper.get('active_idx', 0)
             if active_idx >= len(wrapper['pets']):
                 active_idx = 0
@@ -240,31 +247,30 @@ class PetSystemCog(commands.Cog):
             # 펫 삭제 처리
             removed = wrapper['pets'].pop(active_idx)
 
-            # 3. 삭제 후 활성화된 슬롯 재조정 (안전하게 max 사용)
+            # [수정된 부분] 에러가 나지 않도록 get() 사용
+            removed_name = removed.get('name', '이름없음')
+            removed_rarity = removed.get('rarity', '알수없음')
+
             wrapper['active_idx'] = max(0, len(wrapper['pets']) - 1)
 
             await save_legend_data(유저.id, wrapper)
-            await interaction.followup.send(
-                f"✅ {유저.display_name}님의 `{removed['name']} ({removed['rarity']})`(을)를 강제 회수했습니다.")
+            await interaction.followup.send(f"✅ {유저.display_name}님의 `{removed_name} ({removed_rarity})`(을)를 강제 회수했습니다.")
 
         except Exception as e:
-            print(f"[알회수 에러] {e}")
+            print(f"[알회수 에러] {repr(e)}")
             await interaction.followup.send("❌ 명령어를 처리하는 도중 오류가 발생했습니다. 봇 콘솔을 확인해주세요.")
 
     @app_commands.command(name="강제부화", description="[관리자] 유저의 활성화된 알을 즉시 부화(1성)시킵니다.")
     @app_commands.default_permissions(administrator=True)
     async def force_hatch_cmd(self, interaction: discord.Interaction, 유저: discord.Member):
-        # 1. 3초 이상 지연을 막기 위해 defer 호출 (관리자 명령어이므로 혼자만 보이게 ephemeral 처리)
         await interaction.response.defer(ephemeral=True)
 
         try:
             wrapper = await self.get_or_migrate_data(유저.id)
 
             if not wrapper.get('pets'):
-                # defer 이후에는 response 대신 followup.send를 사용해야 합니다.
                 return await interaction.followup.send("해당 유저는 보유한 전설이가 없습니다.")
 
-            # 2. 인덱스 오류(IndexError) 방어
             active_idx = wrapper.get('active_idx', 0)
             if active_idx >= len(wrapper['pets']):
                 active_idx = 0
@@ -272,8 +278,12 @@ class PetSystemCog(commands.Cog):
 
             data = wrapper['pets'][active_idx]
 
-            if data['level'] > 0:
-                return await interaction.followup.send(f"해당 펫(`{data['name']}`)은 이미 부화한 상태입니다.")
+            # [수정된 부분] 딕셔너리에서 'name'과 'level'을 안전하게 가져오기
+            pet_name = data.get('name', '이름없음')
+            pet_level = data.get('level', 0)
+
+            if pet_level > 0:
+                return await interaction.followup.send(f"해당 펫(`{pet_name}`)은 이미 부화한 상태입니다.")
 
             # 부화 처리
             data['level'] = 1
@@ -281,14 +291,12 @@ class PetSystemCog(commands.Cog):
             wrapper['pets'][active_idx] = data
             await save_legend_data(유저.id, wrapper)
 
-            await interaction.followup.send(f"✅ {유저.display_name}님의 알(`{data['name']}`)을 강제로 부화시켰습니다!")
+            await interaction.followup.send(f"✅ {유저.display_name}님의 알(`{pet_name}`)을 강제로 부화시켰습니다!")
 
         except Exception as e:
-            # 3. 디버깅을 위한 에러 로그 출력
-            print(f"[강제부화 명령어 에러] {e}")
+            print(f"[강제부화 명령어 에러] {repr(e)}")
             await interaction.followup.send("❌ 명령어를 처리하는 도중 오류가 발생했습니다. 콘솔을 확인해주세요.")
 
-    # (기존 보관함, 판매, 전설이목록, 아이템목록 명령어는 그대로 유지)
     @app_commands.command(name="보관함", description="내 아이템을 확인하고 사용합니다.")
     async def inventory(self, interaction: discord.Interaction):
         async with aiosqlite.connect('legends.db') as db:
