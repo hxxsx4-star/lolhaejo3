@@ -103,3 +103,10 @@ async def get_active_buffs(user_id):
         async with db.execute("SELECT buff_name, expires_at, vc_seconds_left FROM active_buffs WHERE user_id = ?", (user_id,)) as cursor:
             rows = await cursor.fetchall()
         return rows
+
+# database.py 파일 맨 아랫줄에 추가
+async def get_or_migrate_data(user_id):
+    data = await get_legend_data(user_id)
+    if not data: return {'pets': [], 'active_idx': 0}
+    if 'pets' not in data: return {'pets': [data], 'active_idx': 0}
+    return data
