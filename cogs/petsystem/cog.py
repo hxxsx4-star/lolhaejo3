@@ -11,7 +11,7 @@ from .data import *
 from .database import *
 from .ui import create_status_embed, LegendActionView, InventoryView
 from utils.stats import get_points, add_points
-from .logs import HATCH_LOG_CH, SELL_LOG_CH, send_log_embed # 💡 로그 모듈 추가
+from .logs import HATCH_LOG_CH, ITEM_SELL_LOG_CH, send_log_embed # 💡 로그 모듈 추가
 
 class PetSystemCog(commands.Cog):
     def __init__(self, bot):
