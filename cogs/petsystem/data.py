@@ -12,24 +12,24 @@ EXP_TABLE = {
     "프레스티지": {0: 5000, 1: 50000, 2: 100000, 3: 0}
 }
 PET_IMAGES = {
-    "🐧 펭구": "https://discord.com/channels/1508931764138151958/1523108729845841931/1523110618469629994",
-    "🗡️ 깃털기사": "https://discord.com/channels/1508931764138151958/1523108729845841931/1523110760857997452",
-    "🦄 뿔보": "https://discord.com/channels/1508931764138151958/1523108729845841931/1523111061643853894",
-    "👻 말랑이": "https://discord.com/channels/1508931764138151958/1523108729845841931/1523111243605479455",
-    "🐢 꾸릉이": "https://discord.com/channels/1508931764138151958/1523108729845841931/1523111749086216213",
-    "🥷 미니 아칼리": "https://discord.com/channels/1508931764138151958/1523108729845841931/1523111812097249342",
-    "⚔️ 미니 요네": "https://discord.com/channels/1508931764138151958/1523108729845841931/1523111902191030272",
-    "✨ 미니 럭스": "https://discord.com/channels/1508931764138151958/1523108729845841931/1523111980809060402",
-    "🎸 미니 유나라": "https://discord.com/channels/1508931764138151958/1523108729845841931/1523112088065806476",
-    "🦊 미니 아리": "https://discord.com/channels/1508931764138151958/1523108729845841931/1523112175953121400",
-    "🍌 미니 바나나 소라카": "https://discord.com/channels/1508931764138151958/1523108729845841931/1523112465456697388",
-    "🌹 미니 수정 장미 그웬": "https://discord.com/channels/1508931764138151958/1523108729845841931/1523112719472132136",
-    "🏆 미니 T1 요네": "https://discord.com/channels/1508931764138151958/1523108729845841931/1523112954151567441",
-    "🗡️ 미니 불멸의 영웅 이렐리아": "https://discord.com/channels/1508931764138151958/1523108729845841931/1523112954151567441",
-    "🐮 내가 젖소 포로": "https://discord.com/channels/1508931764138151958/1523108729845841931/1523113213917659166",
-    "👼 프레스티지 미니 빛의 인도자 요네": "https://discord.com/channels/1508931764138151958/1523108729845841931/1523113377214369903",
-    "🌸 프레스티지 미니 영혼의 꽃 아리": "https://discord.com/channels/1508931764138151958/1523108729845841931/1523113573671239681",
-    "☕ 프레스티지 미니 귀염둥이 카페 그웬": "https://discord.com/channels/1508931764138151958/1523108729845841931/1523113700586815508"
+    "🐧 펭구": "https://cdn.discordapp.com/attachments/1523108729845841931/1523110618322964530/eb8dde11f76ff075.webp?ex=6a4aeacd&is=6a49994d&hm=ecaa99cc75812d6a01a0e9d734d35934915da09ce1d0979aef075ec7420cf3e4&",
+    "🗡️ 깃털기사": "https://cdn.discordapp.com/attachments/1523108729845841931/1523110760597684455/110a3f527e853a37.webp?ex=6a4aeaef&is=6a49996f&hm=419cd0a53a3420a29cbbb6f07146d665c4f097353f777e3845adbb032d247d3d&",
+    "🦄 뿔보": "https://cdn.discordapp.com/attachments/1523108729845841931/1523111061384073276/c80b732986fc6f98.webp?ex=6a4aeb37&is=6a4999b7&hm=d5ac8bc0b8b97454e85fc9ba5485133be042927ed8c126fbdf3dace72a14acec&",
+    "👻 말랑이": "https://cdn.discordapp.com/attachments/1523108729845841931/1523111243483975740/8b1a8a0f2fc9b6ab.webp?ex=6a4aeb62&is=6a4999e2&hm=7f2656cbed4035daa53ac3123d9db2255a483796d5a319e12e1fea837b9e2258&",
+    "🐢 꾸릉이": "https://cdn.discordapp.com/attachments/1523108729845841931/1523111748868247562/0b1d8113a8b053e4.webp?ex=6a4aebda&is=6a499a5a&hm=9af7a0241c439b6a6711ced0664a15421f3ae4737f646a413d6caad0abbd93af&",
+    "🥷 미니 아칼리": "https://cdn.discordapp.com/attachments/1523108729845841931/1523111812084797440/8rBNeQwfU-aEc_mLZZ3zlH_a1zxpjv0AImKTpUc3hwt5lMnctdic_CbwRc8zn8f4QiwvJCRr6LWl9wlZKG09O6-O7U4GU56ZtQozFBD7p0Lp8c7x7uPp94zFIgJ9XGG4n1XhrDqv-fyuwpVKdd0Kkg.webp?ex=6a4aebea&is=6a499a6a&hm=cbaeede45b3f652da15f9e33684604583f384f4611a59e35c989901312540a3e&",
+    "⚔️ 미니 요네": "https://cdn.discordapp.com/attachments/1523108729845841931/1523111901939240980/dc9NzQMvdebbhXGkzF0o6pDkgxP8JTgy1qg8bAXIp2zcrneEc-9eE6cDiZK67OBUtfejo0q5UFJzJeoF-zt2L2-GYMoItzurX6PsbZi2akMEDUmGZ0_Ena4yf1BfJORuBMly8k0rFx8Z6PwvvS5pbw.webp?ex=6a4aebff&is=6a499a7f&hm=b06aa98f84bf005a8c0f9a0ce72a4b6da63f8056c818f76002e0f9e7cb7bbf05&",
+    "✨ 미니 럭스": "https://cdn.discordapp.com/attachments/1523108729845841931/1523111980280582204/4msZPa3P0waNxdWUygWD0JM_pKz2Oh-VgiPaYh0MYWQjgWxV4tY3nQfmmq96h9LfQaEuiSz5XE1ZjcfcXzltR7UOmWG7Y5RHVxWW5QKgktSxcgURzhQhqY2LIGN30WQbX6u5LTbOQ8wxAqE1nLKwdA.webp?ex=6a4aec12&is=6a499a92&hm=b630c0bd844a0c00bf7a3b22b298c8f99570bc81d8d3a4d298626d368a345b40&",
+    "🎸 미니 유나라": "https://cdn.discordapp.com/attachments/1523108729845841931/1523112087759491172/604c5d89d6b50505.webp?ex=6a4aec2b&is=6a499aab&hm=19ca8e15ceb869a325f4607c4c25f435a2f75d8d94b6d27338c79d563acd7e5d&",
+    "🦊 미니 아리": "https://cdn.discordapp.com/attachments/1523108729845841931/1523112175689011270/3812b68d738c01d2.webp?ex=6a4aec40&is=6a499ac0&hm=b334fbad01b665ab8b3bc2ceb23a167f349a9962c3c7ded8afac0378ce2493f0&",
+    "🍌 미니 바나나 소라카": "https://media.discordapp.net/attachments/1523108729845841931/1523112465343184926/91ab6c1a68d46a10.jfif?ex=6a4aec85&is=6a499b05&hm=d760608fd449388580d3a3e1ae5d2884244952192dde2603b60ca03abbb1da91&=&format=webp&width=338&height=338",
+    "🌹 미니 수정 장미 그웬": "https://cdn.discordapp.com/attachments/1523108729845841931/1523112718993719318/image.png?ex=6a4aecc2&is=6a499b42&hm=110111fed9bb332962b6155a12b6cb1f2d128d5cbd7a58e49feeeaf1c36562d0&",
+    "🏆 미니 T1 요네": "https://cdn.discordapp.com/attachments/1523108729845841931/1523112852670648472/image.png?ex=6a4aece2&is=6a499b62&hm=7436084e527d00f6a2d93a220cddb140a9762098992463d4188e655d3c7f28a0&",
+    "🗡️ 미니 불멸의 영웅 이렐리아": "https://cdn.discordapp.com/attachments/1523108729845841931/1523112953619022055/98ee487cbc9c232b.webp?ex=6a4aecfa&is=6a499b7a&hm=66757c2a14fcaf92bc064f80bd868235e40a047090bfddfbb227ba913d2302d5&",
+    "🐮 내가 젖소 포로": "https://cdn.discordapp.com/attachments/1523108729845841931/1523113213586051162/image.png?ex=6a4aed38&is=6a499bb8&hm=d0c8eb08e94b9723dd44b00060e3b1b4fdd8a29224128cadcc235c0f5ea4932b&",
+    "👼 프레스티지 미니 빛의 인도자 요네": "https://cdn.discordapp.com/attachments/1523108729845841931/1523113377151451319/image.png?ex=6a4aed5f&is=6a499bdf&hm=302c7a1554ff6539f40882317da6b2d1d10a9e9975411052ad46de38085fc67a&",
+    "🌸 프레스티지 미니 영혼의 꽃 아리": "https://cdn.discordapp.com/attachments/1523108729845841931/1523113573499408454/image.png?ex=6a4aed8e&is=6a499c0e&hm=629c004daf2fb169098896abf08b19e141d968108f5bb7c8c36ede4800935793&",
+    "☕ 프레스티지 미니 귀염둥이 카페 그웬": "https://cdn.discordapp.com/attachments/1523108729845841931/1523113700318253076/image.png?ex=6a4aedac&is=6a499c2c&hm=a2228d611bf385d12fb033d567ae40ad775adae8bb9ab795bf4fb7279b07a6b6&"
     # 종류별로 링크를 모두 추가해 주세요.
 }
 
