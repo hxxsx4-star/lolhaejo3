@@ -292,9 +292,9 @@ def create_status_embed(user, data, points, buffs, is_annoyed, is_diseased):
     embed.add_field(name="경험치", value=f"{data.get('exp', 0)}", inline=True)
 
     # 숫자 대신 get_progress_bar 함수를 사용해 이모티콘 채워넣기
-    embed.add_field(name="포만도", value=get_progress_bar(data.get('fullness', 0), "🟩"), inline=True)
-    embed.add_field(name="피로도", value=get_progress_bar(data.get('fatigue', 0), "🟥"), inline=True)
-    embed.add_field(name="청결도", value=get_progress_bar(data.get('cleanliness', 0), "🟦"), inline=True)
+    embed.add_field(name="포만도", value=get_progress_bar(data.get('fullness', 0), "🍗"), inline=True)
+    embed.add_field(name="피로도", value=get_progress_bar(data.get('fatigue', 0), "😪"), inline=True)
+    embed.add_field(name="청결도", value=get_progress_bar(data.get('cleanliness', 0), "🛁"), inline=True)
     embed.add_field(name="친밀도", value=get_progress_bar(data.get('intimacy', 0), "💖", "🖤"), inline=True)
 
     if buffs:
