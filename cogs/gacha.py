@@ -3,7 +3,6 @@ from discord.ext import commands
 from discord import app_commands
 import random
 
-# LOL 라인 및 챔피언 목록 (자유롭게 추가/수정 가능)
 LOL_LINES = ["탑", "정글", "미드", "원딜", "서폿"]
 LOL_CHAMPIONS = sorted(list(set([
     "가렌", "갈리오", "갱플랭크", "그라가스", "그레이브즈", "그웬", "나르", "나미", "나서스", "노틸러스",
@@ -29,7 +28,6 @@ class GachaCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    # /가챠 라는 그룹 명령어를 생성합니다.
     gacha_group = app_commands.Group(name="가챠", description="랜덤으로 무언가를 뽑습니다.")
 
     @gacha_group.command(name="라인", description="LOL 라인을 무작위로 뽑습니다.")
@@ -37,7 +35,7 @@ class GachaCog(commands.Cog):
         selected_line = random.choice(LOL_LINES)
         embed = discord.Embed(
             title="🎲 라인 가챠 결과!",
-            description=f"선택된 라인은 **{selected_line}** 입니다!",
+            description=f"선택된 라인은 {selected_line} 입니다!",
             color=discord.Color.random()
         )
         embed.set_footer(text=f"요청자: {interaction.user.display_name}")
@@ -48,12 +46,9 @@ class GachaCog(commands.Cog):
         selected_champion = random.choice(LOL_CHAMPIONS)
         embed = discord.Embed(
             title="🏆 챔피언 가챠 결과!",
-            description=f"선택된 챔피언은 **{selected_champion}** 입니다!",
+            description=f"선택된 챔피언은 {selected_champion} 입니다!",
             color=discord.Color.random()
         )
-        # 챔피언의 아이콘 이미지를 썸네일로 추가 (예시: op.gg CDN 사용)
-        # 한글 챔피언 이름을 영어로 바꾸고 소문자로 만들어야 할 수 있습니다. 이 부분은 단순화를 위해 생략합니다.
-        # 예: embed.set_thumbnail(url=f"https://opgg-static.akamaized.net/images/lol/champion/{champion_name_en.lower()}.png")
         embed.set_footer(text=f"요청자: {interaction.user.display_name}")
         await interaction.response.send_message(embed=embed)
 

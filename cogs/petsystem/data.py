@@ -11,6 +11,7 @@ EXP_TABLE = {
     "신화": {0: 5000, 1: 30000, 2: 60000, 3: 0},
     "프레스티지": {0: 5000, 1: 50000, 2: 100000, 3: 0}
 }
+
 PET_IMAGES = {
     "🐧 펭구": "https://cdn.discordapp.com/attachments/1523108729845841931/1523110618322964530/eb8dde11f76ff075.webp?ex=6a4aeacd&is=6a49994d&hm=ecaa99cc75812d6a01a0e9d734d35934915da09ce1d0979aef075ec7420cf3e4&",
     "🗡️ 깃털기사": "https://cdn.discordapp.com/attachments/1523108729845841931/1523110760597684455/110a3f527e853a37.webp?ex=6a4aeaef&is=6a49996f&hm=419cd0a53a3420a29cbbb6f07146d665c4f097353f777e3845adbb032d247d3d&",
@@ -30,9 +31,7 @@ PET_IMAGES = {
     "👼 프레스티지 미니 빛의 인도자 요네": "https://cdn.discordapp.com/attachments/1523108729845841931/1523113377151451319/image.png?ex=6a4aed5f&is=6a499bdf&hm=302c7a1554ff6539f40882317da6b2d1d10a9e9975411052ad46de38085fc67a&",
     "🌸 프레스티지 미니 영혼의 꽃 아리": "https://cdn.discordapp.com/attachments/1523108729845841931/1523113573499408454/image.png?ex=6a4aed8e&is=6a499c0e&hm=629c004daf2fb169098896abf08b19e141d968108f5bb7c8c36ede4800935793&",
     "☕ 프레스티지 미니 귀염둥이 카페 그웬": "https://cdn.discordapp.com/attachments/1523108729845841931/1523113700318253076/image.png?ex=6a4aedac&is=6a499c2c&hm=a2228d611bf385d12fb033d567ae40ad775adae8bb9ab795bf4fb7279b07a6b6&"
-    # 종류별로 링크를 모두 추가해 주세요.
 }
-
 
 ITEMS_INFO = {
     "배부름을 부르는 약": {"rarity": "서사", "desc": "사용 시 24시간 동안 전설이의 포만도를 MAX로 유지합니다."},

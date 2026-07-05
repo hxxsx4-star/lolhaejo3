@@ -1,6 +1,6 @@
 import aiosqlite
 import time
-import json  # 딕셔너리를 통째로 저장하기 위해 JSON 모듈 추가
+import json
 
 DB_PATH = 'legends.db'
 
@@ -10,13 +10,11 @@ async def init_db():
                      (user_id INTEGER PRIMARY KEY, points INTEGER, max_star_reached INTEGER,
                      egg_legendary INTEGER, egg_mythic INTEGER, egg_prestige INTEGER)''')
 
-        # 기존 단일 펫 테이블 (과거 데이터 복원/마이그레이션용으로 안전하게 남겨둡니다)
         await db.execute('''CREATE TABLE IF NOT EXISTS user_legends
                      (user_id INTEGER PRIMARY KEY, name TEXT, rarity TEXT,
                      level INTEGER, exp INTEGER, fullness INTEGER, intimacy INTEGER, fatigue INTEGER,
                      cleanliness INTEGER, low_clean_since REAL, low_full_since REAL)''')
 
-        # 🚀 신규 다중 펫 저장용 테이블 생성 (여기에 다중 펫 데이터를 통째로 넣습니다)
         await db.execute('''CREATE TABLE IF NOT EXISTS user_multi_pets
                      (user_id INTEGER PRIMARY KEY, pet_data TEXT)''')
 
@@ -44,31 +42,31 @@ async def update_user_points(user_id, points_change):
         await db.execute("UPDATE users SET points = MAX(0, points + ?) WHERE user_id = ?", (points_change, user_id))
         await db.commit()
 
+# 💡 [추가됨] 3성 달성 여부를 기록하여 두 번째 알을 깔 수 있게 해주는 함수
+async def update_max_star(user_id, star):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE users SET max_star_reached = MAX(max_star_reached, ?) WHERE user_id = ?", (star, user_id))
+        await db.commit()
+
 async def get_legend_data(user_id):
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
 
-        # 1. 먼저 신규 테이블(다중 펫 시스템)에 저장된 데이터가 있는지 확인합니다.
         async with db.execute("SELECT pet_data FROM user_multi_pets WHERE user_id = ?", (user_id,)) as cursor:
             row = await cursor.fetchone()
             if row and row['pet_data']:
                 try:
-                    return json.loads(row['pet_data'])  # JSON 문자열을 딕셔너리로 변환하여 반환
+                    return json.loads(row['pet_data'])
                 except json.JSONDecodeError:
                     pass
 
-        # 2. 신규 테이블에 데이터가 없다면, 기존(구버전) 단일 펫 테이블에서 데이터를 가져옵니다.
-        # 가져온 데이터는 cog.py의 get_or_migrate_data 함수에서 자동으로 신규 다중 펫 구조로 포장(마이그레이션)해줍니다.
         async with db.execute("SELECT * FROM user_legends WHERE user_id = ?", (user_id,)) as cursor:
             row = await cursor.fetchone()
         return dict(row) if row else None
 
 async def save_legend_data(user_id, data: dict):
     async with aiosqlite.connect(DB_PATH) as db:
-        # cog.py에서 전달받은 거대한 딕셔너리(wrapper)를 하나의 문자열(JSON)로 묶습니다.
         json_data = json.dumps(data, ensure_ascii=False)
-
-        # 묶어낸 문자열을 신규 다중 펫 테이블에 통째로 저장합니다! (각각의 칸을 찾을 필요가 없어져 에러가 해결됩니다)
         await db.execute('''INSERT OR REPLACE INTO user_multi_pets (user_id, pet_data)
                      VALUES (?, ?)''', (user_id, json_data))
         await db.commit()

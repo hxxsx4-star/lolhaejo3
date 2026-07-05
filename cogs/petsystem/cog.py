@@ -5,25 +5,33 @@ import random
 import time
 from datetime import datetime
 import aiosqlite
-import traceback  # 에러 추적을 위한 모듈 추가
+import traceback
 
 from .data import *
 from .database import *
 from .ui import create_status_embed, LegendActionView, InventoryView
-from utils.stats import get_points, add_points
+from utils.stats import get_points, add_points # 외부 유틸 함수 유지
 
 class PetSystemCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.voice_sessions = {}
-        # 봇 시작 시 실시간 경험치 지급 루프 가동
+        # 💡 [추가됨] 봇 켜질 때 이미 통화방에 있는 사람 긁어오기
+        self.bot.loop.create_task(self.init_voice_sessions())
         self.voice_exp_loop.start()
 
+    async def init_voice_sessions(self):
+        await self.bot.wait_until_ready()
+        now = time.time()
+        for guild in self.bot.guilds:
+            for vc in guild.voice_channels:
+                for member in vc.members:
+                    if not member.bot:
+                        self.voice_sessions[member.id] = now
+
     def cog_unload(self):
-        # 봇 종료 시 루프 안전 종료
         self.voice_exp_loop.cancel()
 
-    # ⏱️ 60초마다 통화방 인원에게 실시간 경험치 지급
     @tasks.loop(seconds=60)
     async def voice_exp_loop(self):
         now = time.time()
@@ -31,45 +39,34 @@ class PetSystemCog(commands.Cog):
             elapsed = now - last_reward_time
             if elapsed >= 60:
                 minutes_passed = int(elapsed // 60)
-                # 다음 기준 시간 갱신
                 self.voice_sessions[user_id] = last_reward_time + (minutes_passed * 60)
-                # 경험치 지급
                 await self.add_exp_to_pet(user_id, minutes_passed * 60)
 
-    # 다중 펫 데이터 마이그레이션 및 헬퍼 함수
     async def get_or_migrate_data(self, user_id):
         data = await get_legend_data(user_id)
-        if not data:
-            return {'pets': [], 'active_idx': 0}
-        if 'pets' not in data:
-            return {'pets': [data], 'active_idx': 0}
+        if not data: return {'pets': [], 'active_idx': 0}
+        if 'pets' not in data: return {'pets': [data], 'active_idx': 0}
         return data
 
     async def evaluate_pet_status(self, user_id, wrapper):
-        if not wrapper['pets']:
-            return None, [], False, False
+        if not wrapper['pets']: return None, [], False, False
 
         data = wrapper['pets'][wrapper['active_idx']]
-        if data.get('level', 0) == 0:
-            return data, [], False, False
+        if data.get('level', 0) == 0: return data, [], False, False
 
         now = time.time()
         active_buffs = await get_active_buffs(user_id)
         buffs = {b[0] for b in active_buffs}
 
-        # --- 🕒 1분마다 피로도 1칸(20)씩 자동 감소 로직 ---
         last_calc = data.get('last_fatigue_calc', now)
         elapsed_minutes = int((now - last_calc) // 60)
 
         if elapsed_minutes > 0:
             fatigue_drop = elapsed_minutes * 20
-            # 피로도는 최소 0까지만 떨어짐
             data['fatigue'] = max(0, data.get('fatigue', 0) - fatigue_drop)
-            # 남은 초를 보존하기 위해 기준 시간 갱신
             data['last_fatigue_calc'] = last_calc + (elapsed_minutes * 60)
         elif 'last_fatigue_calc' not in data:
             data['last_fatigue_calc'] = now
-        # -----------------------------------------------------------
 
         if "신비한 알약" in buffs:
             data['fullness'] = 100; data['fatigue'] = 0; data['intimacy'] = 100; data['cleanliness'] = 100
@@ -81,13 +78,11 @@ class PetSystemCog(commands.Cog):
 
         if data.get('fullness', 100) <= 20:
             if data.get('low_full_since', 0) == 0: data['low_full_since'] = now
-        else:
-            data['low_full_since'] = 0
+        else: data['low_full_since'] = 0
 
         if data.get('cleanliness', 100) <= 20:
             if data.get('low_clean_since', 0) == 0: data['low_clean_since'] = now
-        else:
-            data['low_clean_since'] = 0
+        else: data['low_clean_since'] = 0
 
         is_annoyed = (data.get('low_full_since', 0) > 0 and now - data['low_full_since'] >= 86400)
         is_diseased = (data.get('low_clean_since', 0) > 0 and now - data['low_clean_since'] >= 86400)
@@ -99,19 +94,15 @@ class PetSystemCog(commands.Cog):
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
         if member.bot: return
-
         if before.channel is None and after.channel is not None:
-            # 입장 시
             self.voice_sessions[member.id] = time.time()
         elif before.channel is not None and after.channel is None:
-            # 퇴장 시 잔여 경험치 정산
             if member.id in self.voice_sessions:
                 last_reward_time = self.voice_sessions.pop(member.id)
                 duration_sec = time.time() - last_reward_time
                 if duration_sec >= 60:
                     await self.add_exp_to_pet(member.id, duration_sec)
 
-    # 펫 경험치 지급 및 자동 레벨업 처리 (user_id 기반으로 통합)
     async def add_exp_to_pet(self, user_id, duration_sec):
         wrapper = await self.get_or_migrate_data(user_id)
         if not wrapper.get('pets'): return
@@ -122,26 +113,45 @@ class PetSystemCog(commands.Cog):
             wrapper['active_idx'] = active_idx
 
         data = wrapper['pets'][active_idx]
-
-        if data.get('level', 0) >= 3:
-            return
+        if data.get('level', 0) >= 3: return
 
         active_buffs = await get_active_buffs(user_id)
-        buffs = {b[0] for b in active_buffs}
+        buffs = {b[0]: b for b in active_buffs}
 
         exp_multiplier = 1
         if data.get('intimacy', 0) >= 80:
             exp_multiplier *= 2
 
+        # 💡 부스터 배율 처리
+        used_booster = None
+        if "경험치 부스터 X10" in buffs:
+            exp_multiplier *= 10
+            used_booster = "경험치 부스터 X10"
+        elif "경험치 부스터 X5" in buffs:
+            exp_multiplier *= 5
+            used_booster = "경험치 부스터 X5"
+        elif "경험치 부스터 X2" in buffs:
+            exp_multiplier *= 2
+            used_booster = "경험치 부스터 X2"
+
         earned_exp = int(duration_sec / 60 * exp_multiplier)
-        if earned_exp <= 0:
-            return
+        if earned_exp <= 0: return
 
         data['exp'] = data.get('exp', 0) + earned_exp
 
-        rarity = data.get('rarity', '서사')
+        # 💡 사용된 부스터 시간 차감
+        if used_booster:
+            vc_seconds_left = buffs[used_booster][2]
+            new_vc_seconds = vc_seconds_left - duration_sec
 
-        # 레벨업 요구 경험치 컷
+            async with aiosqlite.connect('legends.db') as db:
+                if new_vc_seconds <= 0:
+                    await db.execute("DELETE FROM active_buffs WHERE user_id = ? AND buff_name = ?", (user_id, used_booster))
+                else:
+                    await db.execute("UPDATE active_buffs SET vc_seconds_left = ? WHERE user_id = ? AND buff_name = ?", (new_vc_seconds, user_id, used_booster))
+                await db.commit()
+
+        rarity = data.get('rarity', '서사')
         EXP_REQUIREMENTS = {
             0: 100,
             1: {"서사": 5000, "전설": 10000, "신화": 20000, "프레스티지": 30000},
@@ -150,7 +160,6 @@ class PetSystemCog(commands.Cog):
 
         while data.get('level', 0) < 3:
             current_level = data.get('level', 0)
-
             if current_level == 0:
                 required_exp = EXP_REQUIREMENTS[0]
             else:
@@ -159,8 +168,12 @@ class PetSystemCog(commands.Cog):
             if data.get('exp', 0) >= required_exp:
                 data['level'] = current_level + 1
                 data['exp'] -= required_exp
-            else:
-                break
+            else: break
+
+        # 💡 [추가됨] 3성 달성 시 users 테이블 업데이트 (알뽑기 조건 충족용)
+        if data.get('level', 0) >= 3:
+            from .database import update_max_star
+            await update_max_star(user_id, 3)
 
         wrapper['pets'][active_idx] = data
         await save_legend_data(user_id, wrapper)
@@ -191,17 +204,13 @@ class PetSystemCog(commands.Cog):
         pet_type = random.choice(PET_POOLS[rarity])
 
         new_pet_data = {
-            'name': 이름,
-            'type': pet_type,
-            'rarity': rarity,
+            'name': 이름, 'type': pet_type, 'rarity': rarity,
             'level': 0, 'exp': 0, 'fullness': 100, 'intimacy': 50, 'fatigue': 0, 'cleanliness': 100,
-            'walk_count': 0,
+            'walk_count': 0, 'total_walk_count': 0,
             'last_fatigue_calc': time.time()
         }
 
-        if 'pets' not in wrapper:
-            wrapper['pets'] = []
-
+        if 'pets' not in wrapper: wrapper['pets'] = []
         wrapper['pets'].append(new_pet_data)
         wrapper['active_idx'] = len(wrapper['pets']) - 1
         await save_legend_data(user_id, wrapper)
@@ -211,17 +220,14 @@ class PetSystemCog(commands.Cog):
     @app_commands.command(name="이름변경", description="전설이 이름 변경권을 사용하여 활성화된 전설이의 이름을 바꿉니다.")
     async def change_name(self, interaction: discord.Interaction, 새이름: str):
         wrapper = await self.get_or_migrate_data(interaction.user.id)
-        if not wrapper.get('pets'):
-            return await interaction.response.send_message("아직 전설이가 없습니다.", ephemeral=True)
+        if not wrapper.get('pets'): return await interaction.response.send_message("아직 전설이가 없습니다.", ephemeral=True)
 
         success = await consume_item(interaction.user.id, "전설이 이름 변경권", 1)
-        if not success:
-            return await interaction.response.send_message("`전설이 이름 변경권` 아이템이 필요합니다! (보관함 확인)", ephemeral=True)
+        if not success: return await interaction.response.send_message("`전설이 이름 변경권` 아이템이 필요합니다! (보관함 확인)", ephemeral=True)
 
         data = wrapper['pets'][wrapper['active_idx']]
         old_name = data.get('name', '이름없음')
         data['name'] = 새이름
-
         await save_legend_data(interaction.user.id, wrapper)
         await interaction.response.send_message(f"✨ 전설이의 이름이 `{old_name}`에서 `{새이름}`(으)로 변경되었습니다!", ephemeral=True)
 
@@ -244,8 +250,7 @@ class PetSystemCog(commands.Cog):
     @app_commands.command(name="상태창", description="내 전설이의 상태를 확인하고 돌봅니다.")
     async def status_window(self, interaction: discord.Interaction):
         wrapper = await self.get_or_migrate_data(interaction.user.id)
-        if not wrapper.get('pets'):
-            return await interaction.response.send_message("아직 전설이가 없습니다. `/알까기`로 시작하세요!", ephemeral=True)
+        if not wrapper.get('pets'): return await interaction.response.send_message("아직 전설이가 없습니다. `/알까기`로 시작하세요!", ephemeral=True)
 
         data, buffs, is_annoyed, is_diseased = await self.evaluate_pet_status(interaction.user.id, wrapper)
         current_points = await get_points(interaction.user.id)
@@ -255,116 +260,80 @@ class PetSystemCog(commands.Cog):
         await interaction.response.send_message(embed=embed, view=view)
 
     # ===== 관리자 명령어 구역 =====
-
     @app_commands.command(name="알지급", description="[관리자] 유저에게 특정 등급의 알을 지급합니다.")
     @app_commands.default_permissions(administrator=True)
     @app_commands.choices(등급=[
-        app_commands.Choice(name="서사", value="서사"),
-        app_commands.Choice(name="전설", value="전설"),
-        app_commands.Choice(name="신화", value="신화"),
-        app_commands.Choice(name="프레스티지", value="프레스티지")
+        app_commands.Choice(name="서사", value="서사"), app_commands.Choice(name="전설", value="전설"),
+        app_commands.Choice(name="신화", value="신화"), app_commands.Choice(name="프레스티지", value="프레스티지")
     ])
     async def give_egg(self, interaction: discord.Interaction, 유저: discord.Member, 등급: str, 이름: str = "관리자지급알"):
         await interaction.response.defer(ephemeral=True)
-
         try:
             wrapper = await self.get_or_migrate_data(유저.id)
-
-            if 'pets' not in wrapper:
-                wrapper['pets'] = []
-
+            if 'pets' not in wrapper: wrapper['pets'] = []
             if len(wrapper['pets']) >= 3:
                 return await interaction.followup.send(f"❌ {유저.display_name}님은 이미 3마리의 전설이를 보유하고 있습니다.")
 
             pet_type = random.choice(PET_POOLS.get(등급, ["알 수 없음"]))
-
             new_pet_data = {
-                'name': 이름,
-                'type': pet_type,
-                'rarity': 등급,
+                'name': 이름, 'type': pet_type, 'rarity': 등급,
                 'level': 0, 'exp': 0, 'fullness': 100, 'intimacy': 50, 'fatigue': 0, 'cleanliness': 100,
-                'walk_count': 0,
-                'last_fatigue_calc': time.time()
+                'walk_count': 0, 'total_walk_count': 0, 'last_fatigue_calc': time.time()
             }
-
             wrapper['pets'].append(new_pet_data)
-
-            if len(wrapper['pets']) == 1:
-                wrapper['active_idx'] = 0
+            if len(wrapper['pets']) == 1: wrapper['active_idx'] = 0
 
             await save_legend_data(유저.id, wrapper)
             await interaction.followup.send(f"✅ {유저.display_name}님에게 `{이름}` ({등급}) 알을 성공적으로 지급했습니다!")
-
-        except Exception as e:
-            print(f"[알지급 에러 상세 로그]")
+        except Exception:
             traceback.print_exc()
-            await interaction.followup.send("❌ 명령어를 처리하는 도중 오류가 발생했습니다. 봇 콘솔을 확인해주세요.")
+            await interaction.followup.send("❌ 명령어를 처리하는 도중 오류가 발생했습니다.")
 
     @app_commands.command(name="알회수", description="[관리자] 유저의 활성화된 전설이를 회수(삭제)합니다.")
     @app_commands.default_permissions(administrator=True)
     async def remove_egg(self, interaction: discord.Interaction, 유저: discord.Member):
         await interaction.response.defer(ephemeral=True)
-
         try:
             wrapper = await self.get_or_migrate_data(유저.id)
-            if not wrapper.get('pets'):
-                return await interaction.followup.send("❌ 해당 유저는 보유한 전설이가 없습니다.")
+            if not wrapper.get('pets'): return await interaction.followup.send("❌ 해당 유저는 보유한 전설이가 없습니다.")
 
             active_idx = wrapper.get('active_idx', 0)
-            if active_idx >= len(wrapper['pets']):
-                active_idx = 0
+            if active_idx >= len(wrapper['pets']): active_idx = 0
 
             removed = wrapper['pets'].pop(active_idx)
-
             removed_name = removed.get('name', '이름없음')
             removed_rarity = removed.get('rarity', '알수없음')
-
             wrapper['active_idx'] = max(0, len(wrapper['pets']) - 1)
 
             await save_legend_data(유저.id, wrapper)
             await interaction.followup.send(f"✅ {유저.display_name}님의 `{removed_name} ({removed_rarity})`(을)를 강제 회수했습니다.")
-
-        except Exception as e:
-            print(f"[알회수 에러 상세 로그]")
+        except Exception:
             traceback.print_exc()
-            await interaction.followup.send("❌ 명령어를 처리하는 도중 오류가 발생했습니다. 봇 콘솔을 확인해주세요.")
+            await interaction.followup.send("❌ 오류가 발생했습니다.")
 
     @app_commands.command(name="강제부화", description="[관리자] 유저의 활성화된 알을 즉시 부화(1성)시킵니다.")
     @app_commands.default_permissions(administrator=True)
     async def force_hatch_cmd(self, interaction: discord.Interaction, 유저: discord.Member):
         await interaction.response.defer(ephemeral=True)
-
         try:
             wrapper = await self.get_or_migrate_data(유저.id)
-
-            if not wrapper.get('pets'):
-                return await interaction.followup.send("❌ 해당 유저는 보유한 전설이가 없습니다.")
+            if not wrapper.get('pets'): return await interaction.followup.send("❌ 해당 유저는 보유한 전설이가 없습니다.")
 
             active_idx = wrapper.get('active_idx', 0)
-            if active_idx >= len(wrapper['pets']):
-                active_idx = 0
-                wrapper['active_idx'] = active_idx
+            if active_idx >= len(wrapper['pets']): active_idx = 0
 
             data = wrapper['pets'][active_idx]
-
             pet_name = data.get('name', '이름없음')
-            pet_level = data.get('level', 0)
-
-            if pet_level > 0:
+            if data.get('level', 0) > 0:
                 return await interaction.followup.send(f"해당 펫(`{pet_name}`)은 이미 부화한 상태입니다.")
 
-            # 부화 처리
-            data['level'] = 1
-            data['exp'] = 0
+            data['level'] = 1; data['exp'] = 0
             wrapper['pets'][active_idx] = data
             await save_legend_data(유저.id, wrapper)
-
             await interaction.followup.send(f"✅ {유저.display_name}님의 알(`{pet_name}`)을 강제로 부화시켰습니다!")
-
-        except Exception as e:
-            print(f"[강제부화 에러 상세 로그]")
+        except Exception:
             traceback.print_exc()
-            await interaction.followup.send("❌ 명령어를 처리하는 도중 오류가 발생했습니다. 봇 콘솔을 확인해주세요.")
+            await interaction.followup.send("❌ 오류가 발생했습니다.")
 
     @app_commands.command(name="보관함", description="내 아이템을 확인하고 사용합니다.")
     async def inventory(self, interaction: discord.Interaction):
@@ -372,18 +341,14 @@ class PetSystemCog(commands.Cog):
             async with db.execute("SELECT item_name, amount FROM user_items WHERE user_id = ? AND amount > 0", (interaction.user.id,)) as cursor:
                 rows = await cursor.fetchall()
         items = dict(rows)
-
-        if not items:
-            return await interaction.response.send_message("보관함이 비어있습니다.", ephemeral=True)
+        if not items: return await interaction.response.send_message("보관함이 비어있습니다.", ephemeral=True)
 
         view = InventoryView(interaction.user.id, items)
         await interaction.response.send_message("사용할 아이템을 선택하세요:", view=view, ephemeral=True)
 
     @app_commands.command(name="판매", description="보유중인 아이템을 판매하여 포인트를 얻습니다.")
     async def sell_item(self, interaction: discord.Interaction, 아이템: str):
-        if 아이템 not in ITEMS_INFO:
-            return await interaction.response.send_message("존재하지 않는 아이템입니다.", ephemeral=True)
-
+        if 아이템 not in ITEMS_INFO: return await interaction.response.send_message("존재하지 않는 아이템입니다.", ephemeral=True)
         success = await consume_item(interaction.user.id, 아이템, 1)
         if success:
             price = ITEM_PRICES[ITEMS_INFO[아이템]["rarity"]]
