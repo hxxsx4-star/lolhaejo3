@@ -4,13 +4,7 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f1982c64-012d-4ef1-a9cd-954fbe80761a" name="변경" comment="명령어 사라진 거 롤백">
-      <change beforePath="$PROJECT_DIR$/cogs/petsystem/cog.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/petsystem/cog.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cogs/petsystem/database.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/petsystem/database.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cogs/petsystem/ui.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/petsystem/ui.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/petsystem/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/petsystem/data.py" afterDir="false" />
-    </list>
+    <list default="true" id="f1982c64-012d-4ef1-a9cd-954fbe80761a" name="변경" comment="알지급, 회수, 강제부화 명령어 말 안들어서 수정" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -34,61 +28,61 @@
 }</component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.6185939580621735E-101" />
-      <entry key="MS500" value="7.47238836808816E-21" />
-      <entry key="S2" value="1.4901102212021746E-5" />
-      <entry key="S5" value="0.023930763761393584" />
-      <entry key="S10" value="0.3533597012630652" />
-      <entry key="S30" value="2.6230933704941237" />
-      <entry key="S60" value="4.528509820070348" />
-      <entry key="M2" value="6.000823381764264" />
-      <entry key="M5" value="7.132402552360035" />
-      <entry key="M10" value="7.689908718276775" />
-      <entry key="M15" value="8.092186685527393" />
-      <entry key="M30" value="9.107465090683181" />
-      <entry key="H1" value="10.588646409428453" />
-      <entry key="H2" value="12.509825645499228" />
-      <entry key="H4" value="16.704960398560434" />
-      <entry key="D1" value="136.08464787626895" />
-      <entry key="W1" value="281.1396661579477" />
+      <entry key="MS100" value="1.0000000315015924" />
+      <entry key="MS500" value="1.0315985102471723" />
+      <entry key="S2" value="1.4370490536009157" />
+      <entry key="S5" value="1.9931450215031659" />
+      <entry key="S10" value="2.596457473649916" />
+      <entry key="S30" value="3.3894611621537654" />
+      <entry key="S60" value="3.672784622531463" />
+      <entry key="M2" value="3.9239095222603795" />
+      <entry key="M5" value="5.600122087100849" />
+      <entry key="M10" value="8.659524100591725" />
+      <entry key="M15" value="10.855346192262298" />
+      <entry key="M30" value="15.394116787568453" />
+      <entry key="H1" value="21.428182247729964" />
+      <entry key="H2" value="28.119639405186565" />
+      <entry key="H4" value="35.65502649530143" />
+      <entry key="D1" value="154.50322523518585" />
+      <entry key="W1" value="304.91935577267316" />
     </decayedCancelled>
     <decayedSelected>
-      <entry key="MS100" value="1.0" />
-      <entry key="MS500" value="1.0" />
-      <entry key="S2" value="1.0000144191313665" />
-      <entry key="S5" value="1.0135437916035128" />
-      <entry key="S10" value="1.161001804110263" />
-      <entry key="S30" value="2.0418512386302154" />
-      <entry key="S60" value="2.745767598204158" />
-      <entry key="M2" value="3.2810046321651765" />
-      <entry key="M5" value="3.686423286307584" />
-      <entry key="M10" value="3.8385024481824925" />
-      <entry key="M15" value="3.8912582577441532" />
-      <entry key="M30" value="3.945083003087697" />
-      <entry key="H1" value="3.9724034920644757" />
-      <entry key="H2" value="3.9861758116241983" />
-      <entry key="H4" value="3.996033655773205" />
-      <entry key="D1" value="4.3777404298438185" />
-      <entry key="W1" value="4.870374543967798" />
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="0.0" />
+      <entry key="S5" value="0.0" />
+      <entry key="S10" value="6.623406832135196E-203" />
+      <entry key="S30" value="7.860320905790402E-68" />
+      <entry key="S60" value="5.38730874181553E-34" />
+      <entry key="M2" value="4.5957975394813297E-17" />
+      <entry key="M5" value="6.685698977516633E-7" />
+      <entry key="M10" value="0.0016346795548726728" />
+      <entry key="M15" value="0.022026082485849988" />
+      <entry key="M30" value="0.29681083316891893" />
+      <entry key="H1" value="1.0895951375736255" />
+      <entry key="H2" value="2.087672402688993" />
+      <entry key="H4" value="2.891892118826403" />
+      <entry key="D1" value="4.148032645603395" />
+      <entry key="W1" value="4.83301767546497" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="8.04288102800364E-4" />
-      <entry key="MS500" value="0.2404818636661937" />
-      <entry key="S2" value="0.7002971927341558" />
-      <entry key="S5" value="0.8988777886516149" />
-      <entry key="S10" value="1.4056176035783552" />
-      <entry key="S30" value="4.549121283240339" />
-      <entry key="S60" value="7.1845925155662265" />
-      <entry key="M2" value="9.224964646134392" />
-      <entry key="M5" value="10.79245100237674" />
-      <entry key="M10" value="11.51454069861227" />
-      <entry key="M15" value="11.974035703628967" />
-      <entry key="M30" value="13.04775484858095" />
-      <entry key="H1" value="14.558626880264725" />
-      <entry key="H2" value="16.494771705764364" />
-      <entry key="H4" value="20.700343350460567" />
-      <entry key="D1" value="140.46219492223702" />
-      <entry key="W1" value="286.0100003262262" />
+      <entry key="MS100" value="0.9726549761994313" />
+      <entry key="MS500" value="1.025504316822861" />
+      <entry key="S2" value="1.4337417008264066" />
+      <entry key="S5" value="1.9911184024799848" />
+      <entry key="S10" value="2.595160799409087" />
+      <entry key="S30" value="3.388918259587021" />
+      <entry key="S60" value="3.6724904666994473" />
+      <entry key="M2" value="3.9235711596220844" />
+      <entry key="M5" value="5.598872564110295" />
+      <entry key="M10" value="8.65961271287511" />
+      <entry key="M15" value="10.875895994130797" />
+      <entry key="M30" value="15.689459284442318" />
+      <entry key="H1" value="22.51630701258648" />
+      <entry key="H2" value="30.20614469765246" />
+      <entry key="H4" value="38.54614302864432" />
+      <entry key="D1" value="158.65101629286593" />
+      <entry key="W1" value="309.75232483611137" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -145,7 +139,7 @@
       <updated>1783066393672</updated>
       <workItem from="1783066394798" duration="9036000" />
       <workItem from="1783080266553" duration="1483000" />
-      <workItem from="1783082148064" duration="26823000" />
+      <workItem from="1783082148064" duration="34038000" />
     </task>
     <task id="LOCAL-00001" summary="기본 세팅">
       <option name="closed" value="true" />
@@ -395,7 +389,135 @@
       <option name="project" value="LOCAL" />
       <updated>1783203552198</updated>
     </task>
-    <option name="localTasksCounter" value="32" />
+    <task id="LOCAL-00032" summary="명령어 사라진 거 롤백">
+      <option name="closed" value="true" />
+      <created>1783204836323</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1783204836323</updated>
+    </task>
+    <task id="LOCAL-00033" summary="명령어 사라진 거 롤백">
+      <option name="closed" value="true" />
+      <created>1783204841822</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1783204841822</updated>
+    </task>
+    <task id="LOCAL-00034" summary="명령어 사라진 거 롤백">
+      <option name="closed" value="true" />
+      <created>1783204995176</created>
+      <option name="number" value="00034" />
+      <option name="presentableId" value="LOCAL-00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1783204995176</updated>
+    </task>
+    <task id="LOCAL-00035" summary="명령어 사라진 거 롤백">
+      <option name="closed" value="true" />
+      <created>1783205274531</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1783205274531</updated>
+    </task>
+    <task id="LOCAL-00036" summary="비동기로 수정">
+      <option name="closed" value="true" />
+      <created>1783205683336</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1783205683336</updated>
+    </task>
+    <task id="LOCAL-00037" summary="포인트 연동">
+      <option name="closed" value="true" />
+      <created>1783206702466</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1783206702466</updated>
+    </task>
+    <task id="LOCAL-00038" summary="UI 개선">
+      <option name="closed" value="true" />
+      <created>1783209741375</created>
+      <option name="number" value="00038" />
+      <option name="presentableId" value="LOCAL-00038" />
+      <option name="project" value="LOCAL" />
+      <updated>1783209741375</updated>
+    </task>
+    <task id="LOCAL-00039" summary="UI 개선">
+      <option name="closed" value="true" />
+      <created>1783209969977</created>
+      <option name="number" value="00039" />
+      <option name="presentableId" value="LOCAL-00039" />
+      <option name="project" value="LOCAL" />
+      <updated>1783209969977</updated>
+    </task>
+    <task id="LOCAL-00040" summary="UI 개선">
+      <option name="closed" value="true" />
+      <created>1783210214798</created>
+      <option name="number" value="00040" />
+      <option name="presentableId" value="LOCAL-00040" />
+      <option name="project" value="LOCAL" />
+      <updated>1783210214800</updated>
+    </task>
+    <task id="LOCAL-00041" summary="UI 개선">
+      <option name="closed" value="true" />
+      <created>1783210277268</created>
+      <option name="number" value="00041" />
+      <option name="presentableId" value="LOCAL-00041" />
+      <option name="project" value="LOCAL" />
+      <updated>1783210277268</updated>
+    </task>
+    <task id="LOCAL-00042" summary="UI 개선">
+      <option name="closed" value="true" />
+      <created>1783210299752</created>
+      <option name="number" value="00042" />
+      <option name="presentableId" value="LOCAL-00042" />
+      <option name="project" value="LOCAL" />
+      <updated>1783210299752</updated>
+    </task>
+    <task id="LOCAL-00043" summary="UI 개선">
+      <option name="closed" value="true" />
+      <created>1783210512987</created>
+      <option name="number" value="00043" />
+      <option name="presentableId" value="LOCAL-00043" />
+      <option name="project" value="LOCAL" />
+      <updated>1783210512987</updated>
+    </task>
+    <task id="LOCAL-00044" summary="알지급, 회수, 강제부화 명령어 말 안들어서 수정">
+      <option name="closed" value="true" />
+      <created>1783210963939</created>
+      <option name="number" value="00044" />
+      <option name="presentableId" value="LOCAL-00044" />
+      <option name="project" value="LOCAL" />
+      <updated>1783210963939</updated>
+    </task>
+    <task id="LOCAL-00045" summary="알지급, 회수, 강제부화 명령어 말 안들어서 수정">
+      <option name="closed" value="true" />
+      <created>1783211877513</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1783211877513</updated>
+    </task>
+    <task id="LOCAL-00046" summary="알지급, 회수, 강제부화 명령어 말 안들어서 수정">
+      <option name="closed" value="true" />
+      <created>1783212525760</created>
+      <option name="number" value="00046" />
+      <option name="presentableId" value="LOCAL-00046" />
+      <option name="project" value="LOCAL" />
+      <updated>1783212525760</updated>
+    </task>
+    <task id="LOCAL-00047" summary="알지급, 회수, 강제부화 명령어 말 안들어서 수정">
+      <option name="closed" value="true" />
+      <created>1783212776362</created>
+      <option name="number" value="00047" />
+      <option name="presentableId" value="LOCAL-00047" />
+      <option name="project" value="LOCAL" />
+      <updated>1783212776362</updated>
+    </task>
+    <option name="localTasksCounter" value="48" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -411,7 +533,22 @@
     <MESSAGE value="/도움말 반영" />
     <MESSAGE value="대규모 변경" />
     <MESSAGE value="명령어 사라진 거 롤백" />
-    <option name="LAST_COMMIT_MESSAGE" value="명령어 사라진 거 롤백" />
+    <MESSAGE value="비동기로 수정" />
+    <MESSAGE value="포인트 연동" />
+    <MESSAGE value="UI 개선" />
+    <MESSAGE value="알지급, 회수, 강제부화 명령어 말 안들어서 수정" />
+    <option name="LAST_COMMIT_MESSAGE" value="알지급, 회수, 강제부화 명령어 말 안들어서 수정" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/cogs/petsystem/data.py</url>
+          <line>51</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/lolhaejo2$stats.coverage" NAME="stats 커버리지 결과" MODIFIED="1783088598872" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/utils" />

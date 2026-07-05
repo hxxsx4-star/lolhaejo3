@@ -1,13 +1,12 @@
 import discord
 import time
-# data.py에서 PET_IMAGES를 불러오도록 추가해야 합니다.
+# data.py에서 PET_IMAGES를 불러옵니다.
 from .data import ITEMS_INFO, EXP_TABLE, PET_IMAGES
 from .database import (
     consume_item, add_buff,
     get_legend_data, save_legend_data, get_user,
     get_active_buffs, add_item
 )
-# utils.stats에서 spend_points를 추가로 불러옵니다.
 from utils.stats import get_points, add_points, spend_points
 
 def create_status_embed(member: discord.Member, pet_data, user_points, buffs, is_annoyed, is_diseased):
@@ -17,19 +16,19 @@ def create_status_embed(member: discord.Member, pet_data, user_points, buffs, is
     display_name = f"미확인 알" if is_egg else name
     star_text = "🥚 부화 대기 중" if is_egg else f"{level}성"
 
-    # UI 디자인 개편: Blockquote(>) 적용 및 간결화
+    # UI 디자인 개편: 펫 이름(# 사용하여 큰 글씨), 등급 텍스트 하단 배치
     embed = discord.Embed(
-        description=f"> {display_name} ({rarity})\n\n⭐ 성장: {star_text}",
+        description=f"# {display_name}\n\n⭐ 성장: {star_text}\n💎 등급: {rarity}",
         color=discord.Color.purple() if rarity == "서사" else (
             discord.Color.red() if rarity == "전설" else discord.Color.gold())
     )
 
-    # 썸네일 이미지 적용 (PET_IMAGES 딕셔너리 활용, 알일 경우 기본 알 이미지 등 적용 가능)
+    # 썸네일 이미지 적용 (PET_IMAGES 딕셔너리 활용)
     thumbnail_url = PET_IMAGES.get(name)
     if thumbnail_url and not is_egg:
         embed.set_thumbnail(url=thumbnail_url)
     else:
-        # 이미지가 없거나 알 상태일 때는 기본 유저 프사 유지 (또는 알 이미지 링크로 대체 가능)
+        # 알 상태이거나 이미지가 없을 때는 유저 프사 유지
         embed.set_thumbnail(url=member.display_avatar.url)
 
     # 적용중인 버프
@@ -77,8 +76,8 @@ def create_status_embed(member: discord.Member, pet_data, user_points, buffs, is
     return embed
 
 class InventoryView(discord.ui.View):
-    # (기존 InventoryView 코드 그대로 유지)
-    ...
+    # (기존 InventoryView 코드는 그대로 유지해 주세요)
+    pass
 
 class LegendActionView(discord.ui.View):
     def __init__(self, user_id):
@@ -93,19 +92,24 @@ class LegendActionView(discord.ui.View):
         active_idx = wrapper.get('active_idx', 0)
         return wrapper['pets'][active_idx], wrapper
 
-    @discord.ui.button(label="밥 주기", style=discord.ButtonStyle.success, emoji="🍖")
+    # 포인트 명시 및 색상(style) 변경 적용 완료
+    @discord.ui.button(label="밥 주기 (5P)", style=discord.ButtonStyle.secondary, emoji="🍖")
     async def feed_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.handle_action(interaction, "feed")
 
-    @discord.ui.button(label="샤워", style=discord.ButtonStyle.secondary, emoji="🚿")
+    @discord.ui.button(label="샤워 (10P)", style=discord.ButtonStyle.primary, emoji="🚿")
     async def shower_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.handle_action(interaction, "shower")
 
-    @discord.ui.button(label="산책 1회", style=discord.ButtonStyle.primary, emoji="👟")
+    @discord.ui.button(label="산책 1회 (10P)", style=discord.ButtonStyle.success, emoji="👟")
     async def walk_1_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.handle_walk(interaction, 1)
 
-    @discord.ui.button(label="산책 100회", style=discord.ButtonStyle.primary, emoji="🏃")
+    @discord.ui.button(label="산책 10회 (100P)", style=discord.ButtonStyle.success, emoji="🚶")
+    async def walk_10_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.handle_walk(interaction, 10)
+
+    @discord.ui.button(label="산책 100회 (할인권)", style=discord.ButtonStyle.success, emoji="🏃")
     async def walk_100_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.handle_walk(interaction, 100)
 
@@ -125,9 +129,9 @@ class LegendActionView(discord.ui.View):
         if action == "feed":
             if data['fullness'] >= 100:
                 return await interaction.response.send_message("전설이가 이미 배가 부릅니다!", ephemeral=True)
-            cost = 100 if is_annoyed else 50
+            # 비용 수정: 밥 주기는 5포인트 (짜증 상태일 경우 10)
+            cost = 10 if is_annoyed else 5
 
-            # spend_points로 동시성 이슈 방지 및 잔액 확인, 자동차감을 동시에 진행합니다.
             if not await spend_points(self.user_id, cost):
                 return await interaction.response.send_message(f"포인트가 부족합니다! (필요: {cost}P)", ephemeral=True)
 
@@ -139,9 +143,9 @@ class LegendActionView(discord.ui.View):
         elif action == "shower":
             if data.get('cleanliness', 100) >= 100:
                 return await interaction.response.send_message("전설이가 이미 깨끗합니다!", ephemeral=True)
-            cost = 100 if is_diseased else 50
+            # 비용 수정: 샤워는 10포인트 (질병 상태일 경우 20)
+            cost = 20 if is_diseased else 10
 
-            # spend_points 활용
             if not await spend_points(self.user_id, cost):
                 return await interaction.response.send_message(f"포인트가 부족합니다! (필요: {cost}P)", ephemeral=True)
 
@@ -186,11 +190,11 @@ class LegendActionView(discord.ui.View):
         stat_change = max(1, int(count * 0.5))
         fatigue_increase = 0 if ("쌩쌩한약" in buffs or "신비한 알약" in buffs) else stat_change
 
-        # 포인트를 결제하기 '전'에 피로도 조건에 의해 실패하는지 미리 확인합니다.
         if data['fatigue'] + fatigue_increase > 100 and fatigue_increase > 0:
             return await interaction.response.send_message("전설이가 너무 피곤해합니다! 휴식이 필요합니다.", ephemeral=True)
 
-        cost = 5 * count
+        # 비용 수정: 1회당 10포인트
+        cost = 10 * count
         used_discount = False
 
         if count >= 100:
@@ -199,12 +203,10 @@ class LegendActionView(discord.ui.View):
                 cost = 300
                 used_discount = True
 
-        # 잔액 부족시 사용된 아이템 환불 후 에러 처리
         if not await spend_points(self.user_id, cost):
             if used_discount: await add_item(self.user_id, "100회 산책 할인권", 1)
             return await interaction.response.send_message(f"포인트가 부족합니다! (필요: {cost}P)", ephemeral=True)
 
-        # 피로도 통과, 포인트 지불 완료이므로 안전하게 능력치를 반영합니다.
         full_decrease = 0 if ("배부름을 부르는 약" in buffs or "신비한 알약" in buffs) else stat_change
         clean_decrease = 0 if ("트위치 나가라약" in buffs or "신비한 알약" in buffs) else stat_change
         intimacy_increase = stat_change
