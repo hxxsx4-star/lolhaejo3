@@ -51,3 +51,11 @@ ITEMS_INFO = {
 }
 
 ITEM_PRICES = {"서사": 10, "전설": 50, "신화": 250, "프레스티지": 500}
+
+# 기존 코드 아래에 추가
+RARITY_IMAGES = {
+    "서사": "https://media.discordapp.net/attachments/1523108729845841931/1523316041747529768/a0879e2a5280e7ae.webp?ex=6a4baa1e&is=6a4a589e&hm=ed1da077bf067cd7b346792fa5abd7e8a3ed493741828748538fa0fd7d107b79&=&format=webp",       # 💡 서사 등급 이미지 URL
+    "전설": "https://media.discordapp.net/attachments/1523108729845841931/1523316027130380358/abd22132851db392.webp?ex=6a4baa1a&is=6a4a589a&hm=e6952967106e01365876f34466f28c5bb76f1e41c6c948004546102af0228565&=&format=webp",     # 💡 전설 등급 이미지 URL
+    "신화": "https://media.discordapp.net/attachments/1523108729845841931/1523316008574779574/35497edbaa34bc93.webp?ex=6a4baa16&is=6a4a5896&hm=b326ebd22337a251a9a6d949b918119732e956b7beb652f40ee9b09b54f2f310&=&format=webp",     # 💡 신화 등급 이미지 URL
+    "프레스티지": "https://media.discordapp.net/attachments/1523108729845841931/1523315976953921616/image.png?ex=6a4baa0e&is=6a4a588e&hm=e4474f8f966619edba316675e97e4104a686823b6401b43dfb2e9157eae965c1&=&format=webp&quality=lossless" # 💡 프레스티지 등급 이미지 URL
+}
