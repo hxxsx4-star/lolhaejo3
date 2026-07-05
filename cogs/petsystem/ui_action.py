@@ -7,7 +7,6 @@ from .database import get_legend_data, save_legend_data, get_active_buffs, consu
 from .data import PET_IMAGES, ITEMS_INFO, RARITY_IMAGES, EXP_TABLE
 from .logs import WALK_LOG_CH, send_log_embed
 
-# 💡 최상단에 utils.stats 연동
 from utils.stats import get_points, add_points, spend_points
 
 def get_progress_bar(value, fill_emoji, empty_emoji="⬛"):
@@ -30,7 +29,6 @@ def create_status_embed(user, data, points, buffs, is_annoyed, is_diseased):
     else:
         embed.add_field(name="등급", value=rarity, inline=True)
 
-    # 💡 경험치 MAX 표기 로직 추가
     current_exp = data.get('exp', 0)
     max_exp = EXP_TABLE.get(rarity, {}).get(level, 0)
 
@@ -57,18 +55,23 @@ def create_status_embed(user, data, points, buffs, is_annoyed, is_diseased):
     return embed
 
 class LegendActionView(discord.ui.View):
-    # 💡 init에 pet_level 파라미터 추가
     def __init__(self, user_id, pet_level=1):
         super().__init__(timeout=60)
         self.user_id = user_id
 
-        # 💡 알(0성)일 경우 모든 행동 버튼 비활성화
         if pet_level == 0:
             self.feed.disabled = True
             self.shower.disabled = True
             self.walk_1.disabled = True
             self.walk_10.disabled = True
             self.walk_100.disabled = True
+
+    # 💡 [중요] 타인 조작 방지 보안 코드
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 남의 전설이 상태창은 조작할 수 없습니다!", ephemeral=True)
+            return False
+        return True
 
     async def get_pet_data(self):
         wrapper = await get_legend_data(self.user_id)
@@ -77,7 +80,7 @@ class LegendActionView(discord.ui.View):
         return wrapper, wrapper['pets'][wrapper['active_idx']]
 
     async def update_status_message(self, interaction: discord.Interaction, data, popup_msg=None, popup_embed=None):
-        current_points = await get_points(self.user_id) # 💡 포인트 연동
+        current_points = await get_points(self.user_id)
         active_buffs = await get_active_buffs(self.user_id)
         buffs = {b[0] for b in active_buffs}
 
@@ -92,7 +95,6 @@ class LegendActionView(discord.ui.View):
         elif popup_msg:
             await interaction.response.send_message(popup_msg, ephemeral=True)
 
-        # 💡 상태창 갱신 시 버튼 잠금 상태도 최신화
         if data.get('level', 0) == 0:
             self.feed.disabled = True
             self.shower.disabled = True
@@ -107,7 +109,6 @@ class LegendActionView(discord.ui.View):
         wrapper, data = await self.get_pet_data()
         if not data: return await interaction.response.send_message("펫 데이터가 없습니다.", ephemeral=True)
 
-        # 💡 spend_points를 사용하여 안전하게 차감 확인
         success = await spend_points(self.user_id, 5)
         if not success: return await interaction.response.send_message("❌ 밥값(5P)이 부족합니다!", ephemeral=True)
 
@@ -120,7 +121,6 @@ class LegendActionView(discord.ui.View):
         wrapper, data = await self.get_pet_data()
         if not data: return await interaction.response.send_message("펫 데이터가 없습니다.", ephemeral=True)
 
-        # 💡 spend_points 사용
         success = await spend_points(self.user_id, 10)
         if not success: return await interaction.response.send_message("❌ 수도세(10P)가 부족합니다!", ephemeral=True)
 
@@ -141,10 +141,9 @@ class LegendActionView(discord.ui.View):
             has_ticket = False
             cost = num_walks * 10
 
-        # 💡 spend_points를 통해 과다 차감 버그 해결 및 정확한 처리
         success = await spend_points(user_id, cost)
         if not success:
-            if has_ticket: await add_item(user_id, "100회 산책 할인권", 1) # 잔액 부족 시 쓴 티켓 돌려줌
+            if has_ticket: await add_item(user_id, "100회 산책 할인권", 1)
             return await interaction.response.send_message(f"❌ 산책 유지비({cost}P)가 부족합니다!", ephemeral=True)
 
         active_buffs = await get_active_buffs(user_id)
@@ -200,9 +199,17 @@ class LegendActionView(discord.ui.View):
             elif r_item < 0.0111 and legend_items: found_items.append(("전설", random.choice(legend_items)))
             elif r_item < 0.2111 and epic_items: found_items.append(("서사", random.choice(epic_items)))
 
-        # 💡 연동
-        if gained_points > 0: await add_points(user_id, gained_points)
-        if lost_points > 0: await spend_points(user_id, lost_points)
+        # 💡 [중요] 포인트 변동 완벽 합산 반영 (0원 미만으로 떨어지지 않게 방어)
+        net_points = gained_points - lost_points
+        if net_points > 0:
+            await add_points(user_id, net_points)
+        elif net_points < 0:
+            deduct_amount = abs(net_points)
+            current_user_points = await get_points(user_id)
+            if current_user_points < deduct_amount:
+                await spend_points(user_id, current_user_points) # 가진 돈 전부 차감 (마이너스 방지)
+            else:
+                await spend_points(user_id, deduct_amount)
 
         for egg in found_eggs: await add_item(user_id, f"{egg}급 알", 1)
         for rarity, item_name in found_items: await add_item(user_id, item_name, 1)
@@ -221,6 +228,8 @@ class LegendActionView(discord.ui.View):
         else:
             if gain_count: desc += f"💰 산책하다가 포인트를 주웠다! ({gain_count}번, +{gained_points}P)\n"
             if lose_count: desc += f"💩 산책하다가 똥을 밟았다.. ({lose_count}번, -{lost_points}P)\n"
+
+        desc += f"*(정산 결과: {'+' if net_points >= 0 else ''}{net_points}P)*\n"
 
         for egg in found_eggs: desc += f"🥚 {egg}급 알을 발견했다!\n"
         for rarity, item_name in found_items: desc += f"🎁 {rarity}급 아이템 [{item_name}]을 발견했다!\n"
