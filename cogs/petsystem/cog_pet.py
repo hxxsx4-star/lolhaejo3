@@ -105,33 +105,40 @@ class PetSystemCog(commands.Cog):
             active_idx = 0; wrapper['active_idx'] = active_idx
 
         data = wrapper['pets'][active_idx]
-        if data.get('level', 0) >= 3: return
+        current_level = data.get('level', 0)
+        if current_level >= 3: return
 
-        active_buffs = await get_active_buffs(user_id)
-        buffs = {b[0]: b for b in active_buffs}
+        # 💡 알 상태일 때는 버프/너프 무시, 1분에 1XP 고정
+        if current_level == 0:
+            earned_exp = int(duration_sec / 60)
+            used_booster = None
+        else:
+            active_buffs = await get_active_buffs(user_id)
+            buffs = {b[0]: b for b in active_buffs}
 
-        exp_multiplier = 1
-        if data.get('intimacy', 0) >= 80: exp_multiplier *= 2
+            exp_multiplier = 1
+            if data.get('intimacy', 0) >= 80: exp_multiplier *= 2
 
-        used_booster = None
-        if "경험치 부스터 X10" in buffs: exp_multiplier *= 10; used_booster = "경험치 부스터 X10"
-        elif "경험치 부스터 X5" in buffs: exp_multiplier *= 5; used_booster = "경험치 부스터 X5"
-        elif "경험치 부스터 X2" in buffs: exp_multiplier *= 2; used_booster = "경험치 부스터 X2"
+            used_booster = None
+            if "경험치 부스터 X10" in buffs: exp_multiplier *= 10; used_booster = "경험치 부스터 X10"
+            elif "경험치 부스터 X5" in buffs: exp_multiplier *= 5; used_booster = "경험치 부스터 X5"
+            elif "경험치 부스터 X2" in buffs: exp_multiplier *= 2; used_booster = "경험치 부스터 X2"
 
-        earned_exp = int(duration_sec / 60 * exp_multiplier)
+            earned_exp = int(duration_sec / 60 * exp_multiplier)
+
+            if used_booster:
+                vc_seconds_left = buffs[used_booster][2]
+                new_vc_seconds = vc_seconds_left - duration_sec
+                async with aiosqlite.connect('legends.db') as db:
+                    if new_vc_seconds <= 0:
+                        await db.execute("DELETE FROM active_buffs WHERE user_id = ? AND buff_name = ?", (user_id, used_booster))
+                    else:
+                        await db.execute("UPDATE active_buffs SET vc_seconds_left = ? WHERE user_id = ? AND buff_name = ?", (new_vc_seconds, user_id, used_booster))
+                    await db.commit()
+
         if earned_exp <= 0: return
 
         data['exp'] = data.get('exp', 0) + earned_exp
-
-        if used_booster:
-            vc_seconds_left = buffs[used_booster][2]
-            new_vc_seconds = vc_seconds_left - duration_sec
-            async with aiosqlite.connect('legends.db') as db:
-                if new_vc_seconds <= 0:
-                    await db.execute("DELETE FROM active_buffs WHERE user_id = ? AND buff_name = ?", (user_id, used_booster))
-                else:
-                    await db.execute("UPDATE active_buffs SET vc_seconds_left = ? WHERE user_id = ? AND buff_name = ?", (new_vc_seconds, user_id, used_booster))
-                await db.commit()
 
         rarity = data.get('rarity', '서사')
         EXP_REQUIREMENTS = {
@@ -141,12 +148,12 @@ class PetSystemCog(commands.Cog):
         }
 
         while data.get('level', 0) < 3:
-            current_level = data.get('level', 0)
-            if current_level == 0: required_exp = EXP_REQUIREMENTS[0]
-            else: required_exp = EXP_REQUIREMENTS[current_level].get(rarity, EXP_REQUIREMENTS[current_level]["서사"])
+            current_lvl = data.get('level', 0)
+            if current_lvl == 0: required_exp = EXP_REQUIREMENTS[0]
+            else: required_exp = EXP_REQUIREMENTS[current_lvl].get(rarity, EXP_REQUIREMENTS[current_lvl]["서사"])
 
             if data.get('exp', 0) >= required_exp:
-                data['level'] = current_level + 1
+                data['level'] = current_lvl + 1
                 data['exp'] -= required_exp
             else: break
 

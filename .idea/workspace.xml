@@ -5,6 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="f1982c64-012d-4ef1-a9cd-954fbe80761a" name="변경" comment="배틀기능, 상점기능 추가.&#10;UI 개선&#10;포인트 연동">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cogs/petsystem/cog_pet.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/petsystem/cog_pet.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cogs/petsystem/debug.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/petsystem/debug.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -145,23 +148,7 @@
       <workItem from="1783082148064" duration="37160000" />
       <workItem from="1783249688743" duration="76000" />
       <workItem from="1783249778143" duration="5173000" />
-      <workItem from="1783264957959" duration="2368000" />
-    </task>
-    <task id="LOCAL-00008" summary="기본 세팅">
-      <option name="closed" value="true" />
-      <created>1783087428726</created>
-      <option name="number" value="00008" />
-      <option name="presentableId" value="LOCAL-00008" />
-      <option name="project" value="LOCAL" />
-      <updated>1783087428726</updated>
-    </task>
-    <task id="LOCAL-00009" summary="기본 세팅">
-      <option name="closed" value="true" />
-      <created>1783087904439</created>
-      <option name="number" value="00009" />
-      <option name="presentableId" value="LOCAL-00009" />
-      <option name="project" value="LOCAL" />
-      <updated>1783087904439</updated>
+      <workItem from="1783264957959" duration="5328000" />
     </task>
     <task id="LOCAL-00010" summary="기본 세팅">
       <option name="closed" value="true" />
@@ -539,7 +526,23 @@
       <option name="project" value="LOCAL" />
       <updated>1783267699184</updated>
     </task>
-    <option name="localTasksCounter" value="57" />
+    <task id="LOCAL-00057" summary="배틀기능, 상점기능 추가.&#10;UI 개선&#10;포인트 연동">
+      <option name="closed" value="true" />
+      <created>1783267964407</created>
+      <option name="number" value="00057" />
+      <option name="presentableId" value="LOCAL-00057" />
+      <option name="project" value="LOCAL" />
+      <updated>1783267964407</updated>
+    </task>
+    <task id="LOCAL-00058" summary="배틀기능, 상점기능 추가.&#10;UI 개선&#10;포인트 연동">
+      <option name="closed" value="true" />
+      <created>1783268004149</created>
+      <option name="number" value="00058" />
+      <option name="presentableId" value="LOCAL-00058" />
+      <option name="project" value="LOCAL" />
+      <updated>1783268004149</updated>
+    </task>
+    <option name="localTasksCounter" value="59" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

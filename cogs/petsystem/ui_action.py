@@ -3,7 +3,8 @@ import time
 import random
 from datetime import datetime
 
-from .database import get_legend_data, save_legend_data, get_active_buffs, consume_item, add_item
+# 💡 update_max_star 추가
+from .database import get_legend_data, save_legend_data, get_active_buffs, consume_item, add_item, update_max_star
 from .data import PET_IMAGES, ITEMS_INFO, RARITY_IMAGES, EXP_TABLE
 from .logs import WALK_LOG_CH, send_log_embed
 
@@ -167,8 +168,7 @@ class LegendActionView(discord.ui.View):
                 data['fatigue'] = min(100, data.get('fatigue', 0) + (20 * stat_triggers))
             stat_msg += f"✨ {stat_triggers * 20}회 산책 분량 달성! 친밀도가 오르고 배고픔/더러움이 증가했습니다.\n"
 
-        gained_points = 0
-        gain_count = 0
+        # 💡 산책 시 포인트 획득 확률 삭제
         lost_points = 0
         lose_count = 0
         found_eggs = []
@@ -180,9 +180,6 @@ class LegendActionView(discord.ui.View):
         prestige_items = [k for k, v in ITEMS_INFO.items() if v['rarity'] == '프레스티지']
 
         for _ in range(num_walks):
-            if random.random() < 0.60:
-                gained_points += 50
-                gain_count += 1
             if random.random() < 0.50:
                 lost_points += 45
                 lose_count += 1
@@ -193,17 +190,41 @@ class LegendActionView(discord.ui.View):
             elif r_egg < 0.0221: found_eggs.append("전설")
             elif r_egg < 0.1221: found_eggs.append("서사")
 
+            # 💡 아이템 드랍률 하향 조정 (프레스티지 0.01%, 신화 0.04%, 전설 0.1%, 서사 10%)
             r_item = random.random()
             if r_item < 0.0001 and prestige_items: found_items.append(("프레스티지", random.choice(prestige_items)))
-            elif r_item < 0.0011 and mythic_items: found_items.append(("신화", random.choice(mythic_items)))
-            elif r_item < 0.0111 and legend_items: found_items.append(("전설", random.choice(legend_items)))
-            elif r_item < 0.2111 and epic_items: found_items.append(("서사", random.choice(epic_items)))
+            elif r_item < 0.0005 and mythic_items: found_items.append(("신화", random.choice(mythic_items)))
+            elif r_item < 0.0015 and legend_items: found_items.append(("전설", random.choice(legend_items)))
+            elif r_item < 0.1015 and epic_items: found_items.append(("서사", random.choice(epic_items)))
 
-        # 💡 [중요] 포인트 변동 완벽 합산 반영 (0원 미만으로 떨어지지 않게 방어)
-        net_points = gained_points - lost_points
-        if net_points > 0:
-            await add_points(user_id, net_points)
-        elif net_points < 0:
+        # 💡 산책으로 인한 경험치 획득 (1회당 1XP) 및 레벨업 로직
+        gained_exp = 0
+        if data.get('level', 0) > 0 and data.get('level', 0) < 3:
+            gained_exp = num_walks
+            data['exp'] = data.get('exp', 0) + gained_exp
+
+            rarity = data.get('rarity', '서사')
+            EXP_REQUIREMENTS = {
+                0: 100,
+                1: {"서사": 5000, "전설": 10000, "신화": 20000, "프레스티지": 30000},
+                2: {"서사": 10000, "전설": 20000, "신화": 40000, "프레스티지": 70000}
+            }
+
+            while data.get('level', 0) < 3:
+                current_level = data.get('level', 0)
+                required_exp = EXP_REQUIREMENTS[current_level].get(rarity, EXP_REQUIREMENTS[current_level]["서사"])
+
+                if data.get('exp', 0) >= required_exp:
+                    data['level'] = current_level + 1
+                    data['exp'] -= required_exp
+                else: break
+
+            if data.get('level', 0) >= 3:
+                await update_max_star(user_id, 3)
+
+        # 💡 포인트 차감 로직 (획득이 없으므로 항상 마이너스)
+        net_points = -lost_points
+        if net_points < 0:
             deduct_amount = abs(net_points)
             current_user_points = await get_points(user_id)
             if current_user_points < deduct_amount:
@@ -222,14 +243,18 @@ class LegendActionView(discord.ui.View):
         else: desc += f"💸 소모된 유지비: -{cost}P\n"
         desc += "━━━━━━━━━━━━━━━━━━━━\n"
 
+        if gained_exp > 0:
+            desc += f"📈 산책을 하며 경험치를 얻었다! (+{gained_exp} XP)\n"
+
         if num_walks == 1:
-            if gain_count: desc += f"💰 산책하다가 포인트를 주웠다! (+{gained_points}P)\n"
             if lose_count: desc += f"💩 산책하다가 똥을 밟았다.. (-{lost_points}P)\n"
         else:
-            if gain_count: desc += f"💰 산책하다가 포인트를 주웠다! ({gain_count}번, +{gained_points}P)\n"
             if lose_count: desc += f"💩 산책하다가 똥을 밟았다.. ({lose_count}번, -{lost_points}P)\n"
 
-        desc += f"*(정산 결과: {'+' if net_points >= 0 else ''}{net_points}P)*\n"
+        if lost_points > 0:
+            desc += f"*(정산 결과: -{lost_points}P)*\n"
+        else:
+            desc += f"*(정산 결과: 추가 포인트 소모 없음)*\n"
 
         for egg in found_eggs: desc += f"🥚 {egg}급 알을 발견했다!\n"
         for rarity, item_name in found_items: desc += f"🎁 {rarity}급 아이템 [{item_name}]을 발견했다!\n"
@@ -242,7 +267,7 @@ class LegendActionView(discord.ui.View):
         await self.update_status_message(interaction, data, popup_embed=result_embed)
 
         log_desc = f"🐾 {data['name']} 산책\n💸 소모 유지비: -{cost}P\n"
-        if gained_points > 0: log_desc += f"💰 획득 포인트: +{gained_points}P\n"
+        if gained_exp > 0: log_desc += f"📈 획득 경험치: +{gained_exp} XP\n"
         if lost_points > 0: log_desc += f"💩 잃은 포인트: -{lost_points}P\n"
         if found_eggs: log_desc += f"🥚 획득한 알: {', '.join(found_eggs)}급 알\n"
         if found_items: log_desc += f"🎁 획득한 아이템: {', '.join([i[1] for i in found_items])}\n"
