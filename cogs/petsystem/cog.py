@@ -57,6 +57,20 @@ class PetSystemCog(commands.Cog):
         active_buffs = await get_active_buffs(user_id)
         buffs = {b[0] for b in active_buffs}
 
+        # --- 🕒 1분마다 피로도 1칸(20)씩 자동 감소 로직 ---
+        last_calc = data.get('last_fatigue_calc', now)
+        elapsed_minutes = int((now - last_calc) // 60)
+
+        if elapsed_minutes > 0:
+            fatigue_drop = elapsed_minutes * 20
+            # 피로도는 최소 0까지만 떨어짐
+            data['fatigue'] = max(0, data.get('fatigue', 0) - fatigue_drop)
+            # 남은 초를 보존하기 위해 기준 시간 갱신
+            data['last_fatigue_calc'] = last_calc + (elapsed_minutes * 60)
+        elif 'last_fatigue_calc' not in data:
+            data['last_fatigue_calc'] = now
+        # -----------------------------------------------------------
+
         if "신비한 알약" in buffs:
             data['fullness'] = 100; data['fatigue'] = 0; data['intimacy'] = 100; data['cleanliness'] = 100
         else:
@@ -180,7 +194,9 @@ class PetSystemCog(commands.Cog):
             'name': 이름,
             'type': pet_type,
             'rarity': rarity,
-            'level': 0, 'exp': 0, 'fullness': 100, 'intimacy': 50, 'fatigue': 0, 'cleanliness': 100
+            'level': 0, 'exp': 0, 'fullness': 100, 'intimacy': 50, 'fatigue': 0, 'cleanliness': 100,
+            'walk_count': 0,
+            'last_fatigue_calc': time.time()
         }
 
         if 'pets' not in wrapper:
@@ -266,7 +282,9 @@ class PetSystemCog(commands.Cog):
                 'name': 이름,
                 'type': pet_type,
                 'rarity': 등급,
-                'level': 0, 'exp': 0, 'fullness': 100, 'intimacy': 50, 'fatigue': 0, 'cleanliness': 100
+                'level': 0, 'exp': 0, 'fullness': 100, 'intimacy': 50, 'fatigue': 0, 'cleanliness': 100,
+                'walk_count': 0,
+                'last_fatigue_calc': time.time()
             }
 
             wrapper['pets'].append(new_pet_data)
