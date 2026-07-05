@@ -11,7 +11,6 @@ from .database import get_or_migrate_data, get_active_buffs, save_legend_data, g
 from .ui_action import create_status_embed, LegendActionView
 from .logs import HATCH_LOG_CH, send_log_embed
 
-# 💡 최상단에 utils.stats 연동
 from utils.stats import get_points, add_points
 
 class PetSystemCog(commands.Cog):
@@ -108,7 +107,6 @@ class PetSystemCog(commands.Cog):
         current_level = data.get('level', 0)
         if current_level >= 3: return
 
-        # 💡 알 상태일 때는 버프/너프 무시, 1분에 1XP 고정
         if current_level == 0:
             earned_exp = int(duration_sec / 60)
             used_booster = None
@@ -166,26 +164,22 @@ class PetSystemCog(commands.Cog):
     @app_commands.command(name="알까기", description="새로운 전설이 알을 뽑고 이름을 지어줍니다.")
     async def hatch_egg(self, interaction: discord.Interaction, 이름: str):
         user_id = interaction.user.id
-        user_data = await get_user(user_id)
         wrapper = await get_or_migrate_data(user_id)
 
         is_first_time = (len(wrapper.get('pets', [])) == 0)
 
-        if not is_first_time:
-            if user_data[2] < 3:
-                return await interaction.response.send_message("아직 첫 전설이를 3성으로 키우지 못했습니다! 3성 달성 후 추가 가챠가 해금됩니다.", ephemeral=True)
-            if len(wrapper['pets']) >= 3:
-                return await interaction.response.send_message("전설이는 최대 3마리까지만 키울 수 있습니다!", ephemeral=True)
+        # 💡 [수정됨] 3성 달성 조건이 삭제되고 최대 3마리 제한만 유지됩니다.
+        if len(wrapper.get('pets', [])) >= 3:
+            return await interaction.response.send_message("전설이는 최대 3마리까지만 키울 수 있습니다!", ephemeral=True)
 
-        current_points = await get_points(user_id) # 💡 연동
+        current_points = await get_points(user_id)
         cost = 0 if is_first_time else 1000
 
         if current_points < cost:
             return await interaction.response.send_message(f"가챠 비용이 부족합니다! (필요: {cost}P)", ephemeral=True)
 
-        if not is_first_time: await add_points(user_id, -cost) # 💡 연동
+        if not is_first_time: await add_points(user_id, -cost)
 
-        # 💡 [수정됨] 첫 알까기도 가챠 확률과 동일하게 적용
         rarity = random.choices(list(PET_POOLS.keys()), weights=[85, 14, 0.9, 0.1], k=1)[0]
         pet_type = random.choice(PET_POOLS[rarity])
 
@@ -221,11 +215,10 @@ class PetSystemCog(commands.Cog):
         if not wrapper.get('pets'): return await interaction.response.send_message("아직 전설이가 없습니다. `/알까기`로 시작하세요!", ephemeral=True)
 
         data, buffs, is_annoyed, is_diseased = await self.evaluate_pet_status(interaction.user.id, wrapper)
-        current_points = await get_points(interaction.user.id) # 💡 연동
+        current_points = await get_points(interaction.user.id)
 
         embed = create_status_embed(interaction.user, data, current_points, buffs, is_annoyed, is_diseased)
 
-        # 💡 pet_level 파라미터를 넘겨주도록 수정! (알 상태면 버튼 잠김)
         view = LegendActionView(interaction.user.id, pet_level=data.get('level', 0))
         await interaction.response.send_message(embed=embed, view=view)
 

@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f1982c64-012d-4ef1-a9cd-954fbe80761a" name="변경" comment="디버깅">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-    </list>
+    <list default="true" id="f1982c64-012d-4ef1-a9cd-954fbe80761a" name="변경" comment="/성급 상승, 하락 /이름 변경" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -31,22 +29,22 @@
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
       <entry key="MS100" value="1.0" />
-      <entry key="MS500" value="1.0000000000820901" />
-      <entry key="S2" value="1.003010043392025" />
-      <entry key="S5" value="1.098045824393535" />
-      <entry key="S10" value="1.3131226986239342" />
-      <entry key="S30" value="1.67905484219202" />
-      <entry key="S60" value="1.824047839747196" />
-      <entry key="M2" value="1.9077708432482439" />
-      <entry key="M5" value="1.9641050704174594" />
-      <entry key="M10" value="2.0899655215605613" />
-      <entry key="M15" value="2.524677068739556" />
-      <entry key="M30" value="5.567884294651191" />
-      <entry key="H1" value="13.792759709502471" />
-      <entry key="H2" value="27.222059751307246" />
-      <entry key="H4" value="42.92273531931364" />
-      <entry key="D1" value="168.17796853371388" />
-      <entry key="W1" value="328.18646892182784" />
+      <entry key="MS500" value="1.0" />
+      <entry key="S2" value="1.0" />
+      <entry key="S5" value="1.0" />
+      <entry key="S10" value="1.0000000013332173" />
+      <entry key="S30" value="1.0017449043379967" />
+      <entry key="S60" value="1.059065251851204" />
+      <entry key="M2" value="1.3436875782482942" />
+      <entry key="M5" value="1.988733856477707" />
+      <entry key="M10" value="2.4062577426146636" />
+      <entry key="M15" value="2.5830782147188676" />
+      <entry key="M30" value="2.9213439426758527" />
+      <entry key="H1" value="5.09568338415137" />
+      <entry key="H2" value="13.838062281118717" />
+      <entry key="H4" value="30.126421393166044" />
+      <entry key="D1" value="158.817911973584" />
+      <entry key="W1" value="327.6278097689373" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
@@ -54,37 +52,37 @@
       <entry key="S2" value="0.0" />
       <entry key="S5" value="0.0" />
       <entry key="S10" value="0.0" />
-      <entry key="S30" value="4.230951026791524E-171" />
-      <entry key="S60" value="1.2498869280888477E-85" />
-      <entry key="M2" value="7.000197911156119E-43" />
-      <entry key="M5" value="3.149536101507961E-17" />
-      <entry key="M10" value="1.12197328702653E-8" />
-      <entry key="M15" value="7.9549450738015E-6" />
-      <entry key="M30" value="0.005640657237962295" />
-      <entry key="H1" value="0.1502069879700106" />
-      <entry key="H2" value="0.7751305264262578" />
-      <entry key="H4" value="1.7621315738845873" />
-      <entry key="D1" value="3.8193096769633574" />
-      <entry key="W1" value="4.776347467313122" />
+      <entry key="S30" value="1.544190776553199E-266" />
+      <entry key="S60" value="2.3878234001010592E-133" />
+      <entry key="M2" value="9.675558822706058E-67" />
+      <entry key="M5" value="9.004775428983475E-27" />
+      <entry key="M10" value="1.8971237664292213E-13" />
+      <entry key="M15" value="5.240579140508483E-9" />
+      <entry key="M30" value="1.4477739542193458E-4" />
+      <entry key="H1" value="0.02406443459222558" />
+      <entry key="H2" value="0.31025415262123573" />
+      <entry key="H4" value="1.1148327391765747" />
+      <entry key="D1" value="3.538724640367986" />
+      <entry key="W1" value="4.724565761876809" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="0.9460576467255959" />
-      <entry key="MS500" value="0.9889709164620037" />
-      <entry key="S2" value="1.000231920557592" />
-      <entry key="S5" value="1.0968151516017355" />
-      <entry key="S10" value="1.3123730594077216" />
-      <entry key="S30" value="1.6787288292212088" />
-      <entry key="S60" value="1.8238697508820718" />
-      <entry key="M2" value="1.9076774443128517" />
-      <entry key="M5" value="1.964066307170931" />
-      <entry key="M10" value="2.089923283271247" />
-      <entry key="M15" value="2.5245552047545856" />
-      <entry key="M30" value="5.573014341900372" />
-      <entry key="H1" value="13.942070399877208" />
-      <entry key="H2" value="27.99616639254093" />
-      <entry key="H4" value="44.684008707857856" />
-      <entry key="D1" value="171.99697547190226" />
-      <entry key="W1" value="332.96275642955635" />
+      <entry key="MS100" value="0.9395227492140118" />
+      <entry key="MS500" value="0.9876008614453725" />
+      <entry key="S2" value="0.9968856972203758" />
+      <entry key="S5" value="0.9987531130852756" />
+      <entry key="S10" value="0.9993763634124956" />
+      <entry key="S30" value="1.001536439775522" />
+      <entry key="S60" value="1.058952092411217" />
+      <entry key="M2" value="1.343608820680032" />
+      <entry key="M5" value="1.988682234747812" />
+      <entry key="M10" value="2.4062254180768976" />
+      <entry key="M15" value="2.583054762943008" />
+      <entry key="M30" value="2.921462903895183" />
+      <entry key="H1" value="5.119597589366093" />
+      <entry key="H2" value="14.147903222411014" />
+      <entry key="H4" value="31.24070947762829" />
+      <entry key="D1" value="162.35635582755577" />
+      <entry key="W1" value="332.3523161800199" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -145,23 +143,7 @@
       <workItem from="1783082148064" duration="37160000" />
       <workItem from="1783249688743" duration="76000" />
       <workItem from="1783249778143" duration="5173000" />
-      <workItem from="1783264957959" duration="8411000" />
-    </task>
-    <task id="LOCAL-00013" summary="기본 세팅">
-      <option name="closed" value="true" />
-      <created>1783160822060</created>
-      <option name="number" value="00013" />
-      <option name="presentableId" value="LOCAL-00013" />
-      <option name="project" value="LOCAL" />
-      <updated>1783160822060</updated>
-    </task>
-    <task id="LOCAL-00014" summary="코드 분리">
-      <option name="closed" value="true" />
-      <created>1783161686838</created>
-      <option name="number" value="00014" />
-      <option name="presentableId" value="LOCAL-00014" />
-      <option name="project" value="LOCAL" />
-      <updated>1783161686838</updated>
+      <workItem from="1783264957959" duration="8742000" />
     </task>
     <task id="LOCAL-00015" summary="코드 분리">
       <option name="closed" value="true" />
@@ -539,7 +521,23 @@
       <option name="project" value="LOCAL" />
       <updated>1783278524316</updated>
     </task>
-    <option name="localTasksCounter" value="62" />
+    <task id="LOCAL-00062" summary="배틀에서 이기면 10P">
+      <option name="closed" value="true" />
+      <created>1783280323341</created>
+      <option name="number" value="00062" />
+      <option name="presentableId" value="LOCAL-00062" />
+      <option name="project" value="LOCAL" />
+      <updated>1783280323341</updated>
+    </task>
+    <task id="LOCAL-00063" summary="/성급 상승, 하락 /이름 변경">
+      <option name="closed" value="true" />
+      <created>1783280633725</created>
+      <option name="number" value="00063" />
+      <option name="presentableId" value="LOCAL-00063" />
+      <option name="project" value="LOCAL" />
+      <updated>1783280633725</updated>
+    </task>
+    <option name="localTasksCounter" value="64" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -564,7 +562,9 @@
     <MESSAGE value="stats.py 최신화" />
     <MESSAGE value="배틀기능, 상점기능 추가.&#10;UI 개선&#10;포인트 연동" />
     <MESSAGE value="디버깅" />
-    <option name="LAST_COMMIT_MESSAGE" value="디버깅" />
+    <MESSAGE value="배틀에서 이기면 10P" />
+    <MESSAGE value="/성급 상승, 하락 /이름 변경" />
+    <option name="LAST_COMMIT_MESSAGE" value="/성급 상승, 하락 /이름 변경" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/lolhaejo2$stats.coverage" NAME="stats 커버리지 결과" MODIFIED="1783088598872" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/utils" />
