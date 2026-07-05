@@ -10,13 +10,13 @@ import traceback
 from .data import *
 from .database import *
 from .ui import create_status_embed, LegendActionView, InventoryView
-from utils.stats import get_points, add_points # 외부 유틸 함수 유지
+from utils.stats import get_points, add_points
+from .logs import HATCH_LOG_CH, SELL_LOG_CH, send_log_embed # 💡 로그 모듈 추가
 
 class PetSystemCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.voice_sessions = {}
-        # 💡 [추가됨] 봇 켜질 때 이미 통화방에 있는 사람 긁어오기
         self.bot.loop.create_task(self.init_voice_sessions())
         self.voice_exp_loop.start()
 
@@ -119,10 +119,8 @@ class PetSystemCog(commands.Cog):
         buffs = {b[0]: b for b in active_buffs}
 
         exp_multiplier = 1
-        if data.get('intimacy', 0) >= 80:
-            exp_multiplier *= 2
+        if data.get('intimacy', 0) >= 80: exp_multiplier *= 2
 
-        # 💡 부스터 배율 처리
         used_booster = None
         if "경험치 부스터 X10" in buffs:
             exp_multiplier *= 10
@@ -139,11 +137,9 @@ class PetSystemCog(commands.Cog):
 
         data['exp'] = data.get('exp', 0) + earned_exp
 
-        # 💡 사용된 부스터 시간 차감
         if used_booster:
             vc_seconds_left = buffs[used_booster][2]
             new_vc_seconds = vc_seconds_left - duration_sec
-
             async with aiosqlite.connect('legends.db') as db:
                 if new_vc_seconds <= 0:
                     await db.execute("DELETE FROM active_buffs WHERE user_id = ? AND buff_name = ?", (user_id, used_booster))
@@ -170,7 +166,6 @@ class PetSystemCog(commands.Cog):
                 data['exp'] -= required_exp
             else: break
 
-        # 💡 [추가됨] 3성 달성 시 users 테이블 업데이트 (알뽑기 조건 충족용)
         if data.get('level', 0) >= 3:
             from .database import update_max_star
             await update_max_star(user_id, 3)
@@ -216,6 +211,13 @@ class PetSystemCog(commands.Cog):
         await save_legend_data(user_id, wrapper)
 
         await interaction.response.send_message(f"🥚 신비로운 [{rarity}급] 알을 얻었습니다! (이름: {이름})\n`/상태창`으로 확인하세요.", ephemeral=True)
+
+        # 💡 [로그] 알까기 로그 발송
+        await send_log_embed(
+            interaction.client, HATCH_LOG_CH, "🥚 알까기 로그",
+            f"{이름} ({pet_type} - {rarity}급) 부화 완료!\n💸 소모 비용: {cost}P",
+            interaction.user, discord.Color.purple()
+        )
 
     @app_commands.command(name="이름변경", description="전설이 이름 변경권을 사용하여 활성화된 전설이의 이름을 바꿉니다.")
     async def change_name(self, interaction: discord.Interaction, 새이름: str):
@@ -354,6 +356,13 @@ class PetSystemCog(commands.Cog):
             price = ITEM_PRICES[ITEMS_INFO[아이템]["rarity"]]
             await add_points(interaction.user.id, price)
             await interaction.response.send_message(f"✅ `{아이템}` 1개를 판매하여 {price}P를 획득했습니다!", ephemeral=True)
+
+            # 💡 [로그] 아이템 판매 로그 발송
+            await send_log_embed(
+                interaction.client, SELL_LOG_CH, "💰 아이템 판매 로그",
+                f"판매한 아이템: {아이템}\n획득 포인트: +{price}P",
+                interaction.user, discord.Color.gold()
+            )
         else:
             await interaction.response.send_message("해당 아이템을 보유하고 있지 않습니다.", ephemeral=True)
 

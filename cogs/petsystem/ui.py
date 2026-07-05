@@ -4,8 +4,8 @@ import random
 from datetime import datetime
 from .database import get_legend_data, save_legend_data
 from .data import PET_IMAGES, ITEMS_INFO
+from .logs import WALK_LOG_CH, ITEM_USE_LOG_CH, send_log_embed # 💡 로그 모듈 추가
 
-# --- 💡 [추가됨] 스탯을 이모티콘 5칸짜리 게이지(20%당 1칸)로 바꿔주는 함수 ---
 def get_progress_bar(value, fill_emoji, empty_emoji="⬛"):
     val = max(0, min(100, value))
     fill_count = int(val // 20)
@@ -23,7 +23,6 @@ class LegendActionView(discord.ui.View):
             return None, None
         return wrapper, wrapper['pets'][wrapper['active_idx']]
 
-    # 💡 [수정됨] 팝업 메시지를 일반 텍스트뿐만 아니라 임베드(Embed)로도 받을 수 있게 수정
     async def update_status_message(self, interaction: discord.Interaction, data, popup_msg=None, popup_embed=None):
         from .database import get_user, get_active_buffs
         user_data = await get_user(self.user_id)
@@ -49,8 +48,7 @@ class LegendActionView(discord.ui.View):
         from .database import get_user, update_user_points
         user_data = await get_user(self.user_id)
 
-        if user_data[1] < 5:
-            return await interaction.response.send_message("❌ 밥값(5P)이 부족합니다!", ephemeral=True)
+        if user_data[1] < 5: return await interaction.response.send_message("❌ 밥값(5P)이 부족합니다!", ephemeral=True)
 
         wrapper, data = await self.get_pet_data()
         if not data: return await interaction.response.send_message("펫 데이터가 없습니다.", ephemeral=True)
@@ -58,7 +56,6 @@ class LegendActionView(discord.ui.View):
         await update_user_points(self.user_id, -5)
         data['fullness'] = min(100, data.get('fullness', 0) + 20)
         await save_legend_data(self.user_id, wrapper)
-
         await self.update_status_message(interaction, data, popup_msg=f"🍚 {data['name']}(이)가 맛있게 밥을 먹었습니다! (포만도 +20, 밥값 -5P)")
 
     @discord.ui.button(label="샤워하기 (10P)", style=discord.ButtonStyle.primary, emoji="🚿", row=0)
@@ -66,8 +63,7 @@ class LegendActionView(discord.ui.View):
         from .database import get_user, update_user_points
         user_data = await get_user(self.user_id)
 
-        if user_data[1] < 10:
-            return await interaction.response.send_message("❌ 수도세(10P)가 부족합니다!", ephemeral=True)
+        if user_data[1] < 10: return await interaction.response.send_message("❌ 수도세(10P)가 부족합니다!", ephemeral=True)
 
         wrapper, data = await self.get_pet_data()
         if not data: return await interaction.response.send_message("펫 데이터가 없습니다.", ephemeral=True)
@@ -75,10 +71,8 @@ class LegendActionView(discord.ui.View):
         await update_user_points(self.user_id, -10)
         data['cleanliness'] = min(100, data.get('cleanliness', 0) + 20)
         await save_legend_data(self.user_id, wrapper)
-
         await self.update_status_message(interaction, data, popup_msg=f"🚿 {data['name']}(이)가 깨끗해졌습니다! (청결도 +20, 수도세 -10P)")
 
-    # 산책 처리용 핵심 함수
     async def handle_walk(self, interaction: discord.Interaction, num_walks: int):
         from .database import get_active_buffs, get_user, update_user_points, consume_item, add_item
 
@@ -118,15 +112,12 @@ class LegendActionView(discord.ui.View):
             data['fullness'] = max(0, data.get('fullness', 100) - (20 * stat_triggers))
             data['cleanliness'] = max(0, data.get('cleanliness', 100) - (20 * stat_triggers))
             data['intimacy'] = min(100, data.get('intimacy', 50) + (20 * stat_triggers))
-
             if "쌩쌩한약" in buffs or "신비한 알약" in buffs:
                 stat_msg += "💊 [쌩쌩한약] 효과로 피로도가 오르지 않았습니다!\n"
             else:
                 data['fatigue'] = min(100, data.get('fatigue', 0) + (20 * stat_triggers))
-
             stat_msg += f"✨ {stat_triggers * 20}회 산책 분량 달성! 친밀도가 오르고 배고픔/더러움이 증가했습니다.\n"
 
-        # 🎲 가챠 및 포인트 증감 로직
         gained_points = 0
         gain_count = 0
         lost_points = 0
@@ -162,21 +153,16 @@ class LegendActionView(discord.ui.View):
         if gained_points > 0: await update_user_points(user_id, gained_points)
         if lost_points > 0: await update_user_points(user_id, -lost_points)
 
-        for egg in found_eggs:
-            await add_item(user_id, f"{egg}급 알", 1)
-        for rarity, item_name in found_items:
-            await add_item(user_id, item_name, 1)
+        for egg in found_eggs: await add_item(user_id, f"{egg}급 알", 1)
+        for rarity, item_name in found_items: await add_item(user_id, item_name, 1)
 
         await save_legend_data(self.user_id, wrapper)
 
-        # 💡 [추가됨] 산책 결과를 멋진 Embed로 구성
+        # UI 출력용 임베드 구성
         result_embed = discord.Embed(title="🐾 산책 결과", color=discord.Color.green())
-
         desc = f"{data['name']}(와)과 {num_walks}회 산책했습니다!\n"
-        if has_ticket:
-            desc += "🎫 `100회 산책 할인권`이 적용되어 300P만 소모되었습니다.\n"
-        else:
-            desc += f"💸 소모된 유지비: -{cost}P\n"
+        if has_ticket: desc += "🎫 `100회 산책 할인권`이 적용되어 300P만 소모되었습니다.\n"
+        else: desc += f"💸 소모된 유지비: -{cost}P\n"
         desc += "━━━━━━━━━━━━━━━━━━━━\n"
 
         if num_walks == 1:
@@ -186,34 +172,37 @@ class LegendActionView(discord.ui.View):
             if gain_count: desc += f"💰 산책하다가 포인트를 주웠다! ({gain_count}번, +{gained_points}P)\n"
             if lose_count: desc += f"💩 산책하다가 똥을 밟았다.. ({lose_count}번, -{lost_points}P)\n"
 
-        for egg in found_eggs:
-            desc += f"🥚 {egg}급 알을 발견했다!\n"
-        for rarity, item_name in found_items:
-            desc += f"🎁 {rarity}급 아이템 [{item_name}]을 발견했다!\n"
-
-        if stat_msg:
-            desc += f"\n{stat_msg}"
+        for egg in found_eggs: desc += f"🥚 {egg}급 알을 발견했다!\n"
+        for rarity, item_name in found_items: desc += f"🎁 {rarity}급 아이템 [{item_name}]을 발견했다!\n"
+        if stat_msg: desc += f"\n{stat_msg}"
 
         result_embed.description = desc
-
-        # 💡 [추가됨] 유저 ID 및 실행 시각 Footer에 표시
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         result_embed.set_footer(text=f"사용자 ID: {user_id} | 실행 시각: {current_time}")
 
-        # 팝업 메시지 대신 임베드 전달
+        # 사용자에게 결과 전송
         await self.update_status_message(interaction, data, popup_embed=result_embed)
 
+        # 💡 [로그] 산책 로그 발송 (1회/10회/100회 구분)
+        log_desc = f"🐾 {data['name']} 산책\n💸 소모 유지비: -{cost}P\n"
+        if gained_points > 0: log_desc += f"💰 획득 포인트: +{gained_points}P\n"
+        if lost_points > 0: log_desc += f"💩 잃은 포인트: -{lost_points}P\n"
+        if found_eggs: log_desc += f"🥚 획득한 알: {', '.join(found_eggs)}급 알\n"
+        if found_items: log_desc += f"🎁 획득한 아이템: {', '.join([i[1] for i in found_items])}\n"
+
+        await send_log_embed(
+            interaction.client, WALK_LOG_CH, "👟 산책 로그", log_desc.strip(),
+            interaction.user, discord.Color.green(), f"구분: {num_walks}회 산책"
+        )
+
     @discord.ui.button(label="1회 산책 (10P)", style=discord.ButtonStyle.success, emoji="🚶", row=1)
-    async def walk_1(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.handle_walk(interaction, 1)
+    async def walk_1(self, interaction: discord.Interaction, button: discord.ui.Button): await self.handle_walk(interaction, 1)
 
     @discord.ui.button(label="10회 산책 (100P)", style=discord.ButtonStyle.success, emoji="🚶‍♂️", row=1)
-    async def walk_10(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.handle_walk(interaction, 10)
+    async def walk_10(self, interaction: discord.Interaction, button: discord.ui.Button): await self.handle_walk(interaction, 10)
 
     @discord.ui.button(label="100회 산책 (1000P)", style=discord.ButtonStyle.success, emoji="🏃", row=1)
-    async def walk_100(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.handle_walk(interaction, 100)
+    async def walk_100(self, interaction: discord.Interaction, button: discord.ui.Button): await self.handle_walk(interaction, 100)
 
 class InventoryView(discord.ui.View):
     def __init__(self, user_id, items):
@@ -231,12 +220,9 @@ class InventoryButton(discord.ui.Button):
         user_id = interaction.user.id
         item_name = self.item_name
 
-        if item_name == "100회 산책 할인권":
-            return await interaction.response.send_message("💡 이 아이템은 100회 산책 시 자동으로 사용됩니다!", ephemeral=True)
-        elif item_name == "전설이 이름 변경권":
-            return await interaction.response.send_message("💡 이 아이템은 `/이름변경` 명령어를 입력해서 사용할 수 있습니다!", ephemeral=True)
-        elif "급 알" in item_name:
-            return await interaction.response.send_message("💡 알은 인벤토리에 보관됩니다! 아직 알을 직접 까는 기능은 추가되지 않았습니다.", ephemeral=True)
+        if item_name == "100회 산책 할인권": return await interaction.response.send_message("💡 이 아이템은 100회 산책 시 자동으로 사용됩니다!", ephemeral=True)
+        elif item_name == "전설이 이름 변경권": return await interaction.response.send_message("💡 이 아이템은 `/이름변경` 명령어를 입력해서 사용할 수 있습니다!", ephemeral=True)
+        elif "급 알" in item_name: return await interaction.response.send_message("💡 알은 인벤토리에 보관됩니다! 아직 알을 직접 까는 기능은 추가되지 않았습니다.", ephemeral=True)
 
         if "경험치 부스터" in item_name:
             from .database import get_legend_data
@@ -248,8 +234,7 @@ class InventoryButton(discord.ui.Button):
 
         from .database import consume_item, add_buff, update_user_points
         success = await consume_item(user_id, item_name, 1)
-        if not success:
-            return await interaction.response.send_message("❌ 아이템을 보유하고 있지 않거나 부족합니다.", ephemeral=True)
+        if not success: return await interaction.response.send_message("❌ 아이템을 보유하고 있지 않거나 부족합니다.", ephemeral=True)
 
         msg = f"✅ `{item_name}`을(를) 사용했습니다!\n"
 
@@ -274,36 +259,34 @@ class InventoryButton(discord.ui.Button):
         elif item_name == "1000포인트 교환권":
             await update_user_points(user_id, 1000)
             msg += "💸 1,000P를 획득했습니다!"
-        else:
-            msg += "하지만 아무 일도 일어나지 않았습니다..?"
 
         await interaction.response.send_message(msg, ephemeral=True)
 
-# 💡 [수정됨] 상태창 숫자 렌더링 -> 이모티콘 렌더링으로 완전히 변경
+        # 💡 [로그] 아이템 사용 로그 발송
+        await send_log_embed(
+            interaction.client, ITEM_USE_LOG_CH, "🎒 아이템 사용 로그",
+            f"사용 아이템: {item_name}\n효과가 성공적으로 적용되었습니다.",
+            interaction.user, discord.Color.blue()
+        )
+
 def create_status_embed(user, data, points, buffs, is_annoyed, is_diseased):
     embed = discord.Embed(title=f"🐾 {data['name']}의 상태창", color=discord.Color.gold())
 
     pet_type = data.get('type')
-    if pet_type in PET_IMAGES:
-        embed.set_thumbnail(url=PET_IMAGES[pet_type])
+    if pet_type in PET_IMAGES: embed.set_thumbnail(url=PET_IMAGES[pet_type])
 
     embed.add_field(name="등급", value=data.get('rarity', '서사'), inline=True)
     embed.add_field(name="레벨", value=f"{data.get('level', 0)}성", inline=True)
     embed.add_field(name="경험치", value=f"{data.get('exp', 0)}", inline=True)
 
-    # 숫자 대신 get_progress_bar 함수를 사용해 이모티콘 채워넣기
     embed.add_field(name="포만도", value=get_progress_bar(data.get('fullness', 0), "🍗"), inline=True)
-    embed.add_field(name="피로도", value=get_progress_bar(data.get('fatigue', 0), "😪"), inline=True)
-    embed.add_field(name="청결도", value=get_progress_bar(data.get('cleanliness', 0), "🛁"), inline=True)
+    embed.add_field(name="피로도", value=get_progress_bar(data.get('fatigue', 0), "😴"), inline=True)
+    embed.add_field(name="청결도", value=get_progress_bar(data.get('cleanliness', 0), "🚿"), inline=True)
     embed.add_field(name="친밀도", value=get_progress_bar(data.get('intimacy', 0), "💖", "🖤"), inline=True)
 
-    if buffs:
-        embed.add_field(name="활성화된 버프", value=", ".join(buffs), inline=False)
-
-    if is_annoyed:
-        embed.add_field(name="⚠️ 상태", value="배가 너무 고파서 심술이 났습니다!", inline=False)
-    if is_diseased:
-        embed.add_field(name="⚠️ 상태", value="너무 더러워서 병에 걸렸습니다!", inline=False)
+    if buffs: embed.add_field(name="활성화된 버프", value=", ".join(buffs), inline=False)
+    if is_annoyed: embed.add_field(name="⚠️ 상태", value="배가 너무 고파서 심술이 났습니다!", inline=False)
+    if is_diseased: embed.add_field(name="⚠️ 상태", value="너무 더러워서 병에 걸렸습니다!", inline=False)
 
     embed.set_footer(text=f"보유 포인트: {points}P | 누적 산책: {data.get('total_walk_count', 0)}회")
     return embed
