@@ -9,8 +9,10 @@ import aiosqlite
 from .data import PET_POOLS
 from .database import get_or_migrate_data, get_active_buffs, save_legend_data, get_user, update_max_star
 from .ui_action import create_status_embed, LegendActionView
-from utils.stats import get_points, add_points
 from .logs import HATCH_LOG_CH, send_log_embed
+
+# 💡 최상단에 utils.stats 연동
+from utils.stats import get_points, add_points
 
 class PetSystemCog(commands.Cog):
     def __init__(self, bot):
@@ -168,13 +170,13 @@ class PetSystemCog(commands.Cog):
             if len(wrapper['pets']) >= 3:
                 return await interaction.response.send_message("전설이는 최대 3마리까지만 키울 수 있습니다!", ephemeral=True)
 
-        current_points = await get_points(user_id)
+        current_points = await get_points(user_id) # 💡 연동
         cost = 0 if is_first_time else 1000
 
         if current_points < cost:
             return await interaction.response.send_message(f"가챠 비용이 부족합니다! (필요: {cost}P)", ephemeral=True)
 
-        if not is_first_time: await add_points(user_id, -cost)
+        if not is_first_time: await add_points(user_id, -cost) # 💡 연동
 
         rarity = "서사" if is_first_time else random.choices(list(PET_POOLS.keys()), weights=[85, 14, 0.9, 0.1], k=1)[0]
         pet_type = random.choice(PET_POOLS[rarity])
@@ -211,10 +213,12 @@ class PetSystemCog(commands.Cog):
         if not wrapper.get('pets'): return await interaction.response.send_message("아직 전설이가 없습니다. `/알까기`로 시작하세요!", ephemeral=True)
 
         data, buffs, is_annoyed, is_diseased = await self.evaluate_pet_status(interaction.user.id, wrapper)
-        current_points = await get_points(interaction.user.id)
+        current_points = await get_points(interaction.user.id) # 💡 연동
 
         embed = create_status_embed(interaction.user, data, current_points, buffs, is_annoyed, is_diseased)
-        view = LegendActionView(interaction.user.id)
+
+        # 💡 pet_level 파라미터를 넘겨주도록 수정! (알 상태면 버튼 잠김)
+        view = LegendActionView(interaction.user.id, pet_level=data.get('level', 0))
         await interaction.response.send_message(embed=embed, view=view)
 
 async def setup(bot):

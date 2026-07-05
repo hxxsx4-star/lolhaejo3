@@ -1,7 +1,10 @@
 import discord
-from .database import get_legend_data, get_or_migrate_data, save_legend_data, consume_item, add_buff, update_user_points
+from .database import get_legend_data, get_or_migrate_data, save_legend_data, consume_item, add_buff
 from .data import ITEMS_INFO, ITEM_PRICES
 from .logs import ITEM_USE_LOG_CH, ITEM_SELL_LOG_CH, send_log_embed
+
+# 💡 최상단에 utils.stats 연동
+from utils.stats import add_points
 
 class NameChangeModal(discord.ui.Modal):
     def __init__(self):
@@ -91,16 +94,16 @@ class ItemQuantityModal(discord.ui.Modal):
             await add_buff(user_id, buff_name=item_name, duration_sec=0, vc_sec=10800 * amount)
             msg += f"📈 효과: 통화방에 있는 동안 {3 * amount}시간 동안 경험치 획득량이 증가합니다."
         elif item_name == "50포인트 교환권":
-            await update_user_points(user_id, 50 * amount)
+            await add_points(user_id, 50 * amount) # 💡 연동 완료
             msg += f"💸 {50 * amount}P를 획득했습니다!"
         elif item_name == "100포인트 교환권":
-            await update_user_points(user_id, 100 * amount)
+            await add_points(user_id, 100 * amount) # 💡 연동 완료
             msg += f"💸 {100 * amount}P를 획득했습니다!"
         elif item_name == "500포인트 교환권":
-            await update_user_points(user_id, 500 * amount)
+            await add_points(user_id, 500 * amount) # 💡 연동 완료
             msg += f"💸 {500 * amount}P를 획득했습니다!"
         elif item_name == "1000포인트 교환권":
-            await update_user_points(user_id, 1000 * amount)
+            await add_points(user_id, 1000 * amount) # 💡 연동 완료
             msg += f"💸 {1000 * amount}P를 획득했습니다!"
 
         await interaction.response.send_message(msg, ephemeral=True)
@@ -122,7 +125,7 @@ class ItemQuantityModal(discord.ui.Modal):
         success = await consume_item(user_id, item_name, amount)
         if not success: return await interaction.response.send_message("❌ 아이템이 부족합니다.", ephemeral=True)
 
-        await update_user_points(user_id, total_price)
+        await add_points(user_id, total_price) # 💡 연동 완료
         await interaction.response.send_message(f"✅ `{item_name}` {amount}개를 판매하여 {total_price}P를 획득했습니다!", ephemeral=True)
 
         await send_log_embed(interaction.client, ITEM_SELL_LOG_CH, "💰 아이템/알 다중 판매 로그", f"판매 물품: {item_name} x {amount}개\n획득 포인트: +{total_price}P", interaction.user, discord.Color.gold())

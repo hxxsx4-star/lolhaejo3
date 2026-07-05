@@ -21,7 +21,8 @@ class InventoryCog(commands.Cog):
 
         embed = discord.Embed(title="🎒 내 보관함", description="아래 메뉴에서 아이템을 선택한 후 사용/판매 버튼을 눌러주세요.", color=discord.Color.blurple())
         for item_name, amount in items.items():
-            embed.add_field(name=f"▪️ {item_name}", value=f"{amount}개 보유", inline=True)
+            # 💡 inline=False를 통해 아이템이 세로로 한 줄씩 출력되게 설정
+            embed.add_field(name=f"▪️ {item_name}", value=f"{amount}개 보유", inline=False)
 
         view = InventoryView(interaction.user.id, items)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)

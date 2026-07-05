@@ -3,9 +3,12 @@ import time
 import random
 from datetime import datetime
 
-from .database import get_legend_data, save_legend_data
-from .data import PET_IMAGES, ITEMS_INFO, RARITY_IMAGES
+from .database import get_legend_data, save_legend_data, get_active_buffs, consume_item, add_item
+from .data import PET_IMAGES, ITEMS_INFO, RARITY_IMAGES, EXP_TABLE
 from .logs import WALK_LOG_CH, send_log_embed
+
+# 💡 최상단에 utils.stats 연동
+from utils.stats import get_points, add_points, spend_points
 
 def get_progress_bar(value, fill_emoji, empty_emoji="⬛"):
     val = max(0, min(100, value))
@@ -20,14 +23,26 @@ def create_status_embed(user, data, points, buffs, is_annoyed, is_diseased):
     if pet_type in PET_IMAGES: embed.set_thumbnail(url=PET_IMAGES[pet_type])
 
     rarity = data.get('rarity', '서사')
+    level = data.get('level', 0)
 
     if rarity in RARITY_IMAGES:
         embed.set_author(name=f"[{rarity}급 전설이]", icon_url=RARITY_IMAGES[rarity])
     else:
         embed.add_field(name="등급", value=rarity, inline=True)
 
-    embed.add_field(name="레벨", value=f"{data.get('level', 0)}성", inline=True)
-    embed.add_field(name="경험치", value=f"{data.get('exp', 0)}", inline=True)
+    # 💡 경험치 MAX 표기 로직 추가
+    current_exp = data.get('exp', 0)
+    max_exp = EXP_TABLE.get(rarity, {}).get(level, 0)
+
+    if level >= 3:
+        exp_display = "MAX"
+    elif level == 0:
+        exp_display = f"{current_exp} / 100 (부화 대기)"
+    else:
+        exp_display = f"{current_exp} / {max_exp}"
+
+    embed.add_field(name="레벨", value=f"{level}성" if level > 0 else "🥚 알", inline=True)
+    embed.add_field(name="경험치", value=exp_display, inline=True)
 
     embed.add_field(name="포만도", value=get_progress_bar(data.get('fullness', 0), "🍗"), inline=True)
     embed.add_field(name="피로도", value=get_progress_bar(data.get('fatigue', 0), "😴"), inline=True)
@@ -42,9 +57,18 @@ def create_status_embed(user, data, points, buffs, is_annoyed, is_diseased):
     return embed
 
 class LegendActionView(discord.ui.View):
-    def __init__(self, user_id):
+    # 💡 init에 pet_level 파라미터 추가
+    def __init__(self, user_id, pet_level=1):
         super().__init__(timeout=60)
         self.user_id = user_id
+
+        # 💡 알(0성)일 경우 모든 행동 버튼 비활성화
+        if pet_level == 0:
+            self.feed.disabled = True
+            self.shower.disabled = True
+            self.walk_1.disabled = True
+            self.walk_10.disabled = True
+            self.walk_100.disabled = True
 
     async def get_pet_data(self):
         wrapper = await get_legend_data(self.user_id)
@@ -53,9 +77,7 @@ class LegendActionView(discord.ui.View):
         return wrapper, wrapper['pets'][wrapper['active_idx']]
 
     async def update_status_message(self, interaction: discord.Interaction, data, popup_msg=None, popup_embed=None):
-        from .database import get_user, get_active_buffs
-        user_data = await get_user(self.user_id)
-        current_points = user_data[1]
+        current_points = await get_points(self.user_id) # 💡 포인트 연동
         active_buffs = await get_active_buffs(self.user_id)
         buffs = {b[0] for b in active_buffs}
 
@@ -70,47 +92,47 @@ class LegendActionView(discord.ui.View):
         elif popup_msg:
             await interaction.response.send_message(popup_msg, ephemeral=True)
 
-        await interaction.message.edit(embed=status_embed)
+        # 💡 상태창 갱신 시 버튼 잠금 상태도 최신화
+        if data.get('level', 0) == 0:
+            self.feed.disabled = True
+            self.shower.disabled = True
+            self.walk_1.disabled = True
+            self.walk_10.disabled = True
+            self.walk_100.disabled = True
+
+        await interaction.message.edit(embed=status_embed, view=self)
 
     @discord.ui.button(label="밥주기 (5P)", style=discord.ButtonStyle.primary, emoji="🍚", row=0)
     async def feed(self, interaction: discord.Interaction, button: discord.ui.Button):
-        from .database import get_user, update_user_points
-        user_data = await get_user(self.user_id)
-
-        if user_data[1] < 5: return await interaction.response.send_message("❌ 밥값(5P)이 부족합니다!", ephemeral=True)
-
         wrapper, data = await self.get_pet_data()
         if not data: return await interaction.response.send_message("펫 데이터가 없습니다.", ephemeral=True)
 
-        await update_user_points(self.user_id, -5)
+        # 💡 spend_points를 사용하여 안전하게 차감 확인
+        success = await spend_points(self.user_id, 5)
+        if not success: return await interaction.response.send_message("❌ 밥값(5P)이 부족합니다!", ephemeral=True)
+
         data['fullness'] = min(100, data.get('fullness', 0) + 20)
         await save_legend_data(self.user_id, wrapper)
         await self.update_status_message(interaction, data, popup_msg=f"🍚 {data['name']}(이)가 맛있게 밥을 먹었습니다! (포만도 +20, 밥값 -5P)")
 
     @discord.ui.button(label="샤워하기 (10P)", style=discord.ButtonStyle.primary, emoji="🚿", row=0)
     async def shower(self, interaction: discord.Interaction, button: discord.ui.Button):
-        from .database import get_user, update_user_points
-        user_data = await get_user(self.user_id)
-
-        if user_data[1] < 10: return await interaction.response.send_message("❌ 수도세(10P)가 부족합니다!", ephemeral=True)
-
         wrapper, data = await self.get_pet_data()
         if not data: return await interaction.response.send_message("펫 데이터가 없습니다.", ephemeral=True)
 
-        await update_user_points(self.user_id, -10)
+        # 💡 spend_points 사용
+        success = await spend_points(self.user_id, 10)
+        if not success: return await interaction.response.send_message("❌ 수도세(10P)가 부족합니다!", ephemeral=True)
+
         data['cleanliness'] = min(100, data.get('cleanliness', 0) + 20)
         await save_legend_data(self.user_id, wrapper)
         await self.update_status_message(interaction, data, popup_msg=f"🚿 {data['name']}(이)가 깨끗해졌습니다! (청결도 +20, 수도세 -10P)")
 
     async def handle_walk(self, interaction: discord.Interaction, num_walks: int):
-        from .database import get_active_buffs, get_user, update_user_points, consume_item, add_item
-
         wrapper, data = await self.get_pet_data()
         if not data: return await interaction.response.send_message("펫 데이터가 없습니다.", ephemeral=True)
 
         user_id = self.user_id
-        user_data = await get_user(user_id)
-        current_points = user_data[1]
 
         if num_walks == 100:
             has_ticket = await consume_item(user_id, "100회 산책 할인권", 1)
@@ -119,12 +141,11 @@ class LegendActionView(discord.ui.View):
             has_ticket = False
             cost = num_walks * 10
 
-        if current_points < cost:
-            msg = f"❌ 산책 유지비({cost}P)가 부족합니다! (현재: {current_points}P)"
-            if has_ticket: await add_item(user_id, "100회 산책 할인권", 1)
-            return await interaction.response.send_message(msg, ephemeral=True)
-
-        await update_user_points(user_id, -cost)
+        # 💡 spend_points를 통해 과다 차감 버그 해결 및 정확한 처리
+        success = await spend_points(user_id, cost)
+        if not success:
+            if has_ticket: await add_item(user_id, "100회 산책 할인권", 1) # 잔액 부족 시 쓴 티켓 돌려줌
+            return await interaction.response.send_message(f"❌ 산책 유지비({cost}P)가 부족합니다!", ephemeral=True)
 
         active_buffs = await get_active_buffs(user_id)
         buffs = {b[0] for b in active_buffs}
@@ -179,8 +200,9 @@ class LegendActionView(discord.ui.View):
             elif r_item < 0.0111 and legend_items: found_items.append(("전설", random.choice(legend_items)))
             elif r_item < 0.2111 and epic_items: found_items.append(("서사", random.choice(epic_items)))
 
-        if gained_points > 0: await update_user_points(user_id, gained_points)
-        if lost_points > 0: await update_user_points(user_id, -lost_points)
+        # 💡 연동
+        if gained_points > 0: await add_points(user_id, gained_points)
+        if lost_points > 0: await spend_points(user_id, lost_points)
 
         for egg in found_eggs: await add_item(user_id, f"{egg}급 알", 1)
         for rarity, item_name in found_items: await add_item(user_id, item_name, 1)

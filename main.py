@@ -22,14 +22,15 @@ class LegendBot(commands.Bot):
         await init_db()
         print("✅ 데이터베이스 초기화 완료")
 
-        # 💡 [변경됨] 기존 'cogs.petsystem.cog'를 삭제하고 세분화된 3개의 파일을 로드합니다.
         extensions = [
             'cogs.gacha',
             'cogs.help',
             'cogs.sync',
             'cogs.petsystem.cog_pet',         # 펫 코어 및 상태창 시스템
             'cogs.petsystem.cog_inventory',   # 보관함 및 도감 시스템
-            'cogs.petsystem.cog_admin'        # 관리자 명령어 시스템
+            'cogs.petsystem.cog_admin',       # 관리자 명령어 시스템
+            'cogs.petshop',                   # ✨ 펫 상점 시스템 추가
+            'cogs.battle'                     # ✨ 배틀 시스템 추가
         ]
 
         for extension in extensions:

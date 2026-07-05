@@ -35,9 +35,9 @@ PET_IMAGES = {
 
 ITEMS_INFO = {
     "배부름을 부르는 약": {"rarity": "서사", "desc": "사용 시 24시간 동안 전설이의 포만도를 MAX로 유지합니다."},
-    "쌩쌩한약": {"rarity": "서사", "desc": "사용 시 24시간 동안 산책을 무리하게 시켜도 피로도가 0으로 유지됩니다."},
-    "트위치 나가라약": {"rarity": "서사", "desc": "사용 시 24시간 동안 청결도를 MAX로 유지합니다."},
-    "아무무도 인싸로 만드는 약": {"rarity": "전설", "desc": "사용 시 24시간 동안 전설이의 친밀도를 MAX로 유지합니다."},
+    "쌩쌩한약": {"rarity": "신화", "desc": "사용 시 24시간 동안 산책을 무리하게 시켜도 피로도가 0으로 유지됩니다."},
+    "트위치 나가라약": {"rarity": "전설", "desc": "사용 시 24시간 동안 청결도를 MAX로 유지합니다."},
+    "아무무도 인싸로 만드는 약": {"rarity": "신화", "desc": "사용 시 24시간 동안 전설이의 친밀도를 MAX로 유지합니다."},
     "100회 산책 할인권": {"rarity": "전설", "desc": "보유 중일 때 100회 산책 시 자동으로 소모되며 500P 대신 300P만 소비합니다. (일회용)"},
     "경험치 부스터 X2": {"rarity": "전설", "desc": "사용 시 통화방 3시간 동안 경험치 획득량이 2배가 됩니다. (청결도 MAX 상태와 중복 불가)"},
     "경험치 부스터 X5": {"rarity": "신화", "desc": "사용 시 통화방 3시간 동안 경험치 획득량이 5배가 됩니다. (청결도 MAX 상태와 중복 불가)"},
@@ -52,10 +52,9 @@ ITEMS_INFO = {
 
 ITEM_PRICES = {"서사": 10, "전설": 50, "신화": 250, "프레스티지": 500}
 
-# 기존 코드 아래에 추가
 RARITY_IMAGES = {
-    "서사": "https://media.discordapp.net/attachments/1523108729845841931/1523316041747529768/a0879e2a5280e7ae.webp?ex=6a4baa1e&is=6a4a589e&hm=ed1da077bf067cd7b346792fa5abd7e8a3ed493741828748538fa0fd7d107b79&=&format=webp",       # 💡 서사 등급 이미지 URL
-    "전설": "https://media.discordapp.net/attachments/1523108729845841931/1523316027130380358/abd22132851db392.webp?ex=6a4baa1a&is=6a4a589a&hm=e6952967106e01365876f34466f28c5bb76f1e41c6c948004546102af0228565&=&format=webp",     # 💡 전설 등급 이미지 URL
-    "신화": "https://media.discordapp.net/attachments/1523108729845841931/1523316008574779574/35497edbaa34bc93.webp?ex=6a4baa16&is=6a4a5896&hm=b326ebd22337a251a9a6d949b918119732e956b7beb652f40ee9b09b54f2f310&=&format=webp",     # 💡 신화 등급 이미지 URL
-    "프레스티지": "https://media.discordapp.net/attachments/1523108729845841931/1523315976953921616/image.png?ex=6a4baa0e&is=6a4a588e&hm=e4474f8f966619edba316675e97e4104a686823b6401b43dfb2e9157eae965c1&=&format=webp&quality=lossless" # 💡 프레스티지 등급 이미지 URL
+    "서사": "https://media.discordapp.net/attachments/1523108729845841931/1523316041747529768/a0879e2a5280e7ae.webp?ex=6a4baa1e&is=6a4a589e&hm=ed1da077bf067cd7b346792fa5abd7e8a3ed493741828748538fa0fd7d107b79&=&format=webp",
+    "전설": "https://media.discordapp.net/attachments/1523108729845841931/1523316027130380358/abd22132851db392.webp?ex=6a4baa1a&is=6a4a589a&hm=e6952967106e01365876f34466f28c5bb76f1e41c6c948004546102af0228565&=&format=webp",
+    "신화": "https://media.discordapp.net/attachments/1523108729845841931/1523316008574779574/35497edbaa34bc93.webp?ex=6a4baa16&is=6a4a5896&hm=b326ebd22337a251a9a6d949b918119732e956b7beb652f40ee9b09b54f2f310&=&format=webp",
+    "프레스티지": "https://media.discordapp.net/attachments/1523108729845841931/1523315976953921616/image.png?ex=6a4baa0e&is=6a4a588e&hm=e4474f8f966619edba316675e97e4104a686823b6401b43dfb2e9157eae965c1&=&format=webp&quality=lossless"
 }
