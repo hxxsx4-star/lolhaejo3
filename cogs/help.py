@@ -7,28 +7,32 @@ class HelpCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands.command(name="도움말", description="봇의 모든 명령어를 확인합니다.")
-    async def help_command(self, interaction: discord.Interaction):
+    help_group = app_commands.Group(name="도움말", description="봇의 명령어 목록을 확인합니다.")
+
+    @help_group.command(name="일반", description="일반 사용자를 위한 명령어 목록을 확인합니다.")
+    async def help_general(self, interaction: discord.Interaction):
         embed = discord.Embed(
-            title="🎲 꼬물이 봇 도움말 🎲",
+            title="🎲 전설이 키우기 봇 도움말 🎲",
             description="봇이 제공하는 모든 명령어 목록입니다.",
             color=discord.Color.blue()
         )
         embed.set_thumbnail(url=self.bot.user.avatar.url if self.bot.user.avatar else None)
 
         embed.add_field(
-            name="🐾 전설이 키우기",
-            value="`/알까기`: 새로운 전설이 알을 받습니다.\n"
-                  "`/상태창`: 내 전설이의 상태를 확인하고 돌봅니다.\n"
-                  "`/보관함`: 보유 중인 알과 아이템을 확인/사용합니다.\n"
-                  "`/상점`: 포인트를 이용해 유용한 펫 아이템을 구매합니다.\n"
-                  "`/배틀신청`: 다른 유저의 전설이와 결투를 벌입니다.",
+            name="🐾 전설이 시스템",
+            value="`/알까기 <이름>`: 새로운 전설이를 얻고 이름을 지어줍니다.\n"
+                  "`/상태창`: 전설이의 현재 상태를 확인하고 돌봅니다.\n"
+                  "`/펫교체 <슬롯>`: 돌볼 전설이를 다른 전설이로 교체합니다.\n"
+                  "`/스탯 [유저]`: 나와 다른 유저의 전설이 스탯을 확인합니다.\n"
+                  "`/보관함`: 보유 중인 아이템을 확인하고 사용합니다.\n"
+                  "`/알환전`: 하위 등급 알을 상위 등급 알로 교환합니다.\n"
+                  "`/알분해`: 상위 등급 알을 하위 등급 알로 분해합니다.",
             inline=False
         )
         embed.add_field(
             name="📚 도감 및 정보",
-            value="`/전설이목록`: 게임에 등장하는 모든 전설이를 봅니다.\n"
-                  "`/아이템목록`: 게임에 등장하는 모든 아이템을 봅니다.\n"
+            value="`/전설이목록`: 획득 가능한 모든 전설이의 종류를 봅니다.\n"
+                  "`/아이템목록`: 게임 내 모든 아이템의 효과를 봅니다.\n"
                   "`/버프목록`: 전설이의 상태가 좋을 때 얻는 이로운 효과를 봅니다.\n"
                   "`/너프목록`: 전설이의 상태가 나쁠 때 얻는 해로운 효과를 봅니다.",
             inline=False
@@ -42,12 +46,50 @@ class HelpCog(commands.Cog):
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @app_commands.command(name="사용법게시", description="[관리자] 지정된 채널에 펫 시스템 사용법 안내를 게시합니다.")
+    @help_group.command(name="관리자", description="[관리자] 관리자를 위한 명령어 목록을 확인합니다.")
+    @app_commands.default_permissions(administrator=True)
+    @app_commands.checks.has_permissions(administrator=True)
+    async def help_admin(self, interaction: discord.Interaction):
+        embed = discord.Embed(
+            title="🛠️ 전설이 키우기 봇 관리자 도움말 🛠️",
+            description="관리자 전용 명령어 목록입니다.",
+            color=discord.Color.red()
+        )
+        embed.set_thumbnail(url=self.bot.user.avatar.url if self.bot.user.avatar else None)
+
+        embed.add_field(
+            name="📦 아이템 관리",
+            value="`/아이템지급 <유저> <종류> <개수>`: 유저에게 특정 아이템을 지급합니다.\n"
+                  "`/아이템회수 <유저> <종류> <개수>`: 유저의 특정 아이템을 회수합니다.\n"
+                  "`/아이템확인 <유저>`: 유저의 보관함을 확인합니다.\n"
+                  "`/아이템초기화 <유저>`: 유저의 모든 아이템을 삭제합니다.",
+            inline=False
+        )
+        embed.add_field(
+            name="🐾 전설이 관리",
+            value="`/알지급 <유저> <등급> <알이름> <종류>`: 유저에게 특정 전설이 알을 지급합니다.\n"
+                  "`/알회수 <유저> <등급> <알이름> <종류>`: 유저의 특정 전설이를 회수합니다.\n"
+                  "`/강제부화 <유저>`: 유저의 활성화된 알을 즉시 부화시킵니다.\n"
+                  "`/성급상승 <유저> <알이름>`: 전설이의 성급을 1 올립니다.\n"
+                  "`/성급하락 <유저> <알이름>`: 전설이의 성급을 1 내립니다.\n"
+                  "`/이름변경 <유저> <알이름> <변경할이름>`: 전설이의 이름을 변경합니다.",
+            inline=False
+        )
+        embed.add_field(
+            name="⚙️ 기타 관리",
+            value="`/사용법게시 <채널>`: 지정된 채널에 사용법 안내를 게시합니다.",
+            inline=False
+        )
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+    @app_commands.command(name="사용법게시", description="[관리자] 지정된 채널에 전설이 시스템 사용법 안내를 게시합니다.")
     @app_commands.describe(channel="안내를 게시할 텍스트 채널")
     @app_commands.default_permissions(manage_guild=True)
     async def post_guide(self, interaction: discord.Interaction, channel: discord.TextChannel):
         guide_embed = discord.Embed(
-            title="🐾 꼬물이 키우기 가이드 🐾",
+            title="🐾 전설이 키우기 가이드 🐾",
             description="나만의 작은 전설이를 키워 3성으로 진화시켜보세요!",
             color=discord.Color.gold()
         )
@@ -55,7 +97,7 @@ class HelpCog(commands.Cog):
 
         guide_embed.add_field(name="1️⃣ 시작하기", value="`/알까기`로 첫 전설이 알을 받으세요. 음성 채널에 접속해 경험치를 모으면 알이 부화합니다.",
                               inline=False)
-        guide_embed.add_field(name="2️⃣ 돌보기", value="`/상태창`에서 펫을 돌보세요.\n"
+        guide_embed.add_field(name="2️⃣ 돌보기", value="`/상태창`에서 전설이를 돌보세요.\n"
                                                     "🚿 **샤워 (10P)**: 청결도를 회복합니다. 24시간 방치 시 `질병` 상태가 되어 비용이 2배가 됩니다.\n"
                                                     "🍗 **먹이주기 (5P)**: 포만감을 회복합니다. 24시간 방치 시 `짜증` 상태가 되어 비용이 2배가 되고 산책을 거부합니다.\n"
                                                     "🌲 **산책 (10P)**: 피로도와 친밀도가 오르며, 낮은 확률로 아이템이나 희귀 알을 발견합니다.",
@@ -63,7 +105,7 @@ class HelpCog(commands.Cog):
         guide_embed.add_field(name="3️⃣ 성장과 버프",
                               value="음성 채널에 접속하면 시간이 지남에 따라 경험치가 오릅니다. 친밀도가 높으면 경험치 획득량이 **2배**가 됩니다. 3성을 달성하면 새로운 알을 뽑을 수 있습니다.",
                               inline=False)
-        guide_embed.add_field(name="4️⃣ 아이템", value="`/보관함`에서 아이템을 확인하고 사용할 수 있습니다. 상점 기능(`/상점`)을 통해 아이템을 구매할 수도 있습니다.",
+        guide_embed.add_field(name="4️⃣ 아이템", value="`/보관함`에서 아이템을 확인하고 사용할 수 있습니다.",
                               inline=False)
 
         try:
@@ -74,7 +116,6 @@ class HelpCog(commands.Cog):
         except Exception as e:
             await interaction.response.send_message(f"❌ 알 수 없는 오류가 발생했습니다: {e}", ephemeral=True)
 
-    # 💡 [새로 추가된 기능] 버프목록 / 너프목록
     @app_commands.command(name="버프목록", description="상태가 좋을 때 얻는 이로운 효과(버프)를 확인합니다.")
     async def buff_list(self, interaction: discord.Interaction):
         embed = discord.Embed(title="✨ 전설이 버프 목록", color=discord.Color.green())
