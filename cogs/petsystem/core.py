@@ -8,7 +8,7 @@ import aiosqlite
 from utils.data import PET_POOLS
 from utils.database import get_or_migrate_data, get_active_buffs, save_legend_data, update_max_star
 from .ui_action import create_status_embed, LegendActionView, get_pet_stats
-from .logs import HATCH_LOG_CH, send_log_embed
+from utils.logs import HATCH_LOG_CH, send_log_embed
 
 from utils.stats import get_points, add_points
 
