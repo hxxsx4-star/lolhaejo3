@@ -10,7 +10,8 @@ class InventoryCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name="보관함", description="내 아이템을 확인하고 사용/판매합니다.")
+    # 💡 [수정됨] 설명에서 '판매' 단어 제거
+    @app_commands.command(name="보관함", description="내 아이템을 확인하고 사용합니다.")
     async def inventory(self, interaction: discord.Interaction):
         async with aiosqlite.connect('legends.db') as db:
             async with db.execute("SELECT item_name, amount FROM user_items WHERE user_id = ? AND amount > 0", (interaction.user.id,)) as cursor:
@@ -19,9 +20,8 @@ class InventoryCog(commands.Cog):
         items = dict(rows)
         if not items: return await interaction.response.send_message("보관함이 비어있습니다.", ephemeral=True)
 
-        embed = discord.Embed(title="🎒 내 보관함", description="아래 메뉴에서 아이템을 선택한 후 사용/판매 버튼을 눌러주세요.", color=discord.Color.blurple())
+        embed = discord.Embed(title="🎒 내 보관함", description="아래 메뉴에서 아이템을 선택한 후 사용 버튼을 눌러주세요.", color=discord.Color.blurple())
         for item_name, amount in items.items():
-            # 💡 inline=False를 통해 아이템이 세로로 한 줄씩 출력되게 설정
             embed.add_field(name=f"▪️ {item_name}", value=f"{amount}개 보유", inline=False)
 
         view = InventoryView(interaction.user.id, items)

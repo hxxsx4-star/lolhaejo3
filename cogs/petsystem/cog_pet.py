@@ -8,7 +8,9 @@ import aiosqlite
 
 from .data import PET_POOLS
 from .database import get_or_migrate_data, get_active_buffs, save_legend_data, get_user, update_max_star
-from .ui_action import create_status_embed, LegendActionView
+
+# 💡 get_pet_stats 임포트 추가
+from .ui_action import create_status_embed, LegendActionView, get_pet_stats
 from .logs import HATCH_LOG_CH, send_log_embed
 
 from utils.stats import get_points, add_points
@@ -42,10 +44,19 @@ class PetSystemCog(commands.Cog):
                 self.voice_sessions[user_id] = last_reward_time + (minutes_passed * 60)
                 await self.add_exp_to_pet(user_id, minutes_passed * 60)
 
-    async def evaluate_pet_status(self, user_id, wrapper):
+    # 💡 [수정됨] 특정 idx의 펫 상태도 평가할 수 있게 파라미터 추가
+    async def evaluate_pet_status(self, user_id, wrapper, idx=None):
         if not wrapper['pets']: return None, [], False, False
-        data = wrapper['pets'][wrapper['active_idx']]
-        if data.get('level', 0) == 0: return data, [], False, False
+
+        if idx is None:
+            idx = wrapper.get('active_idx', 0)
+
+        if idx >= len(wrapper['pets']):
+            idx = 0
+
+        data = wrapper['pets'][idx]
+        if data.get('level', 0) == 0:
+            return data, [], False, False
 
         now = time.time()
         active_buffs = await get_active_buffs(user_id)
@@ -79,7 +90,7 @@ class PetSystemCog(commands.Cog):
         is_annoyed = (data.get('low_full_since', 0) > 0 and now - data['low_full_since'] >= 86400)
         is_diseased = (data.get('low_clean_since', 0) > 0 and now - data['low_clean_since'] >= 86400)
 
-        wrapper['pets'][wrapper['active_idx']] = data
+        wrapper['pets'][idx] = data
         await save_legend_data(user_id, wrapper)
         return data, buffs, is_annoyed, is_diseased
 
@@ -168,7 +179,6 @@ class PetSystemCog(commands.Cog):
 
         is_first_time = (len(wrapper.get('pets', [])) == 0)
 
-        # 💡 [수정됨] 3성 달성 조건이 삭제되고 최대 3마리 제한만 유지됩니다.
         if len(wrapper.get('pets', [])) >= 3:
             return await interaction.response.send_message("전설이는 최대 3마리까지만 키울 수 있습니다!", ephemeral=True)
 
@@ -209,17 +219,52 @@ class PetSystemCog(commands.Cog):
         pet_name = wrapper['pets'][슬롯].get('name', '이름없음')
         await interaction.response.send_message(f"🔄 지금부터 `{pet_name}`(을)를 돌봅니다! `/상태창`을 확인하세요.", ephemeral=True)
 
+    # 💡 [새로 추가된 명령어] 펫 스탯 확인 (모든 유저가 확인 가능)
+    @app_commands.command(name="스탯", description="내 전설이(또는 다른 유저)의 스탯을 확인합니다.")
+    async def pet_stats_cmd(self, interaction: discord.Interaction, 유저: discord.Member = None):
+        target = 유저 or interaction.user
+        wrapper = await get_or_migrate_data(target.id)
+
+        if not wrapper or not wrapper.get('pets'):
+            return await interaction.response.send_message(f"❌ {target.display_name}님은 아직 전설이가 없습니다.", ephemeral=False)
+
+        embed = discord.Embed(title=f"📊 {target.display_name}님의 전설이 스탯", color=discord.Color.blue())
+
+        for i, pet in enumerate(wrapper['pets']):
+            pet_name = pet.get('name', '이름없음')
+            pet_type = pet.get('type', '알 수 없음')
+            level = pet.get('level', 0)
+
+            if level == 0:
+                embed.add_field(name=f"[{i+1}] 🥚 {pet_name} (알)", value="아직 부화하지 않아 스탯이 없습니다.", inline=False)
+            else:
+                stats = get_pet_stats(pet_type, level)
+                stats_str = f"⚔️ 공격력(AD): {stats['AD']} | 🛡️ 방어력(DF): {stats['DF']}\n✨ 주문력(AP): {stats['AP']} | 🌀 마법저항력(MR): {stats['MR']}"
+                embed.add_field(name=f"[{i+1}] {pet_name} ({level}성 {pet_type})", value=stats_str, inline=False)
+
+        await interaction.response.send_message(embed=embed, ephemeral=False)
+
     @app_commands.command(name="상태창", description="내 전설이의 상태를 확인하고 돌봅니다.")
     async def status_window(self, interaction: discord.Interaction):
         wrapper = await get_or_migrate_data(interaction.user.id)
         if not wrapper.get('pets'): return await interaction.response.send_message("아직 전설이가 없습니다. `/알까기`로 시작하세요!", ephemeral=True)
 
-        data, buffs, is_annoyed, is_diseased = await self.evaluate_pet_status(interaction.user.id, wrapper)
+        active_idx = wrapper.get('active_idx', 0)
+        total_pets = len(wrapper['pets'])
+
+        if active_idx >= total_pets:
+            active_idx = 0
+            wrapper['active_idx'] = 0
+            await save_legend_data(interaction.user.id, wrapper)
+
+        data, buffs, is_annoyed, is_diseased = await self.evaluate_pet_status(interaction.user.id, wrapper, active_idx)
         current_points = await get_points(interaction.user.id)
 
-        embed = create_status_embed(interaction.user, data, current_points, buffs, is_annoyed, is_diseased)
+        # 상태창 생성 (몇 번째 펫인지 정보 함께 넘김)
+        embed = create_status_embed(interaction.user, data, current_points, buffs, is_annoyed, is_diseased, active_idx, total_pets)
 
-        view = LegendActionView(interaction.user.id, pet_level=data.get('level', 0))
+        # 버튼 뷰 생성 (전체 펫 개수와 현재 펫 인덱스 넘김)
+        view = LegendActionView(interaction.user.id, current_idx=active_idx, total_pets=total_pets, pet_level=data.get('level', 0))
         await interaction.response.send_message(embed=embed, view=view)
 
 async def setup(bot):

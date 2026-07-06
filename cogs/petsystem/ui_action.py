@@ -3,9 +3,8 @@ import time
 import random
 from datetime import datetime
 
-# 💡 update_max_star 추가
 from .database import get_legend_data, save_legend_data, get_active_buffs, consume_item, add_item, update_max_star
-from .data import PET_IMAGES, ITEMS_INFO, RARITY_IMAGES, EXP_TABLE
+from .data import PET_IMAGES, ITEMS_INFO, RARITY_IMAGES, EXP_TABLE, PET_STATS
 from .logs import WALK_LOG_CH, send_log_embed
 
 from utils.stats import get_points, add_points, spend_points
@@ -16,8 +15,21 @@ def get_progress_bar(value, fill_emoji, empty_emoji="⬛"):
     empty_count = 5 - fill_count
     return (fill_emoji * fill_count) + (empty_emoji * empty_count) + f" ({val}%)"
 
-def create_status_embed(user, data, points, buffs, is_annoyed, is_diseased):
-    embed = discord.Embed(title=f"🐾 {data['name']}의 상태창", color=discord.Color.gold())
+# 💡 [새로 추가된 함수] 성급(레벨)에 따른 스탯 1.5배 곱셈 적용
+def get_pet_stats(pet_type, level):
+    base_stats = PET_STATS.get(pet_type, {"AD": 0, "DF": 0, "AP": 0, "MR": 0})
+    # 레벨이 1일 때 1배, 2일 때 1.5배, 3일 때 2.25배
+    multiplier = 1.5  max(0, level - 1) if level > 0 else 1
+    return {
+        "AD": int(base_stats["AD"] * multiplier),
+        "DF": int(base_stats["DF"] * multiplier),
+        "AP": int(base_stats["AP"] * multiplier),
+        "MR": int(base_stats["MR"] * multiplier)
+    }
+
+def create_status_embed(user, data, points, buffs, is_annoyed, is_diseased, current_idx=0, total_pets=1):
+    # 💡 [수정됨] 타이틀에 (1/3) 처럼 현재 몇 번째 펫인지 표시
+    embed = discord.Embed(title=f"🐾 {data['name']}의 상태창 ({current_idx + 1}/{total_pets})", color=discord.Color.gold())
 
     pet_type = data.get('type')
     if pet_type in PET_IMAGES: embed.set_thumbnail(url=PET_IMAGES[pet_type])
@@ -43,6 +55,11 @@ def create_status_embed(user, data, points, buffs, is_annoyed, is_diseased):
     embed.add_field(name="레벨", value=f"{level}성" if level > 0 else "🥚 알", inline=True)
     embed.add_field(name="경험치", value=exp_display, inline=True)
 
+    # 💡 [수정됨] 레벨별 1.5배 증폭이 적용된 스탯을 불러옴
+    stats = get_pet_stats(pet_type, level)
+    stats_str = f"⚔️ 공격력(AD): {stats['AD']} | 🛡️ 방어력(DF): {stats['DF']}\n✨ 주문력(AP): {stats['AP']} | 🌀 마법저항력(MR): {stats['MR']}"
+    embed.add_field(name="📊 스탯", value=stats_str, inline=False)
+
     embed.add_field(name="포만도", value=get_progress_bar(data.get('fullness', 0), "🍗"), inline=True)
     embed.add_field(name="피로도", value=get_progress_bar(data.get('fatigue', 0), "😴"), inline=True)
     embed.add_field(name="청결도", value=get_progress_bar(data.get('cleanliness', 0), "🚿"), inline=True)
@@ -56,9 +73,11 @@ def create_status_embed(user, data, points, buffs, is_annoyed, is_diseased):
     return embed
 
 class LegendActionView(discord.ui.View):
-    def __init__(self, user_id, pet_level=1):
+    def __init__(self, user_id, current_idx=0, total_pets=1, pet_level=1):
         super().__init__(timeout=60)
         self.user_id = user_id
+        self.current_idx = current_idx
+        self.total_pets = total_pets
 
         if pet_level == 0:
             self.feed.disabled = True
@@ -67,7 +86,11 @@ class LegendActionView(discord.ui.View):
             self.walk_10.disabled = True
             self.walk_100.disabled = True
 
-    # 💡 [중요] 타인 조작 방지 보안 코드
+        # 💡 [수정됨] 보유한 펫이 1마리뿐이면 화살표 버튼 비활성화
+        if self.total_pets <= 1:
+            self.prev_btn.disabled = True
+            self.next_btn.disabled = True
+
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("❌ 남의 전설이 상태창은 조작할 수 없습니다!", ephemeral=True)
@@ -78,7 +101,12 @@ class LegendActionView(discord.ui.View):
         wrapper = await get_legend_data(self.user_id)
         if not wrapper or 'pets' not in wrapper:
             return None, None
-        return wrapper, wrapper['pets'][wrapper['active_idx']]
+
+        # 인덱스 초과 안전장치
+        if self.current_idx >= len(wrapper['pets']):
+            self.current_idx = 0
+
+        return wrapper, wrapper['pets'][self.current_idx]
 
     async def update_status_message(self, interaction: discord.Interaction, data, popup_msg=None, popup_embed=None):
         current_points = await get_points(self.user_id)
@@ -89,19 +117,20 @@ class LegendActionView(discord.ui.View):
         is_annoyed = (data.get('low_full_since', 0) > 0 and now - data['low_full_since'] >= 86400)
         is_diseased = (data.get('low_clean_since', 0) > 0 and now - data['low_clean_since'] >= 86400)
 
-        status_embed = create_status_embed(interaction.user, data, current_points, buffs, is_annoyed, is_diseased)
+        # 레벨 재평가 (버튼 활성화/비활성화)
+        pet_level = data.get('level', 0)
+        self.feed.disabled = (pet_level == 0)
+        self.shower.disabled = (pet_level == 0)
+        self.walk_1.disabled = (pet_level == 0)
+        self.walk_10.disabled = (pet_level == 0)
+        self.walk_100.disabled = (pet_level == 0)
+
+        status_embed = create_status_embed(interaction.user, data, current_points, buffs, is_annoyed, is_diseased, self.current_idx, self.total_pets)
 
         if popup_embed:
             await interaction.response.send_message(embed=popup_embed, ephemeral=True)
         elif popup_msg:
             await interaction.response.send_message(popup_msg, ephemeral=True)
-
-        if data.get('level', 0) == 0:
-            self.feed.disabled = True
-            self.shower.disabled = True
-            self.walk_1.disabled = True
-            self.walk_10.disabled = True
-            self.walk_100.disabled = True
 
         await interaction.message.edit(embed=status_embed, view=self)
 
@@ -137,10 +166,10 @@ class LegendActionView(discord.ui.View):
 
         if num_walks == 100:
             has_ticket = await consume_item(user_id, "100회 산책 할인권", 1)
-            cost = 300 if has_ticket else 1000
+            cost = 30 if has_ticket else 100
         else:
             has_ticket = False
-            cost = num_walks * 10
+            cost = num_walks * 1
 
         success = await spend_points(user_id, cost)
         if not success:
@@ -161,28 +190,24 @@ class LegendActionView(discord.ui.View):
         if stat_triggers > 0:
             stat_msg += f"✨ {stat_triggers * 20}회 산책 분량 달성!\n"
 
-            # 💡 1. 포만도 체크
             if "신비한 알약" in buffs or "배부름을 부르는 약" in buffs:
                 data['fullness'] = 100
                 stat_msg += "💊 [배부름 약] 효과로 포만도가 100으로 유지되었습니다!\n"
             else:
                 data['fullness'] = max(0, data.get('fullness', 100) - (20 * stat_triggers))
 
-            # 💡 2. 청결도 체크
             if "신비한 알약" in buffs or "트위치 나가라약" in buffs:
                 data['cleanliness'] = 100
                 stat_msg += "💊 [나가라 약] 효과로 청결도가 100으로 유지되었습니다!\n"
             else:
                 data['cleanliness'] = max(0, data.get('cleanliness', 100) - (20 * stat_triggers))
 
-            # 💡 3. 친밀도 체크
             if "신비한 알약" in buffs or "아무무도 인싸로 만드는 약" in buffs:
                 data['intimacy'] = 100
                 stat_msg += "💊 [인싸 약] 효과로 친밀도가 100으로 유지되었습니다!\n"
             else:
                 data['intimacy'] = min(100, data.get('intimacy', 50) + (20 * stat_triggers))
 
-            # 💡 4. 피로도 체크
             if "신비한 알약" in buffs or "쌩쌩한약" in buffs:
                 data['fatigue'] = 0
                 stat_msg += "💊 [쌩쌩한약] 효과로 피로도가 0으로 유지되었습니다!\n"
@@ -197,8 +222,6 @@ class LegendActionView(discord.ui.View):
         mythic_items = [k for k, v in ITEMS_INFO.items() if v['rarity'] == '신화']
         prestige_items = [k for k, v in ITEMS_INFO.items() if v['rarity'] == '프레스티지']
 
-        # 💡 포인트 손실 관련 로직 삭제됨 (lost_points, lose_count 제거)
-
         for _ in range(num_walks):
             r_egg = random.random()
             if r_egg < 0.0001: found_eggs.append("프레스티지")
@@ -212,7 +235,6 @@ class LegendActionView(discord.ui.View):
             elif r_item < 0.0015 and legend_items: found_items.append(("전설", random.choice(legend_items)))
             elif r_item < 0.1015 and epic_items: found_items.append(("서사", random.choice(epic_items)))
 
-        # 💡 산책으로 인한 경험치 획득 (1회당 1XP) 및 레벨업 로직
         gained_exp = 0
         if data.get('level', 0) > 0 and data.get('level', 0) < 3:
             gained_exp = num_walks
@@ -244,7 +266,7 @@ class LegendActionView(discord.ui.View):
 
         result_embed = discord.Embed(title="🐾 산책 결과", color=discord.Color.green())
         desc = f"{data['name']}(와)과 {num_walks}회 산책했습니다!\n"
-        if has_ticket: desc += "🎫 `100회 산책 할인권`이 적용되어 300P만 소모되었습니다.\n"
+        if has_ticket: desc += "🎫 `100회 산책 할인권`이 적용되어 30P만 소모되었습니다.\n"
         else: desc += f"💸 소모된 유지비: -{cost}P\n"
         desc += "━━━━━━━━━━━━━━━━━━━━\n"
 
@@ -271,11 +293,66 @@ class LegendActionView(discord.ui.View):
             interaction.user, discord.Color.green(), f"구분: {num_walks}회 산책"
         )
 
-    @discord.ui.button(label="1회 산책 (10P)", style=discord.ButtonStyle.success, emoji="🚶", row=1)
+    @discord.ui.button(label="1회 산책 (1P)", style=discord.ButtonStyle.success, emoji="🚶", row=1)
     async def walk_1(self, interaction: discord.Interaction, button: discord.ui.Button): await self.handle_walk(interaction, 1)
 
-    @discord.ui.button(label="10회 산책 (100P)", style=discord.ButtonStyle.success, emoji="🚶‍♂️", row=1)
+    @discord.ui.button(label="10회 산책 (10P)", style=discord.ButtonStyle.success, emoji="🚶‍♂️", row=1)
     async def walk_10(self, interaction: discord.Interaction, button: discord.ui.Button): await self.handle_walk(interaction, 10)
 
-    @discord.ui.button(label="100회 산책 (1000P)", style=discord.ButtonStyle.success, emoji="🏃", row=1)
+    @discord.ui.button(label="100회 산책 (100P)", style=discord.ButtonStyle.success, emoji="🏃", row=1)
     async def walk_100(self, interaction: discord.Interaction, button: discord.ui.Button): await self.handle_walk(interaction, 100)
+
+    # 💡 [새로 추가된 기능] 좌우 펫 이동 버튼 (row=2 에 배치)
+    @discord.ui.button(label="이전 펫", style=discord.ButtonStyle.secondary, emoji="◀️", row=2)
+    async def prev_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.current_idx = (self.current_idx - 1) % self.total_pets
+        await self._change_pet(interaction)
+
+    @discord.ui.button(label="다음 펫", style=discord.ButtonStyle.secondary, emoji="▶️", row=2)
+    async def next_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.current_idx = (self.current_idx + 1) % self.total_pets
+        await self._change_pet(interaction)
+
+    async def _change_pet(self, interaction: discord.Interaction):
+        wrapper = await get_legend_data(self.user_id)
+        if not wrapper or not wrapper.get('pets'): return
+
+        # 데이터베이스의 활성화 펫(active_idx) 인덱스도 동기화시킴
+        wrapper['active_idx'] = self.current_idx
+        data = wrapper['pets'][self.current_idx]
+
+        # 펫 교체 시 상태 및 버프 재계산
+        now = time.time()
+        active_buffs = await get_active_buffs(self.user_id)
+        buffs = {b[0] for b in active_buffs}
+
+        last_calc = data.get('last_fatigue_calc', now)
+        elapsed_minutes = int((now - last_calc) // 60)
+
+        if elapsed_minutes > 0 and data.get('level', 0) > 0:
+            fatigue_drop = elapsed_minutes * 20
+            data['fatigue'] = max(0, data.get('fatigue', 0) - fatigue_drop)
+            data['last_fatigue_calc'] = last_calc + (elapsed_minutes * 60)
+        elif 'last_fatigue_calc' not in data:
+            data['last_fatigue_calc'] = now
+
+        if "신비한 알약" in buffs:
+            data['fullness'] = 100; data['fatigue'] = 0; data['intimacy'] = 100; data['cleanliness'] = 100
+        else:
+            if "배부름을 부르는 약" in buffs: data['fullness'] = 100
+            if "쌩쌩한약" in buffs: data['fatigue'] = 0
+            if "트위치 나가라약" in buffs: data['cleanliness'] = 100
+            if "아무무도 인싸로 만드는 약" in buffs: data['intimacy'] = 100
+
+        if data.get('fullness', 100) <= 20:
+            if data.get('low_full_since', 0) == 0: data['low_full_since'] = now
+        else: data['low_full_since'] = 0
+
+        if data.get('cleanliness', 100) <= 20:
+            if data.get('low_clean_since', 0) == 0: data['low_clean_since'] = now
+        else: data['low_clean_since'] = 0
+
+        wrapper['pets'][self.current_idx] = data
+        await save_legend_data(self.user_id, wrapper)
+
+        await self.update_status_message(interaction, data)

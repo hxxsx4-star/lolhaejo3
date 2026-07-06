@@ -1,9 +1,8 @@
 import discord
 from .database import get_legend_data, get_or_migrate_data, save_legend_data, consume_item, add_buff
-from .data import ITEMS_INFO, ITEM_PRICES
-from .logs import ITEM_USE_LOG_CH, ITEM_SELL_LOG_CH, send_log_embed
+from .data import ITEMS_INFO
+from .logs import ITEM_USE_LOG_CH, send_log_embed
 
-# 💡 최상단에 utils.stats 연동
 from utils.stats import add_points
 
 class NameChangeModal(discord.ui.Modal):
@@ -36,13 +35,12 @@ class NameChangeModal(discord.ui.Modal):
         await save_legend_data(user_id, wrapper)
         await interaction.response.send_message(f"✨ 뾰로롱! 전설이의 이름이 `{old_name}`에서 `{self.new_name.value}`(으)로 변경되었습니다!", ephemeral=True)
 
+# 💡 [수정됨] 판매 관련 로직 제거, 순수하게 사용량만 입력받는 모달
 class ItemQuantityModal(discord.ui.Modal):
-    def __init__(self, action: str, item_name: str, max_amount: int):
-        self.action = action
+    def __init__(self, item_name: str, max_amount: int):
         self.item_name = item_name
         self.max_amount = max_amount
-        title_text = "아이템 사용" if action == "use" else "아이템 판매"
-        super().__init__(title=f"{item_name} {title_text}")
+        super().__init__(title=f"{item_name} 사용")
 
         self.amount_input = discord.ui.TextInput(
             label=f"수량을 입력하세요 (보유량: {max_amount}개)",
@@ -63,11 +61,7 @@ class ItemQuantityModal(discord.ui.Modal):
             return await interaction.response.send_message(f"❌ 보유하신 수량(1~{self.max_amount}개) 내에서 입력해주세요.", ephemeral=True)
 
         user_id = interaction.user.id
-
-        if self.action == "use":
-            await self.handle_use(interaction, user_id, amount)
-        else:
-            await self.handle_sell(interaction, user_id, amount)
+        await self.handle_use(interaction, user_id, amount)
 
     async def handle_use(self, interaction: discord.Interaction, user_id: int, amount: int):
         item_name = self.item_name
@@ -94,41 +88,20 @@ class ItemQuantityModal(discord.ui.Modal):
             await add_buff(user_id, buff_name=item_name, duration_sec=0, vc_sec=10800 * amount)
             msg += f"📈 효과: 통화방에 있는 동안 {3 * amount}시간 동안 경험치 획득량이 증가합니다."
         elif item_name == "50포인트 교환권":
-            await add_points(user_id, 50 * amount) # 💡 연동 완료
+            await add_points(user_id, 50 * amount)
             msg += f"💸 {50 * amount}P를 획득했습니다!"
         elif item_name == "100포인트 교환권":
-            await add_points(user_id, 100 * amount) # 💡 연동 완료
+            await add_points(user_id, 100 * amount)
             msg += f"💸 {100 * amount}P를 획득했습니다!"
         elif item_name == "500포인트 교환권":
-            await add_points(user_id, 500 * amount) # 💡 연동 완료
+            await add_points(user_id, 500 * amount)
             msg += f"💸 {500 * amount}P를 획득했습니다!"
         elif item_name == "1000포인트 교환권":
-            await add_points(user_id, 1000 * amount) # 💡 연동 완료
+            await add_points(user_id, 1000 * amount)
             msg += f"💸 {1000 * amount}P를 획득했습니다!"
 
         await interaction.response.send_message(msg, ephemeral=True)
         await send_log_embed(interaction.client, ITEM_USE_LOG_CH, "🎒 아이템 다중 사용 로그", f"사용 아이템: {item_name} x {amount}개", interaction.user, discord.Color.blue())
-
-    async def handle_sell(self, interaction: discord.Interaction, user_id: int, amount: int):
-        item_name = self.item_name
-
-        if "급 알" in item_name:
-            rarity = item_name.split("급")[0].strip()
-        elif item_name in ITEMS_INFO:
-            rarity = ITEMS_INFO[item_name]["rarity"]
-        else:
-            return await interaction.response.send_message("판매할 수 없는 아이템입니다.", ephemeral=True)
-
-        price_per_item = ITEM_PRICES.get(rarity, 0)
-        total_price = price_per_item * amount
-
-        success = await consume_item(user_id, item_name, amount)
-        if not success: return await interaction.response.send_message("❌ 아이템이 부족합니다.", ephemeral=True)
-
-        await add_points(user_id, total_price) # 💡 연동 완료
-        await interaction.response.send_message(f"✅ `{item_name}` {amount}개를 판매하여 {total_price}P를 획득했습니다!", ephemeral=True)
-
-        await send_log_embed(interaction.client, ITEM_SELL_LOG_CH, "💰 아이템/알 다중 판매 로그", f"판매 물품: {item_name} x {amount}개\n획득 포인트: +{total_price}P", interaction.user, discord.Color.gold())
 
 class InventoryView(discord.ui.View):
     def __init__(self, user_id, items):
@@ -146,14 +119,9 @@ class InventoryView(discord.ui.View):
         self.use_btn.callback = self.on_use_click
         self.add_item(self.use_btn)
 
-        self.sell_btn = discord.ui.Button(label="판매하기", style=discord.ButtonStyle.danger, emoji="🪙", disabled=True)
-        self.sell_btn.callback = self.on_sell_click
-        self.add_item(self.sell_btn)
-
     async def on_select(self, interaction: discord.Interaction):
         self.selected_item = self.select_menu.values[0]
         self.use_btn.disabled = False
-        self.sell_btn.disabled = False
         await interaction.response.edit_message(view=self)
 
     async def on_use_click(self, interaction: discord.Interaction):
@@ -165,9 +133,5 @@ class InventoryView(discord.ui.View):
         elif "급 알" in self.selected_item:
             return await interaction.response.send_message("💡 알은 인벤토리에 보관되며, 인벤토리에서 직접 깔 수 없습니다. 알까기를 이용해 주세요.", ephemeral=True)
 
-        modal = ItemQuantityModal("use", self.selected_item, self.items[self.selected_item])
-        await interaction.response.send_modal(modal)
-
-    async def on_sell_click(self, interaction: discord.Interaction):
-        modal = ItemQuantityModal("sell", self.selected_item, self.items[self.selected_item])
+        modal = ItemQuantityModal(self.selected_item, self.items[self.selected_item])
         await interaction.response.send_modal(modal)

@@ -4,7 +4,14 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f1982c64-012d-4ef1-a9cd-954fbe80761a" name="변경" comment="/성급 상승, 하락 /이름 변경" />
+    <list default="true" id="f1982c64-012d-4ef1-a9cd-954fbe80761a" name="변경" comment="stats.py 최신화">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cogs/petsystem/cog_inventory.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/petsystem/cog_inventory.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cogs/petsystem/cog_pet.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/petsystem/cog_pet.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cogs/petsystem/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/petsystem/data.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cogs/petsystem/ui_action.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/petsystem/ui_action.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cogs/petsystem/ui_inventory.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/petsystem/ui_inventory.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -12,7 +19,6 @@
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
-    <option name="UPDATE_TYPE" value="REBASE" />
   </component>
   <component name="GitHubPullRequestSearchHistory">{
   &quot;lastFilter&quot;: {
@@ -20,31 +26,31 @@
     &quot;assignee&quot;: &quot;hxxsx4-star&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/hxxsx4-star/lolhaejo3.git",
-    "accountId": "5a83c640-86ec-4939-adf2-6b43b97ddea4"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/hxxsx4-star/lolhaejo3.git&quot;,
+    &quot;accountId&quot;: &quot;ba39d33a-4d93-4419-9b38-3935ae9f7b7b&quot;
   }
-}]]></component>
+}</component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
       <entry key="MS100" value="1.0" />
       <entry key="MS500" value="1.0" />
-      <entry key="S2" value="1.0" />
-      <entry key="S5" value="1.0" />
-      <entry key="S10" value="1.0000000013332173" />
-      <entry key="S30" value="1.0017449043379967" />
-      <entry key="S60" value="1.059065251851204" />
-      <entry key="M2" value="1.3436875782482942" />
-      <entry key="M5" value="1.988733856477707" />
-      <entry key="M10" value="2.4062577426146636" />
-      <entry key="M15" value="2.5830782147188676" />
-      <entry key="M30" value="2.9213439426758527" />
-      <entry key="H1" value="5.09568338415137" />
-      <entry key="H2" value="13.838062281118717" />
-      <entry key="H4" value="30.126421393166044" />
-      <entry key="D1" value="158.817911973584" />
-      <entry key="W1" value="327.6278097689373" />
+      <entry key="S2" value="1.000001679190565" />
+      <entry key="S5" value="1.009896884126262" />
+      <entry key="S10" value="1.221995469957389" />
+      <entry key="S30" value="2.9574161093079216" />
+      <entry key="S60" value="4.421366649437596" />
+      <entry key="M2" value="5.622366950554998" />
+      <entry key="M5" value="7.127061341416257" />
+      <entry key="M10" value="8.350994471702888" />
+      <entry key="M15" value="9.292725672477166" />
+      <entry key="M30" value="12.58634435984038" />
+      <entry key="H1" value="19.527661991584676" />
+      <entry key="H2" value="29.25021333949355" />
+      <entry key="H4" value="40.094594361598325" />
+      <entry key="D1" value="160.7060432586454" />
+      <entry key="W1" value="315.2659444955629" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
@@ -52,37 +58,37 @@
       <entry key="S2" value="0.0" />
       <entry key="S5" value="0.0" />
       <entry key="S10" value="0.0" />
-      <entry key="S30" value="1.544190776553199E-266" />
-      <entry key="S60" value="2.3878234001010592E-133" />
-      <entry key="M2" value="9.675558822706058E-67" />
-      <entry key="M5" value="9.004775428983475E-27" />
-      <entry key="M10" value="1.8971237664292213E-13" />
-      <entry key="M15" value="5.240579140508483E-9" />
-      <entry key="M30" value="1.4477739542193458E-4" />
-      <entry key="H1" value="0.02406443459222558" />
-      <entry key="H2" value="0.31025415262123573" />
-      <entry key="H4" value="1.1148327391765747" />
-      <entry key="D1" value="3.538724640367986" />
-      <entry key="W1" value="4.724565761876809" />
+      <entry key="S30" value="3.262795738522918E-115" />
+      <entry key="S60" value="1.097606499433252E-57" />
+      <entry key="M2" value="6.559916187408453E-29" />
+      <entry key="M5" value="1.2216921395573974E-11" />
+      <entry key="M10" value="6.98779428723444E-6" />
+      <entry key="M15" value="5.8015260716102E-4" />
+      <entry key="M30" value="0.0481706205982936" />
+      <entry key="H1" value="0.43895136434791227" />
+      <entry key="H2" value="1.3250674129364508" />
+      <entry key="H4" value="2.3039332866853166" />
+      <entry key="D1" value="3.9938351443746853" />
+      <entry key="W1" value="4.8069332697633" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="0.9395227492140118" />
-      <entry key="MS500" value="0.9876008614453725" />
-      <entry key="S2" value="0.9968856972203758" />
-      <entry key="S5" value="0.9987531130852756" />
-      <entry key="S10" value="0.9993763634124956" />
-      <entry key="S30" value="1.001536439775522" />
-      <entry key="S60" value="1.058952092411217" />
-      <entry key="M2" value="1.343608820680032" />
-      <entry key="M5" value="1.988682234747812" />
-      <entry key="M10" value="2.4062254180768976" />
-      <entry key="M15" value="2.583054762943008" />
-      <entry key="M30" value="2.921462903895183" />
-      <entry key="H1" value="5.119597589366093" />
-      <entry key="H2" value="14.147903222411014" />
-      <entry key="H4" value="31.24070947762829" />
-      <entry key="D1" value="162.35635582755577" />
-      <entry key="W1" value="332.3523161800199" />
+      <entry key="MS100" value="2.321512796941518E-13" />
+      <entry key="MS500" value="0.0029727214469518716" />
+      <entry key="S2" value="0.23350213108695472" />
+      <entry key="S5" value="0.5676004049000996" />
+      <entry key="S10" value="0.9559590041376056" />
+      <entry key="S30" value="2.8240746729038313" />
+      <entry key="S60" value="4.338107917216702" />
+      <entry key="M2" value="5.574557844962623" />
+      <entry key="M5" value="7.106073591010684" />
+      <entry key="M10" value="8.340145016299712" />
+      <entry key="M15" value="9.285948909137835" />
+      <entry key="M30" value="12.630572655197225" />
+      <entry key="H1" value="19.96415696084937" />
+      <entry key="H2" value="30.57360480242398" />
+      <entry key="H4" value="42.3974413532442" />
+      <entry key="D1" value="164.6995676152614" />
+      <entry key="W1" value="320.0728182441823" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -127,7 +133,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-245168a56dbd-c2ffad84badb-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-261.25134.203" />
+        <option value="bundled-python-sdk-50341a9f1f9c-c2ffad84badb-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-261.26222.68" />
       </set>
     </attachedChunks>
   </component>
@@ -143,7 +149,94 @@
       <workItem from="1783082148064" duration="37160000" />
       <workItem from="1783249688743" duration="76000" />
       <workItem from="1783249778143" duration="5173000" />
-      <workItem from="1783264957959" duration="8742000" />
+    </task>
+    <task id="LOCAL-00004" summary="기본 세팅">
+      <option name="closed" value="true" />
+      <created>1783083920331</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1783083920331</updated>
+    </task>
+    <task id="LOCAL-00005" summary="기본 세팅">
+      <option name="closed" value="true" />
+      <created>1783085567243</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1783085567243</updated>
+    </task>
+    <task id="LOCAL-00006" summary="기본 세팅">
+      <option name="closed" value="true" />
+      <created>1783086827846</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1783086827846</updated>
+    </task>
+    <task id="LOCAL-00007" summary="기본 세팅">
+      <option name="closed" value="true" />
+      <created>1783087241302</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1783087241302</updated>
+    </task>
+    <task id="LOCAL-00008" summary="기본 세팅">
+      <option name="closed" value="true" />
+      <created>1783087428726</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1783087428726</updated>
+    </task>
+    <task id="LOCAL-00009" summary="기본 세팅">
+      <option name="closed" value="true" />
+      <created>1783087904439</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1783087904439</updated>
+    </task>
+    <task id="LOCAL-00010" summary="기본 세팅">
+      <option name="closed" value="true" />
+      <created>1783153742548</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1783153742548</updated>
+    </task>
+    <task id="LOCAL-00011" summary="기본 세팅">
+      <option name="closed" value="true" />
+      <created>1783153748750</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1783153748750</updated>
+    </task>
+    <task id="LOCAL-00012" summary="기본 세팅">
+      <option name="closed" value="true" />
+      <created>1783155083265</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1783155083265</updated>
+    </task>
+    <task id="LOCAL-00013" summary="기본 세팅">
+      <option name="closed" value="true" />
+      <created>1783160822060</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1783160822060</updated>
+    </task>
+    <task id="LOCAL-00014" summary="코드 분리">
+      <option name="closed" value="true" />
+      <created>1783161686838</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1783161686838</updated>
     </task>
     <task id="LOCAL-00015" summary="코드 분리">
       <option name="closed" value="true" />
@@ -449,95 +542,7 @@
       <option name="project" value="LOCAL" />
       <updated>1783256541429</updated>
     </task>
-    <task id="LOCAL-00053" summary="배틀기능, 상점기능 추가.&#10;UI 개선&#10;포인트 연동">
-      <option name="closed" value="true" />
-      <created>1783265556754</created>
-      <option name="number" value="00053" />
-      <option name="presentableId" value="LOCAL-00053" />
-      <option name="project" value="LOCAL" />
-      <updated>1783265556756</updated>
-    </task>
-    <task id="LOCAL-00054" summary="배틀기능, 상점기능 추가.&#10;UI 개선&#10;포인트 연동">
-      <option name="closed" value="true" />
-      <created>1783265721931</created>
-      <option name="number" value="00054" />
-      <option name="presentableId" value="LOCAL-00054" />
-      <option name="project" value="LOCAL" />
-      <updated>1783265721932</updated>
-    </task>
-    <task id="LOCAL-00055" summary="배틀기능, 상점기능 추가.&#10;UI 개선&#10;포인트 연동">
-      <option name="closed" value="true" />
-      <created>1783265773180</created>
-      <option name="number" value="00055" />
-      <option name="presentableId" value="LOCAL-00055" />
-      <option name="project" value="LOCAL" />
-      <updated>1783265773180</updated>
-    </task>
-    <task id="LOCAL-00056" summary="배틀기능, 상점기능 추가.&#10;UI 개선&#10;포인트 연동">
-      <option name="closed" value="true" />
-      <created>1783267699183</created>
-      <option name="number" value="00056" />
-      <option name="presentableId" value="LOCAL-00056" />
-      <option name="project" value="LOCAL" />
-      <updated>1783267699184</updated>
-    </task>
-    <task id="LOCAL-00057" summary="배틀기능, 상점기능 추가.&#10;UI 개선&#10;포인트 연동">
-      <option name="closed" value="true" />
-      <created>1783267964407</created>
-      <option name="number" value="00057" />
-      <option name="presentableId" value="LOCAL-00057" />
-      <option name="project" value="LOCAL" />
-      <updated>1783267964407</updated>
-    </task>
-    <task id="LOCAL-00058" summary="배틀기능, 상점기능 추가.&#10;UI 개선&#10;포인트 연동">
-      <option name="closed" value="true" />
-      <created>1783268004149</created>
-      <option name="number" value="00058" />
-      <option name="presentableId" value="LOCAL-00058" />
-      <option name="project" value="LOCAL" />
-      <updated>1783268004149</updated>
-    </task>
-    <task id="LOCAL-00059" summary="디버깅">
-      <option name="closed" value="true" />
-      <created>1783271112257</created>
-      <option name="number" value="00059" />
-      <option name="presentableId" value="LOCAL-00059" />
-      <option name="project" value="LOCAL" />
-      <updated>1783271112257</updated>
-    </task>
-    <task id="LOCAL-00060" summary="디버깅">
-      <option name="closed" value="true" />
-      <created>1783278032782</created>
-      <option name="number" value="00060" />
-      <option name="presentableId" value="LOCAL-00060" />
-      <option name="project" value="LOCAL" />
-      <updated>1783278032782</updated>
-    </task>
-    <task id="LOCAL-00061" summary="디버깅">
-      <option name="closed" value="true" />
-      <created>1783278524316</created>
-      <option name="number" value="00061" />
-      <option name="presentableId" value="LOCAL-00061" />
-      <option name="project" value="LOCAL" />
-      <updated>1783278524316</updated>
-    </task>
-    <task id="LOCAL-00062" summary="배틀에서 이기면 10P">
-      <option name="closed" value="true" />
-      <created>1783280323341</created>
-      <option name="number" value="00062" />
-      <option name="presentableId" value="LOCAL-00062" />
-      <option name="project" value="LOCAL" />
-      <updated>1783280323341</updated>
-    </task>
-    <task id="LOCAL-00063" summary="/성급 상승, 하락 /이름 변경">
-      <option name="closed" value="true" />
-      <created>1783280633725</created>
-      <option name="number" value="00063" />
-      <option name="presentableId" value="LOCAL-00063" />
-      <option name="project" value="LOCAL" />
-      <updated>1783280633725</updated>
-    </task>
-    <option name="localTasksCounter" value="64" />
+    <option name="localTasksCounter" value="53" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -560,11 +565,7 @@
     <MESSAGE value="ＵＩ 개선" />
     <MESSAGE value="이미지 링크로 최신화" />
     <MESSAGE value="stats.py 최신화" />
-    <MESSAGE value="배틀기능, 상점기능 추가.&#10;UI 개선&#10;포인트 연동" />
-    <MESSAGE value="디버깅" />
-    <MESSAGE value="배틀에서 이기면 10P" />
-    <MESSAGE value="/성급 상승, 하락 /이름 변경" />
-    <option name="LAST_COMMIT_MESSAGE" value="/성급 상승, 하락 /이름 변경" />
+    <option name="LAST_COMMIT_MESSAGE" value="stats.py 최신화" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/lolhaejo2$stats.coverage" NAME="stats 커버리지 결과" MODIFIED="1783088598872" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/utils" />
