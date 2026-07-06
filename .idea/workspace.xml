@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f1982c64-012d-4ef1-a9cd-954fbe80761a" name="변경" comment="대규모 개편" />
+    <list default="true" id="f1982c64-012d-4ef1-a9cd-954fbe80761a" name="변경" comment="대규모 개편">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -145,14 +147,6 @@
       <workItem from="1783249688743" duration="76000" />
       <workItem from="1783249778143" duration="5173000" />
       <workItem from="1783264957959" duration="8742000" />
-    </task>
-    <task id="LOCAL-00021" summary="애플리케이션이 응답하지 않았어요 오류 수정">
-      <option name="closed" value="true" />
-      <created>1783165441746</created>
-      <option name="number" value="00021" />
-      <option name="presentableId" value="LOCAL-00021" />
-      <option name="project" value="LOCAL" />
-      <updated>1783165441746</updated>
     </task>
     <task id="LOCAL-00022" summary="ui 개선">
       <option name="closed" value="true" />
@@ -538,7 +532,15 @@
       <option name="project" value="LOCAL" />
       <updated>1783345052000</updated>
     </task>
-    <option name="localTasksCounter" value="70" />
+    <task id="LOCAL-00070" summary="대규모 개편">
+      <option name="closed" value="true" />
+      <created>1783345423944</created>
+      <option name="number" value="00070" />
+      <option name="presentableId" value="LOCAL-00070" />
+      <option name="project" value="LOCAL" />
+      <updated>1783345423944</updated>
+    </task>
+    <option name="localTasksCounter" value="71" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -568,6 +570,17 @@
     <MESSAGE value="." />
     <MESSAGE value="대규모 개편" />
     <option name="LAST_COMMIT_MESSAGE" value="대규모 개편" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/cogs/petsystem/battle.py</url>
+          <line>19</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/lolhaejo2$stats.coverage" NAME="stats 커버리지 결과" MODIFIED="1783088598872" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/utils" />

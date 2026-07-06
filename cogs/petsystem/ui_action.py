@@ -17,7 +17,7 @@ def get_progress_bar(value, fill_emoji, empty_emoji="⬛"):
 def get_pet_stats(pet_type, level):
     base_stats = PET_STATS.get(pet_type, {"AD": 5, "DF": 5, "AP": 5, "MR": 5})
     # 💡 문법 에러가 났던 곳을 괄호와 if 구문으로 안전하게 처리 완료!
-    multiplier = (1.5  max(0, level - 1)) if level > 0 else 1
+    multiplier = (1.5**max(0, level - 1)) if level > 0 else 1
 
     return {
         "AD": int(base_stats["AD"] * multiplier),
