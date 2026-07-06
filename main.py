@@ -32,7 +32,7 @@ class LegendBot(commands.Bot):
             'cogs.petsystem.shop',                   # ✨ 펫 상점 시스템 추가
             'cogs.petsystem.battle',
             'cogs.petsystem.cog_synthetis',
-            'cogs.petsystem.cogs_box']
+            'cogs.petsystem.cog_box']
 
         for extension in extensions:
             try:
