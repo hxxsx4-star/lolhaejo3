@@ -30,7 +30,9 @@ class LegendBot(commands.Bot):
             'cogs.petsystem.cog_inventory',   # 보관함 및 도감 시스템
             'cogs.petsystem.cog_admin',       # 관리자 명령어 시스템
             'cogs.petsystem.shop',                   # ✨ 펫 상점 시스템 추가
-            'cogs.petsystem.battle']
+            'cogs.petsystem.battle',
+            'cogs.petsystem.cog_synthetis',
+            'cogs.petsystem.cogs_box']
 
         for extension in extensions:
             try:
