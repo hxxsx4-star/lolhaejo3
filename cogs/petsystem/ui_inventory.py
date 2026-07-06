@@ -2,8 +2,8 @@ import discord
 from .database import get_legend_data, get_or_migrate_data, save_legend_data, consume_item, add_buff
 from .data import ITEMS_INFO
 from .logs import ITEM_USE_LOG_CH, send_log_embed
-
 from utils.stats import add_points
+
 
 class NameChangeModal(discord.ui.Modal):
     def __init__(self):
@@ -33,9 +33,10 @@ class NameChangeModal(discord.ui.Modal):
         data['name'] = self.new_name.value
 
         await save_legend_data(user_id, wrapper)
-        await interaction.response.send_message(f"✨ 뾰로롱! 전설이의 이름이 `{old_name}`에서 `{self.new_name.value}`(으)로 변경되었습니다!", ephemeral=True)
+        await interaction.response.send_message(f"✨ 뾰로롱! 전설이의 이름이 `{old_name}`에서 `{self.new_name.value}`(으)로 변경되었습니다!",
+                                                ephemeral=True)
 
-# 💡 [수정됨] 판매 관련 로직 제거, 순수하게 사용량만 입력받는 모달
+
 class ItemQuantityModal(discord.ui.Modal):
     def __init__(self, item_name: str, max_amount: int):
         self.item_name = item_name
@@ -58,7 +59,8 @@ class ItemQuantityModal(discord.ui.Modal):
             return await interaction.response.send_message("❌ 올바른 숫자를 입력해주세요.", ephemeral=True)
 
         if amount <= 0 or amount > self.max_amount:
-            return await interaction.response.send_message(f"❌ 보유하신 수량(1~{self.max_amount}개) 내에서 입력해주세요.", ephemeral=True)
+            return await interaction.response.send_message(f"❌ 보유하신 수량(1~{self.max_amount}개) 내에서 입력해주세요.",
+                                                           ephemeral=True)
 
         user_id = interaction.user.id
         await self.handle_use(interaction, user_id, amount)
@@ -71,7 +73,8 @@ class ItemQuantityModal(discord.ui.Modal):
             if wrapper and wrapper.get('pets'):
                 pet_data = wrapper['pets'][wrapper['active_idx']]
                 if pet_data.get('cleanliness', 0) == 100:
-                    return await interaction.response.send_message("❌ 청결도가 100(MAX) 상태일 때는 경험치 부스터를 사용할 수 없습니다!", ephemeral=True)
+                    return await interaction.response.send_message("❌ 청결도가 100(MAX) 상태일 때는 경험치 부스터를 사용할 수 없습니다!",
+                                                                   ephemeral=True)
 
         success = await consume_item(user_id, item_name, amount)
         if not success: return await interaction.response.send_message("❌ 아이템을 보유하고 있지 않거나 부족합니다.", ephemeral=True)
@@ -87,21 +90,11 @@ class ItemQuantityModal(discord.ui.Modal):
         elif item_name in ["경험치 부스터 X2", "경험치 부스터 X5", "경험치 부스터 X10"]:
             await add_buff(user_id, buff_name=item_name, duration_sec=0, vc_sec=10800 * amount)
             msg += f"📈 효과: 통화방에 있는 동안 {3 * amount}시간 동안 경험치 획득량이 증가합니다."
-        elif item_name == "50포인트 교환권":
-            await add_points(user_id, 50 * amount)
-            msg += f"💸 {50 * amount}P를 획득했습니다!"
-        elif item_name == "100포인트 교환권":
-            await add_points(user_id, 100 * amount)
-            msg += f"💸 {100 * amount}P를 획득했습니다!"
-        elif item_name == "500포인트 교환권":
-            await add_points(user_id, 500 * amount)
-            msg += f"💸 {500 * amount}P를 획득했습니다!"
-        elif item_name == "1000포인트 교환권":
-            await add_points(user_id, 1000 * amount)
-            msg += f"💸 {1000 * amount}P를 획득했습니다!"
 
         await interaction.response.send_message(msg, ephemeral=True)
-        await send_log_embed(interaction.client, ITEM_USE_LOG_CH, "🎒 아이템 다중 사용 로그", f"사용 아이템: {item_name} x {amount}개", interaction.user, discord.Color.blue())
+        await send_log_embed(interaction.client, ITEM_USE_LOG_CH, "🎒 아이템 다중 사용 로그", f"사용 아이템: {item_name} x {amount}개",
+                             interaction.user, discord.Color.blue())
+
 
 class InventoryView(discord.ui.View):
     def __init__(self, user_id, items):
@@ -110,7 +103,8 @@ class InventoryView(discord.ui.View):
         self.items = items
         self.selected_item = None
 
-        options = [discord.SelectOption(label=name, description=f"보유량: {amt}개") for name, amt in list(items.items())[:25]]
+        options = [discord.SelectOption(label=name, description=f"보유량: {amt}개") for name, amt in
+                   list(items.items())[:25]]
         self.select_menu = discord.ui.Select(placeholder="여기를 눌러 조작할 아이템/알을 선택하세요", options=options)
         self.select_menu.callback = self.on_select
         self.add_item(self.select_menu)
@@ -131,7 +125,19 @@ class InventoryView(discord.ui.View):
             modal = NameChangeModal()
             return await interaction.response.send_modal(modal)
         elif "급 알" in self.selected_item:
-            return await interaction.response.send_message("💡 알은 인벤토리에 보관되며, 인벤토리에서 직접 깔 수 없습니다. 알까기를 이용해 주세요.", ephemeral=True)
+            # 알 사용 시 1개 소모하고 봇 주인에게 DM 전송
+            success = await consume_item(self.user_id, self.selected_item, 1)
+            if not success:
+                return await interaction.response.send_message("❌ 알이 부족합니다.", ephemeral=True)
+
+            app_info = await interaction.client.application_info()
+            try:
+                await app_info.owner.send(
+                    f"🚨 **알림**: {interaction.user.display_name}님이 보관함에서 `{self.selected_item}`을(를) 사용했습니다!")
+            except Exception as e:
+                print(f"DM 전송 실패: {e}")
+
+            return await interaction.response.send_message("✅ 봇 관리자에게 DM을 보냈습니다. (해당 알 1개 소모됨)", ephemeral=True)
 
         modal = ItemQuantityModal(self.selected_item, self.items[self.selected_item])
         await interaction.response.send_modal(modal)

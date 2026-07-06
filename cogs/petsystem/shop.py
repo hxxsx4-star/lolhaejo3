@@ -1,62 +1,47 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-from utils.stats import get_points, spend_points
-from cogs.petsystem.database import add_item
 
+from .database import consume_item, add_item
 
-class PetShopCog(commands.Cog):
+class ShopCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name="상점", description="포인트를 사용하여 아이템을 구매합니다.")
-    async def shop(self, interaction: discord.Interaction):
-        embed = discord.Embed(
-            title="🏪 전설이 상점",
-            description="현재 임시 오픈 중입니다! 아래 메뉴에서 구매할 아이템을 선택하세요.\n보유 포인트에 맞춰 구매가 진행됩니다.",
-            color=discord.Color.gold()
-        )
+    @app_commands.command(name="알환전", description="하위 등급의 알 여러 개를 소모하여 상위 등급의 알을 얻습니다.")
+    @app_commands.choices(목표등급=[
+        app_commands.Choice(name="전설급 알 (비용: 서사급 알 50개)", value="전설급 알"),
+        app_commands.Choice(name="신화급 알 (비용: 전설급 알 20개)", value="신화급 알"),
+        app_commands.Choice(name="프레스티지급 알 (비용: 신화급 알 10개)", value="프레스티지급 알")
+    ])
+    async def exchange_egg(self, interaction: discord.Interaction, 목표등급: str, 개수: int = 1):
+        if 개수 <= 0:
+            return await interaction.response.send_message("❌ 환전할 개수는 1개 이상이어야 합니다.", ephemeral=True)
 
-        current_points = await get_points(interaction.user.id)
-        embed.set_footer(text=f"내 포인트: {current_points}P")
+        required_item = ""
+        cost_per_item = 0
 
-        # 💡 향후 판매할 아이템 목록 (가격을 자유롭게 수정/추가 가능)
-        view = ShopView(interaction.user.id)
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        if 목표등급 == "전설급 알":
+            required_item = "서사급 알"
+            cost_per_item = 50
+        elif 목표등급 == "신화급 알":
+            required_item = "전설급 알"
+            cost_per_item = 20
+        elif 목표등급 == "프레스티지급 알":
+            required_item = "신화급 알"
+            cost_per_item = 10
 
+        total_cost = cost_per_item * 개수
 
-class ShopView(discord.ui.View):
-    def __init__(self, user_id):
-        super().__init__(timeout=60)
-        self.user_id = user_id
-
-        # value에는 "아이템이름_가격" 형태로 넣습니다.
-        options = [
-            discord.SelectOption(label="배부름을 부르는 약", description="1,000P", value="배부름을 부르는 약_1000", emoji="💊"),
-            discord.SelectOption(label="트위치 나가라약", description="2,000P", value="트위치 나가라약_2000", emoji="🚿"),
-            discord.SelectOption(label="100회 산책 할인권", description="1,500P", value="100회 산책 할인권_1500", emoji="🎫")
-        ]
-
-        self.select_menu = discord.ui.Select(placeholder="구매할 아이템을 선택하세요", options=options)
-        self.select_menu.callback = self.on_select
-        self.add_item(self.select_menu)
-
-    async def on_select(self, interaction: discord.Interaction):
-        if interaction.user.id != self.user_id:
-            return await interaction.response.send_message("본인의 상점만 이용 가능합니다.", ephemeral=True)
-
-        selected = self.select_menu.values[0]
-        item_name, price_str = selected.split("_")
-        price = int(price_str)
-
-        success = await spend_points(self.user_id, price)
+        success = await consume_item(interaction.user.id, required_item, total_cost)
         if not success:
-            return await interaction.response.send_message(f"❌ 포인트가 부족합니다! (필요: {price}P)", ephemeral=True)
+            return await interaction.response.send_message(f"❌ `{required_item}`이(가) 부족합니다. (필요량: {total_cost}개)", ephemeral=True)
 
-        await add_item(self.user_id, item_name, 1)
-        await interaction.response.send_message(f"✅ `{item_name}`을(를) 구매했습니다! (-{price}P)\n`/보관함`에서 확인하세요.",
-                                                ephemeral=True)
+        await add_item(interaction.user.id, 목표등급, 개수)
 
+        embed = discord.Embed(title="♻️ 알 환전 성공!", color=discord.Color.gold())
+        embed.description = f"`{required_item}` {total_cost}개를 소모하여\n`{목표등급}` {개수}개를 획득했습니다!"
+        await interaction.response.send_message(embed=embed)
 
 async def setup(bot):
-    await bot.add_cog(PetShopCog(bot))
+    await bot.add_cog(ShopCog(bot))
