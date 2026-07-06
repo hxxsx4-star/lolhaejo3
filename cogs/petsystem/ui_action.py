@@ -16,8 +16,9 @@ def get_progress_bar(value, fill_emoji, empty_emoji="⬛"):
     return (fill_emoji * fill_count) + (empty_emoji * empty_count) + f" ({val}%)"
 
 # 💡 [새로 추가된 함수] 성급(레벨)에 따른 스탯 1.5배 곱셈 적용
+# 💡 [새로 추가된 함수] 성급(레벨)에 따른 스탯 1.5배 곱셈 적용
 def get_pet_stats(pet_type, level):
-    base_stats = PET_STATS.get(pet_type, {"AD": 0, "DF": 0, "AP": 0, "MR": 0})
+    base_stats = PET_STATS.get(pet_type, {"AD": 5, "DF": 5, "AP": 5, "MR": 5})
     # 레벨이 1일 때 1배, 2일 때 1.5배, 3일 때 2.25배
     multiplier = 1.5  max(0, level - 1) if level > 0 else 1
     return {
