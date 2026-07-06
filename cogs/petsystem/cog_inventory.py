@@ -3,7 +3,7 @@ from discord.ext import commands
 from discord import app_commands
 import aiosqlite
 
-from .data import PET_POOLS, ITEMS_INFO
+from utils.data import PET_POOLS, ITEMS_INFO
 from .ui_inventory import InventoryView
 
 class InventoryCog(commands.Cog):

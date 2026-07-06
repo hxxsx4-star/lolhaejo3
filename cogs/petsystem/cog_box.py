@@ -3,7 +3,7 @@ from discord.ext import commands
 from discord import app_commands
 import time
 
-from .database import get_or_migrate_data, save_legend_data
+from utils.database import get_or_migrate_data, save_legend_data
 
 class BoxActionView(discord.ui.View):
     def __init__(self, user_id):

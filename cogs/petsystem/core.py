@@ -3,12 +3,10 @@ from discord.ext import commands, tasks
 from discord import app_commands
 import random
 import time
-from datetime import datetime
 import aiosqlite
-import asyncio
 
-from .data import PET_POOLS
-from .database import get_or_migrate_data, get_active_buffs, save_legend_data, get_user, update_max_star
+from utils.data import PET_POOLS
+from utils.database import get_or_migrate_data, get_active_buffs, save_legend_data, update_max_star
 from .ui_action import create_status_embed, LegendActionView, get_pet_stats
 from .logs import HATCH_LOG_CH, send_log_embed
 
