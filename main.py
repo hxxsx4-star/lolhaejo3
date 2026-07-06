@@ -3,8 +3,7 @@ from discord.ext import commands
 import configparser
 import asyncio
 
-# DB 초기화 함수 임포트
-from cogs.petsystem.database import init_db
+from utils.database import init_db
 
 # --- 설정 로드 ---
 config = configparser.ConfigParser()
@@ -18,21 +17,21 @@ class LegendBot(commands.Bot):
         super().__init__(command_prefix="!", intents=intents)
 
     async def setup_hook(self):
-        # 봇이 켜질 때 DB 초기화를 비동기로 실행
         await init_db()
         print("✅ 데이터베이스 초기화 완료")
 
         extensions = [
-            'cogs.gacha',
-            'cogs.help',
-            'cogs.sync',
-            'cogs.petsystem.cog_pet',         # 펫 코어 및 상태창 시스템
-            'cogs.petsystem.cog_inventory',   # 보관함 및 도감 시스템
-            'cogs.petsystem.cog_admin',       # 관리자 명령어 시스템
-            'cogs.petsystem.shop',                   # ✨ 펫 상점 시스템 추가
-            'cogs.petsystem.battle',
-            'cogs.petsystem.cog_synthetis',
-            'cogs.petsystem.cog_box']
+            'cogs.gacha',                     # 기존 가챠 (유지)
+            'cogs.help',                      # 개편된 도움말
+            'cogs.sync',                      # 기존 동기화 (유지)
+            'cogs.petsystem.core',            # 펫 시스템 코어 (알까기, 상태창)
+            'cogs.petsystem.inventory',       # 보관함, 도감, 상점(알환전/분해) 통합
+            'cogs.petsystem.admin',           # 관리자 명령어 (UI 방식 적용)
+            'cogs.petsystem.battle',          # 배틀 및 베팅 시스템
+            'cogs.petsystem.achievement',     # ✨ 신규 업적 시스템
+            'cogs.petsystem.cog_synthetis',   # 기존 합성 (유지)
+            'cogs.petsystem.cog_box'          # 기존 박스 (유지)
+        ]
 
         for extension in extensions:
             try:
@@ -41,20 +40,16 @@ class LegendBot(commands.Bot):
             except Exception as e:
                 print(f'🚨 {extension} 로드 실패: {e}')
 
-        # --- 👇 여기에 강제 동기화 코드를 추가합니다 👇 ---
         synced = await self.tree.sync()
         print(f"🌀 디스코드에 총 {len(synced)}개의 커맨드를 강제 동기화했습니다!")
 
-# --- 봇 인스턴스 생성 ---
 bot = LegendBot()
 
-# --- 봇 이벤트 ---
 @bot.event
 async def on_ready():
     print(f'✅ {bot.user}으로 로그인 성공! (ID: {bot.user.id})')
     print('🚀 봇이 성공적으로 실행되었습니다.')
 
-# --- 메인 실행 로직 ---
 async def main():
     async with bot:
         await bot.start(TOKEN)

@@ -4,8 +4,9 @@ from discord import app_commands
 import random
 import time
 
-from .data import PET_POOLS
-from .database import get_or_migrate_data, save_legend_data
+# 💡 새롭게 세분화된 폴더 구조에 맞춰 경로를 변경하고, 업적용 함수(add_synth_count)를 불러옵니다.
+from utils.data import PET_POOLS
+from utils.database import get_or_migrate_data, save_legend_data, add_synth_count
 
 class SynthesisCog(commands.Cog):
     def __init__(self, bot):
@@ -43,6 +44,11 @@ class SynthesisCog(commands.Cog):
 
             # 최신 데이터 다시 로드
             wrapper = await get_or_migrate_data(interaction.user.id)
+
+            # 인덱스 초과 에러 방지용 안전장치
+            if max(idx1, idx2) >= len(wrapper['pets']):
+                return await sel_inter.response.send_message("❌ 펫 데이터가 변경되었습니다. 명령어를 다시 실행해주세요.", ephemeral=True)
+
             pet1 = wrapper['pets'][idx1]
             pet2 = wrapper['pets'][idx2]
 
@@ -81,6 +87,9 @@ class SynthesisCog(commands.Cog):
                     'last_fatigue_calc': time.time()
                 }
                 wrapper['pets'].append(new_pet_data)
+
+                # ✨ [신규] 합성 성공 시 업적 카운트 +1 반영
+                await add_synth_count(interaction.user.id)
 
                 embed = discord.Embed(title="✨ 전설이 합성 대성공!! ✨", color=discord.Color.gold())
                 embed.description = f"희생된 두 마리의 힘이 모여...\n\n🎉 [{target_rarity}급] {new_type} 알이 탄생했습니다!\n*(새로운 알이 파티에 합류했습니다)*"
