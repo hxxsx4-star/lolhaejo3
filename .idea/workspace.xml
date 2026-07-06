@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f1982c64-012d-4ef1-a9cd-954fbe80761a" name="변경" comment="대규모 개편">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-    </list>
+    <list default="true" id="f1982c64-012d-4ef1-a9cd-954fbe80761a" name="변경" comment="대규모 개편" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -147,14 +145,6 @@
       <workItem from="1783249688743" duration="76000" />
       <workItem from="1783249778143" duration="5173000" />
       <workItem from="1783264957959" duration="8742000" />
-    </task>
-    <task id="LOCAL-00020" summary="애플리케이션이 응답하지 않았어요 오류 수정">
-      <option name="closed" value="true" />
-      <created>1783165282085</created>
-      <option name="number" value="00020" />
-      <option name="presentableId" value="LOCAL-00020" />
-      <option name="project" value="LOCAL" />
-      <updated>1783165282085</updated>
     </task>
     <task id="LOCAL-00021" summary="애플리케이션이 응답하지 않았어요 오류 수정">
       <option name="closed" value="true" />
@@ -540,7 +530,15 @@
       <option name="project" value="LOCAL" />
       <updated>1783343863175</updated>
     </task>
-    <option name="localTasksCounter" value="69" />
+    <task id="LOCAL-00069" summary="대규모 개편">
+      <option name="closed" value="true" />
+      <created>1783345052000</created>
+      <option name="number" value="00069" />
+      <option name="presentableId" value="LOCAL-00069" />
+      <option name="project" value="LOCAL" />
+      <updated>1783345052000</updated>
+    </task>
+    <option name="localTasksCounter" value="70" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
