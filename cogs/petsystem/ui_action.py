@@ -20,7 +20,7 @@ def get_progress_bar(value, fill_emoji, empty_emoji="⬛"):
 def get_pet_stats(pet_type, level):
     base_stats = PET_STATS.get(pet_type, {"AD": 5, "DF": 5, "AP": 5, "MR": 5})
     # 레벨이 1일 때 1배, 2일 때 1.5배, 3일 때 2.25배
-    multiplier = 1.5  max(0, level - 1) if level > 0 else 1
+    multiplier = 1.5**max(0, level - 1) if level > 0 else 1
     return {
         "AD": int(base_stats["AD"] * multiplier),
         "DF": int(base_stats["DF"] * multiplier),
