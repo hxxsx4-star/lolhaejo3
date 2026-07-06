@@ -16,7 +16,9 @@ def get_progress_bar(value, fill_emoji, empty_emoji="⬛"):
 
 def get_pet_stats(pet_type, level):
     base_stats = PET_STATS.get(pet_type, {"AD": 5, "DF": 5, "AP": 5, "MR": 5})
-    multiplier = 1.5max(0, level - 1) if level > 0 else 1
+    # 💡 문법 에러가 났던 곳을 괄호와 if 구문으로 안전하게 처리 완료!
+    multiplier = (1.5  max(0, level - 1)) if level > 0 else 1
+
     return {
         "AD": int(base_stats["AD"] * multiplier),
         "DF": int(base_stats["DF"] * multiplier),
@@ -135,11 +137,13 @@ class LegendActionView(discord.ui.View):
         wrapper, data = await self.get_pet_data()
         if not data: return await interaction.response.send_message("펫 데이터가 없습니다.", ephemeral=True)
         user_id = self.user_id
+
         if num_walks == 100:
             has_ticket = await consume_item(user_id, "100회 산책 할인권", 1)
             cost = 30 if has_ticket else 100
         else:
             has_ticket = False; cost = num_walks * 1
+
         success = await spend_points(user_id, cost)
         if not success:
             if has_ticket: await add_item(user_id, "100회 산책 할인권", 1)
@@ -160,12 +164,15 @@ class LegendActionView(discord.ui.View):
             if "신비한 알약" in buffs or "배부름을 부르는 약" in buffs:
                 data['fullness'] = 100; stat_msg += "💊 [배부름 약] 효과로 포만도가 100으로 유지되었습니다!\n"
             else: data['fullness'] = max(0, data.get('fullness', 100) - (20 * stat_triggers))
+
             if "신비한 알약" in buffs or "트위치 나가라약" in buffs:
                 data['cleanliness'] = 100; stat_msg += "💊 [나가라 약] 효과로 청결도가 100으로 유지되었습니다!\n"
             else: data['cleanliness'] = max(0, data.get('cleanliness', 100) - (20 * stat_triggers))
+
             if "신비한 알약" in buffs or "아무무도 인싸로 만드는 약" in buffs:
                 data['intimacy'] = 100; stat_msg += "💊 [인싸 약] 효과로 친밀도가 100으로 유지되었습니다!\n"
             else: data['intimacy'] = min(100, data.get('intimacy', 50) + (20 * stat_triggers))
+
             if "신비한 알약" in buffs or "쌩쌩한약" in buffs:
                 data['fatigue'] = 0; stat_msg += "💊 [쌩쌩한약] 효과로 피로도가 0으로 유지되었습니다!\n"
             else: data['fatigue'] = min(100, data.get('fatigue', 0) + (20 * stat_triggers))

@@ -5,7 +5,7 @@ import aiosqlite
 
 from utils.data import PET_POOLS, ITEMS_INFO
 from utils.database import consume_item, add_item
-from cogs.petsystem.ui_inventory import InventoryView
+from .ui_inventory import InventoryView
 
 class InventoryCog(commands.Cog):
     def __init__(self, bot):

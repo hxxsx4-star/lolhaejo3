@@ -6,6 +6,11 @@
   <component name="ChangeListManager">
     <list default="true" id="f1982c64-012d-4ef1-a9cd-954fbe80761a" name="변경" comment=".">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cogs/poker.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cogs/seotda.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/data.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/stats.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/stats.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -123,6 +128,7 @@
 }</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\polar\PycharmProjects\lolhaejo2\utils" />
       <recent name="C:\Users\polar\PycharmProjects\lolhaejo2" />
     </key>
   </component>
@@ -146,22 +152,6 @@
       <workItem from="1783249688743" duration="76000" />
       <workItem from="1783249778143" duration="5173000" />
       <workItem from="1783264957959" duration="8742000" />
-    </task>
-    <task id="LOCAL-00017" summary="stats.py 수정">
-      <option name="closed" value="true" />
-      <created>1783163594614</created>
-      <option name="number" value="00017" />
-      <option name="presentableId" value="LOCAL-00017" />
-      <option name="project" value="LOCAL" />
-      <updated>1783163594614</updated>
-    </task>
-    <task id="LOCAL-00018" summary="애플리케이션이 응답하지 않았어요 오류 수정">
-      <option name="closed" value="true" />
-      <created>1783163857470</created>
-      <option name="number" value="00018" />
-      <option name="presentableId" value="LOCAL-00018" />
-      <option name="project" value="LOCAL" />
-      <updated>1783163857470</updated>
     </task>
     <task id="LOCAL-00019" summary="애플리케이션이 응답하지 않았어요 오류 수정">
       <option name="closed" value="true" />
@@ -539,7 +529,23 @@
       <option name="project" value="LOCAL" />
       <updated>1783342392204</updated>
     </task>
-    <option name="localTasksCounter" value="66" />
+    <task id="LOCAL-00066" summary=".">
+      <option name="closed" value="true" />
+      <created>1783342882865</created>
+      <option name="number" value="00066" />
+      <option name="presentableId" value="LOCAL-00066" />
+      <option name="project" value="LOCAL" />
+      <updated>1783342882865</updated>
+    </task>
+    <task id="LOCAL-00067" summary=".">
+      <option name="closed" value="true" />
+      <created>1783342942147</created>
+      <option name="number" value="00067" />
+      <option name="presentableId" value="LOCAL-00067" />
+      <option name="project" value="LOCAL" />
+      <updated>1783342942147</updated>
+    </task>
+    <option name="localTasksCounter" value="68" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

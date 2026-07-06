@@ -5,7 +5,7 @@ import asyncio
 import random
 
 from utils.database import get_or_migrate_data, add_item, consume_item, get_item_amount, set_item_amount
-from cogs.petsystem.ui_action import get_pet_stats
+from .ui_action import get_pet_stats
 from utils.stats import add_points
 
 class BetView(discord.ui.View):

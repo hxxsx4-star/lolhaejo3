@@ -9,7 +9,6 @@ from utils.data import PET_POOLS
 from utils.database import get_or_migrate_data, get_active_buffs, save_legend_data, update_max_star
 from .ui_action import create_status_embed, LegendActionView, get_pet_stats
 from utils.logs import HATCH_LOG_CH, send_log_embed
-
 from utils.stats import get_points, add_points
 
 class HatchView(discord.ui.View):
@@ -23,9 +22,7 @@ class HatchView(discord.ui.View):
         self.chosen = False
         self.message = None
 
-        # 해당 등급에 속하는 펫 목록을 불러와 SelectOption 생성
         options = [discord.SelectOption(label=p, value=p) for p in PET_POOLS[rarity][:25]]
-
         self.select = discord.ui.Select(placeholder=f"원하는 {rarity}급 전설이를 선택하세요!", options=options)
         self.select.callback = self.on_select
         self.add_item(self.select)
@@ -75,8 +72,7 @@ class HatchView(discord.ui.View):
                 embed = discord.Embed(title="⏰ 선택 시간 초과!", description=f"자동으로 [{self.rarity}급] {selected_type} 알이 선택되었습니다!\n이름: `{self.pet_name}`", color=discord.Color.orange())
                 if self.message:
                     await self.message.edit(embed=embed, view=None)
-            except Exception as e:
-                print(f"Hatch timeout error: {e}")
+            except Exception as e: print(f"Hatch timeout error: {e}")
 
 class PetSystemCog(commands.Cog):
     def __init__(self, bot):
@@ -109,13 +105,11 @@ class PetSystemCog(commands.Cog):
 
     async def evaluate_pet_status(self, user_id, wrapper, idx=None):
         if not wrapper.get('pets'): return None, [], False, False
-
         if idx is None: idx = wrapper.get('active_idx', 0)
         if idx >= len(wrapper['pets']): idx = 0
 
         data = wrapper['pets'][idx]
-        if data.get('level', 0) == 0:
-            return data, [], False, False
+        if data.get('level', 0) == 0: return data, [], False, False
 
         now = time.time()
         active_buffs = await get_active_buffs(user_id)
@@ -162,16 +156,13 @@ class PetSystemCog(commands.Cog):
             if member.id in self.voice_sessions:
                 last_reward_time = self.voice_sessions.pop(member.id)
                 duration_sec = time.time() - last_reward_time
-                if duration_sec >= 60:
-                    await self.add_exp_to_pet(member.id, duration_sec)
+                if duration_sec >= 60: await self.add_exp_to_pet(member.id, duration_sec)
 
     async def add_exp_to_pet(self, user_id, duration_sec):
         wrapper = await get_or_migrate_data(user_id)
         if not wrapper.get('pets'): return
         active_idx = wrapper.get('active_idx', 0)
-
-        if active_idx >= len(wrapper['pets']):
-            active_idx = 0; wrapper['active_idx'] = active_idx
+        if active_idx >= len(wrapper['pets']): active_idx = 0; wrapper['active_idx'] = active_idx
 
         data = wrapper['pets'][active_idx]
         current_level = data.get('level', 0)
@@ -207,7 +198,6 @@ class PetSystemCog(commands.Cog):
         if earned_exp <= 0: return
 
         data['exp'] = data.get('exp', 0) + earned_exp
-
         rarity = data.get('rarity', '서사')
         EXP_REQUIREMENTS = {
             0: 100,
@@ -217,9 +207,7 @@ class PetSystemCog(commands.Cog):
 
         while data.get('level', 0) < 3:
             current_lvl = data.get('level', 0)
-            if current_lvl == 0: required_exp = EXP_REQUIREMENTS[0]
-            else: required_exp = EXP_REQUIREMENTS[current_lvl].get(rarity, EXP_REQUIREMENTS[current_lvl]["서사"])
-
+            required_exp = EXP_REQUIREMENTS[0] if current_lvl == 0 else EXP_REQUIREMENTS[current_lvl].get(rarity, EXP_REQUIREMENTS[current_lvl]["서사"])
             if data.get('exp', 0) >= required_exp:
                 data['level'] = current_lvl + 1
                 data['exp'] -= required_exp
@@ -231,12 +219,10 @@ class PetSystemCog(commands.Cog):
         wrapper['pets'][active_idx] = data
         await save_legend_data(user_id, wrapper)
 
-    # 💡 [새로 업데이트된 알까기 시스템]
     @app_commands.command(name="알까기", description="새로운 전설이 등급을 먼저 뽑고 원하는 전설이를 선택합니다.")
     async def hatch_egg(self, interaction: discord.Interaction, 이름: str):
         user_id = interaction.user.id
         wrapper = await get_or_migrate_data(user_id)
-
         is_first_time = (len(wrapper.get('pets', [])) == 0)
 
         if len(wrapper.get('pets', [])) >= 5:
@@ -244,16 +230,11 @@ class PetSystemCog(commands.Cog):
 
         current_points = await get_points(user_id)
         cost = 0 if is_first_time else 1000
-
-        if current_points < cost:
-            return await interaction.response.send_message(f"가챠 비용이 부족합니다! (필요: {cost}P)", ephemeral=True)
+        if current_points < cost: return await interaction.response.send_message(f"가챠 비용이 부족합니다! (필요: {cost}P)", ephemeral=True)
 
         if not is_first_time: await add_points(user_id, -cost)
 
-        # 등급 먼저 롤링
         rarity = random.choices(list(PET_POOLS.keys()), weights=[85, 14, 0.9, 0.1], k=1)[0]
-
-        # 선택 뷰 제공
         embed = discord.Embed(title="🎉 알까기 당첨!", description=f"[{rarity}급] 알이 당첨되었습니다!\n아래 메뉴에서 원하는 종류의 전설이를 선택하세요.", color=discord.Color.gold())
 
         view = HatchView(self.bot, user_id, rarity, 이름, is_first_time)
@@ -269,8 +250,7 @@ class PetSystemCog(commands.Cog):
     async def switch_pet(self, interaction: discord.Interaction, 슬롯: int):
         wrapper = await get_or_migrate_data(interaction.user.id)
         if 슬롯 >= len(wrapper.get('pets', [])):
-            return await interaction.response.send_message(f"해당 슬롯에는 아직 전설이가 없습니다. (보유 중인 펫: {len(wrapper.get('pets', []))}마리)", ephemeral=True)
-
+            return await interaction.response.send_message(f"해당 슬롯에는 아직 전설이가 없습니다.", ephemeral=True)
         wrapper['active_idx'] = 슬롯
         await save_legend_data(interaction.user.id, wrapper)
         pet_name = wrapper['pets'][슬롯].get('name', '이름없음')
@@ -281,9 +261,7 @@ class PetSystemCog(commands.Cog):
         target = 유저 or interaction.user
         wrapper = await get_or_migrate_data(target.id)
 
-        if not wrapper or not wrapper.get('pets'):
-            return await interaction.response.send_message(f"❌ {target.display_name}님은 아직 전설이가 없습니다.", ephemeral=False)
-
+        if not wrapper or not wrapper.get('pets'): return await interaction.response.send_message(f"❌ {target.display_name}님은 아직 전설이가 없습니다.", ephemeral=False)
         embed = discord.Embed(title=f"📊 {target.display_name}님의 전설이 스탯", color=discord.Color.blue())
 
         for i, pet in enumerate(wrapper['pets']):
@@ -291,8 +269,7 @@ class PetSystemCog(commands.Cog):
             pet_type = pet.get('type', '알 수 없음')
             level = pet.get('level', 0)
 
-            if level == 0:
-                embed.add_field(name=f"[{i+1}] 🥚 {pet_name} (알)", value="아직 부화하지 않아 스탯이 없습니다.", inline=False)
+            if level == 0: embed.add_field(name=f"[{i+1}] 🥚 {pet_name} (알)", value="아직 부화하지 않아 스탯이 없습니다.", inline=False)
             else:
                 stats = get_pet_stats(pet_type, level)
                 stats_str = f"⚔️ 공격력(AD): {stats['AD']} | 🛡️ 방어력(DF): {stats['DF']}\n✨ 주문력(AP): {stats['AP']} | 🌀 마법저항력(MR): {stats['MR']}"
@@ -307,18 +284,14 @@ class PetSystemCog(commands.Cog):
 
         active_idx = wrapper.get('active_idx', 0)
         total_pets = len(wrapper['pets'])
-
         if active_idx >= total_pets:
-            active_idx = 0
-            wrapper['active_idx'] = 0
+            active_idx = 0; wrapper['active_idx'] = 0
             await save_legend_data(interaction.user.id, wrapper)
 
         data, buffs, is_annoyed, is_diseased = await self.evaluate_pet_status(interaction.user.id, wrapper, active_idx)
         current_points = await get_points(interaction.user.id)
-
         embed = create_status_embed(interaction.user, data, current_points, buffs, is_annoyed, is_diseased, active_idx, total_pets)
         view = LegendActionView(interaction.user.id, current_idx=active_idx, total_pets=total_pets, pet_level=data.get('level', 0))
-
         await interaction.response.send_message(embed=embed, view=view)
 
 async def setup(bot):

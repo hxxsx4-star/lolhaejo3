@@ -4,7 +4,6 @@ from discord import app_commands
 import random
 import time
 
-# 💡 새롭게 세분화된 폴더 구조에 맞춰 경로를 변경하고, 업적용 함수(add_synth_count)를 불러옵니다.
 from utils.data import PET_POOLS
 from utils.database import get_or_migrate_data, save_legend_data, add_synth_count
 
@@ -22,7 +21,6 @@ class SynthesisCog(commands.Cog):
         wrapper = await get_or_migrate_data(interaction.user.id)
         pets = wrapper.get('pets', [])
 
-        # 💡 해당 등급이고, 3성인 펫들의 인덱스 찾기
         eligible_pets = []
         for i, p in enumerate(pets):
             if p.get('rarity') == 등급 and p.get('level', 0) == 3:
@@ -32,51 +30,38 @@ class SynthesisCog(commands.Cog):
             return await interaction.response.send_message(f"❌ 파티에 합성을 위한 `{등급}`급 3성 전설이가 2마리 이상 필요합니다.\n*(박스에 있다면 파티로 데려오세요!)*", ephemeral=True)
 
         options = [discord.SelectOption(label=f"{p['name']} ({p['type']})", description=f"레벨: 3성 | 스탯 재료", value=str(i)) for i, p in eligible_pets[:25]]
-
         select = discord.ui.Select(min_values=2, max_values=2, placeholder="합성할 전설이 2마리를 선택하세요 (서로 다른 종류)", options=options)
 
         async def select_callback(sel_inter: discord.Interaction):
             if sel_inter.user.id != interaction.user.id:
                 return await sel_inter.response.send_message("❌ 본인만 선택할 수 있습니다.", ephemeral=True)
 
-            # 선택한 인덱스 파싱
             idx1, idx2 = int(select.values[0]), int(select.values[1])
-
-            # 최신 데이터 다시 로드
             wrapper = await get_or_migrate_data(interaction.user.id)
 
-            # 인덱스 초과 에러 방지용 안전장치
             if max(idx1, idx2) >= len(wrapper['pets']):
                 return await sel_inter.response.send_message("❌ 펫 데이터가 변경되었습니다. 명령어를 다시 실행해주세요.", ephemeral=True)
 
             pet1 = wrapper['pets'][idx1]
             pet2 = wrapper['pets'][idx2]
 
-            # 💡 [요청사항] 종류(type)가 달라야 함
             if pet1.get('type') == pet2.get('type'):
-                return await sel_inter.response.send_message("❌ 합성에 쓰이는 두 전설이는 서로 다른 종류(PET_POOLS)여야 합니다!", ephemeral=True)
+                return await sel_inter.response.send_message("❌ 합성에 쓰이는 두 전설이는 서로 다른 종류여야 합니다!", ephemeral=True)
 
-            # 타겟 등급 및 확률 설정
             target_rarity = ""
             prob = 0.0
             if 등급 == "서사":
-                target_rarity = "전설"
-                prob = 0.8
+                target_rarity = "전설"; prob = 0.8
             elif 등급 == "전설":
-                target_rarity = "신화"
-                prob = 0.5
+                target_rarity = "신화"; prob = 0.5
             elif 등급 == "신화":
-                target_rarity = "프레스티지"
-                prob = 0.2
+                target_rarity = "프레스티지"; prob = 0.2
 
-            # ⚠️ 두 전설이 희생 (삭제 시 인덱스 꼬임 방지를 위해 뒤에서부터 pop)
             indices_to_remove = sorted([idx1, idx2], reverse=True)
             for i in indices_to_remove:
                 wrapper['pets'].pop(i)
 
             wrapper['active_idx'] = max(0, len(wrapper['pets']) - 1)
-
-            # 성공/실패 판정
             is_success = random.random() < prob
 
             if is_success:
@@ -88,12 +73,12 @@ class SynthesisCog(commands.Cog):
                 }
                 wrapper['pets'].append(new_pet_data)
 
-                # ✨ [신규] 합성 성공 시 업적 카운트 +1 반영
+                # 💡 합성 50회 달성을 위한 업적 카운트 연동
                 await add_synth_count(interaction.user.id)
 
                 embed = discord.Embed(title="✨ 전설이 합성 대성공!! ✨", color=discord.Color.gold())
                 embed.description = f"희생된 두 마리의 힘이 모여...\n\n🎉 [{target_rarity}급] {new_type} 알이 탄생했습니다!\n*(새로운 알이 파티에 합류했습니다)*"
-                embed.set_thumbnail(url="https://i.imgur.com/2sR9O1j.gif") # 예시 빛나는 효과 GIF
+                embed.set_thumbnail(url="https://i.imgur.com/2sR9O1j.gif")
             else:
                 embed = discord.Embed(title="💥 합성 실패...", color=discord.Color.dark_gray())
                 embed.description = "두 전설이의 힘이 엇갈려 폭발해버렸습니다...\n\n💀 합성에 사용된 두 마리의 전설이가 모두 소멸했습니다."
