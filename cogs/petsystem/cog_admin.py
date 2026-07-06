@@ -18,23 +18,23 @@ class AdminCog(commands.Cog):
         else:
             await interaction.response.send_message(f"❌ 명령어를 처리하는 중 오류가 발생했습니다: {error}", ephemeral=True)
 
-    @app_commands.command(name="알지급", description="[관리자] 유저에게 특정 종류의 알을 지급합니다.")
+    @app_commands.command(name="알지급", description="[관리자] 유저에게 특정 등급과 종류의 알을 지급합니다.")
     @app_commands.default_permissions(administrator=True)
     @app_commands.checks.has_permissions(administrator=True)
-    async def give_egg(self, interaction: discord.Interaction, 유저: discord.Member, 알이름: str, 종류: str):
+    @app_commands.describe(유저="지급할 유저", 등급="알 등급", 알이름="지어줄 이름", 종류="펫 종류 (예: 멍멍이, 드래곤 등)")
+    @app_commands.choices(등급=[
+        app_commands.Choice(name="서사", value="서사"),
+        app_commands.Choice(name="전설", value="전설"),
+        app_commands.Choice(name="신화", value="신화"),
+        app_commands.Choice(name="프레스티지", value="프레스티지")
+    ])
+    async def give_egg(self, interaction: discord.Interaction, 유저: discord.Member, 등급: str, 알이름: str, 종류: str):
         await interaction.response.defer(ephemeral=True)
         try:
             wrapper = await get_or_migrate_data(유저.id)
             if 'pets' not in wrapper: wrapper['pets'] = []
             if len(wrapper['pets']) >= 5:
                 return await interaction.followup.send(f"❌ {유저.display_name}님은 이미 5마리의 전설이를 보유하고 있습니다.")
-
-            # 입력된 '종류'를 바탕으로 등급 탐색
-            등급 = "서사"
-            for r, pools in PET_POOLS.items():
-                if 종류 in pools:
-                    등급 = r
-                    break
 
             new_pet_data = {
                 'name': 알이름, 'type': 종류, 'rarity': 등급, 'level': 0, 'exp': 0, 'fullness': 100,
@@ -50,10 +50,17 @@ class AdminCog(commands.Cog):
             traceback.print_exc()
             await interaction.followup.send("❌ 명령어를 처리하는 도중 오류가 발생했습니다.")
 
-    @app_commands.command(name="알회수", description="[관리자] 특정 이름과 종류를 가진 유저의 전설이를 회수합니다.")
+    @app_commands.command(name="알회수", description="[관리자] 특정 등급, 이름, 종류를 가진 유저의 전설이를 회수합니다.")
     @app_commands.default_permissions(administrator=True)
     @app_commands.checks.has_permissions(administrator=True)
-    async def remove_egg(self, interaction: discord.Interaction, 유저: discord.Member, 알이름: str, 종류: str):
+    @app_commands.describe(유저="회수할 유저", 등급="알 등급", 알이름="전설이 이름", 종류="펫 종류")
+    @app_commands.choices(등급=[
+        app_commands.Choice(name="서사", value="서사"),
+        app_commands.Choice(name="전설", value="전설"),
+        app_commands.Choice(name="신화", value="신화"),
+        app_commands.Choice(name="프레스티지", value="프레스티지")
+    ])
+    async def remove_egg(self, interaction: discord.Interaction, 유저: discord.Member, 등급: str, 알이름: str, 종류: str):
         await interaction.response.defer(ephemeral=True)
         try:
             wrapper = await get_or_migrate_data(유저.id)
@@ -61,18 +68,18 @@ class AdminCog(commands.Cog):
 
             target_idx = -1
             for i, pet in enumerate(wrapper['pets']):
-                if pet.get('name') == 알이름 and pet.get('type') == 종류:
+                if pet.get('name') == 알이름 and pet.get('type') == 종류 and pet.get('rarity') == 등급:
                     target_idx = i
                     break
 
             if target_idx == -1:
-                return await interaction.followup.send(f"❌ {유저.display_name}님의 전설이 중 이름이 `{알이름}`이고 종류가 `{종류}`인 펫을 찾을 수 없습니다.")
+                return await interaction.followup.send(f"❌ {유저.display_name}님의 전설이 중 이름이 `{알이름}`, 종류가 `{종류}`, 등급이 `{등급}`인 펫을 찾을 수 없습니다.")
 
             removed = wrapper['pets'].pop(target_idx)
             wrapper['active_idx'] = max(0, len(wrapper['pets']) - 1)
 
             await save_legend_data(유저.id, wrapper)
-            await interaction.followup.send(f"✅ {유저.display_name}님의 `{removed['name']} ({removed['type']})`(을)를 강제 회수했습니다.")
+            await interaction.followup.send(f"✅ {유저.display_name}님의 `{removed['name']} ({removed['rarity']} - {removed['type']})`(을)를 강제 회수했습니다.")
         except Exception:
             traceback.print_exc()
             await interaction.followup.send("❌ 오류가 발생했습니다.")
