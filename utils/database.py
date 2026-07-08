@@ -211,7 +211,7 @@ async def get_user_all_bets(user_id):
             return await cursor.fetchall()
 
 # ==========================================
-# 💡 승부예측 자동 마감(예약) 전용 함수
+# 💡 승부예측 자동 마감(예약) 전용
 # ==========================================
 
 async def set_bet_close_time(topic, close_at):
