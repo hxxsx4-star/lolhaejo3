@@ -3,7 +3,7 @@ from discord.ext import commands
 from discord import app_commands
 import aiosqlite
 
-from utils.data import ITEMS_INFO, ITEM_PRICES
+from utils.data import ITEMS_INFO, ITEM_PRICES, PET_POOLS
 from utils.database import consume_item, add_item, get_user_items
 from .ui_inventory import InventoryView
 
@@ -25,9 +25,6 @@ class InventoryCog(commands.Cog):
 
     @app_commands.command(name="전설이목록", description="등급별 획득 가능한 전설이 목록을 확인합니다.")
     async def legend_list(self, interaction: discord.Interaction):
-        # 이 명령어는 petsystem.core로 이동하는 것이 더 적합해 보입니다.
-        # 여기서는 일단 유지합니다.
-        from utils.data import PET_POOLS
         embed = discord.Embed(title="📜 전설이 목록", color=discord.Color.blue())
         for rarity, pets in PET_POOLS.items():
             embed.add_field(name=f"[{rarity}급]", value=", ".join(pets), inline=False)
