@@ -226,3 +226,9 @@ async def get_expired_bets():
         # 현재 시간보다 예약된 마감 시간이 지났고, 아직 'active' 상태인 베팅만 가져옴
         async with db.execute("SELECT * FROM betting_sessions WHERE status = 'active' AND close_at IS NOT NULL AND close_at <= ?", (now,)) as cursor:
             return await cursor.fetchall()
+
+async def get_user_items(user_id):
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT item_name, amount FROM user_items WHERE user_id = ? AND amount > 0", (user_id,)) as cursor:
+            rows = await cursor.fetchall()
+        return rows
