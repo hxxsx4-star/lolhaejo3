@@ -22,8 +22,7 @@ class LegendBot(commands.Bot):
         await init_db()
         print("✅ 데이터베이스 초기화 완료")
 
-        extensions = [
-            # 'cogs.gacha',                   # 에러 방지를 위해 주석 처리 (파일이 있다면 주석 해제)
+        extensions = [                 
             'cogs.help',                      # 개편된 도움말
             'cogs.sync',                      # 기존 동기화 (유지)
             'cogs.petsystem.core',            # 펫 시스템 코어 (알까기, 상태창)
