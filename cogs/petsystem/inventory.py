@@ -3,8 +3,8 @@ from discord.ext import commands
 from discord import app_commands
 import aiosqlite
 
-from utils.data import PET_POOLS, ITEMS_INFO
-from utils.database import consume_item, add_item
+from utils.data import ITEMS_INFO, ITEM_PRICES
+from utils.database import consume_item, add_item, get_user_items
 from .ui_inventory import InventoryView
 
 class InventoryCog(commands.Cog):
@@ -13,22 +13,21 @@ class InventoryCog(commands.Cog):
 
     @app_commands.command(name="보관함", description="내 아이템을 확인하고 사용합니다.")
     async def inventory(self, interaction: discord.Interaction):
-        async with aiosqlite.connect('legends.db') as db:
-            async with db.execute("SELECT item_name, amount FROM user_items WHERE user_id = ? AND amount > 0", (interaction.user.id,)) as cursor:
-                rows = await cursor.fetchall()
-
-        items = dict(rows)
+        items = await get_user_items(interaction.user.id)
         if not items: return await interaction.response.send_message("보관함이 비어있습니다.", ephemeral=True)
 
         embed = discord.Embed(title="🎒 내 보관함", description="아래 메뉴에서 아이템을 선택한 후 사용 버튼을 눌러주세요.", color=discord.Color.blurple())
-        for item_name, amount in items.items():
+        for item_name, amount in items:
             embed.add_field(name=f"▪️ {item_name}", value=f"{amount}개 보유", inline=False)
 
-        view = InventoryView(interaction.user.id, items)
+        view = InventoryView(interaction.user.id, dict(items))
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
     @app_commands.command(name="전설이목록", description="등급별 획득 가능한 전설이 목록을 확인합니다.")
     async def legend_list(self, interaction: discord.Interaction):
+        # 이 명령어는 petsystem.core로 이동하는 것이 더 적합해 보입니다.
+        # 여기서는 일단 유지합니다.
+        from utils.data import PET_POOLS
         embed = discord.Embed(title="📜 전설이 목록", color=discord.Color.blue())
         for rarity, pets in PET_POOLS.items():
             embed.add_field(name=f"[{rarity}급]", value=", ".join(pets), inline=False)

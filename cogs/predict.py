@@ -3,8 +3,8 @@ from discord.ext import commands
 from discord import app_commands
 import aiosqlite
 
-from cogs.ui_predict import create_prediction_embed, PredictionView, BetModal
-from ..petsystem.database import add_item, consume_item
+from .ui_predict import create_prediction_embed, PredictionView, BetModal
+from utils.database import add_item, consume_item
 
 class PredictCog(commands.Cog):
     def __init__(self, bot):
@@ -107,28 +107,29 @@ class PredictCog(commands.Cog):
 
             await db.execute("UPDATE topics SET is_open = 0 WHERE id = ?", (예측id,))
             
-            winners = await (await db.execute("SELECT user_id FROM bets WHERE topic_id = ? AND choice = ?", (예측id, 결과))).fetchall()
-            total_bets = await (await db.execute("SELECT COUNT(*) FROM bets WHERE topic_id = ?", (예측id,))).fetchone()
-            total_bets = total_bets[0] if total_bets else 0
+            winners_rows = await (await db.execute("SELECT user_id FROM bets WHERE topic_id = ? AND choice = ?", (예측id, 결과))).fetchall()
+            winners = [row[0] for row in winners_rows]
+
+            total_bets_row = await (await db.execute("SELECT COUNT(*) FROM bets WHERE topic_id = ?", (예측id,))).fetchone()
+            total_bets = total_bets_row[0] if total_bets_row else 0
 
             if not winners:
-                return await interaction.followup.send(f"예측 #{예측id}이 마감되었습니다. 승자가 없습니다.", ephemeral=True)
-
-            prize_per_winner = total_bets // len(winners)
-            for (user_id,) in winners:
-                await add_item(user_id, "서사급 알", prize_per_winner)
-
+                await interaction.followup.send(f"예측 #{예측id}이 마감되었습니다. 승자가 없습니다.", ephemeral=True)
+            else:
+                prize_per_winner = total_bets // len(winners)
+                for user_id in winners:
+                    await add_item(user_id, "서사급 알", prize_per_winner)
+                
+                winner_mentions = [f"<@{uid}>" for uid in winners]
+                result_embed = discord.Embed(title=f"🔮 예측 #{예측id} 결과 발표!", color=discord.Color.green())
+                result_embed.add_field(name="주제", value=topic[1], inline=False)
+                result_embed.add_field(name="결과", value=f"**{결과}**", inline=False)
+                result_embed.add_field(name="승자", value=", ".join(winner_mentions) or "없음", inline=False)
+                result_embed.add_field(name="배당", value=f"각 '서사급 알' {prize_per_winner}개", inline=False)
+                await interaction.channel.send(embed=result_embed)
+                await interaction.followup.send(f"✅ 예측 #{예측id}이 마감되고 결과가 발표되었습니다.", ephemeral=True)
+            
             await db.commit()
-
-        winner_mentions = [f"<@{w[0]}>" for w in winners]
-        result_embed = discord.Embed(title=f"🔮 예측 #{예측id} 결과 발표!", color=discord.Color.green())
-        result_embed.add_field(name="주제", value=topic[1], inline=False)
-        result_embed.add_field(name="결과", value=f"**{결과}**", inline=False)
-        result_embed.add_field(name="승자", value=", ".join(winner_mentions) or "없음", inline=False)
-        result_embed.add_field(name="배당", value=f"각 '서사급 알' {prize_per_winner}개", inline=False)
-        
-        await interaction.channel.send(embed=result_embed)
-        await interaction.followup.send(f"✅ 예측 #{예측id}이 마감되고 결과가 발표되었습니다.", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(PredictCog(bot))

@@ -5,14 +5,15 @@ import json
 DB_PATH = 'legends.db'
 
 async def init_db():
+    """
+    데이터베이스를 초기화하고, 기존 데이터는 유지하면서
+    새로운 컬럼이 없을 경우 안전하게 추가(마이그레이션)합니다.
+    """
     async with aiosqlite.connect(DB_PATH) as db:
+        # 기본 테이블 생성 (없을 경우에만)
         await db.execute('''CREATE TABLE IF NOT EXISTS users
                      (user_id INTEGER PRIMARY KEY, points INTEGER, max_star_reached INTEGER,
                      egg_legendary INTEGER, egg_mythic INTEGER, egg_prestige INTEGER)''')
-        await db.execute('''CREATE TABLE IF NOT EXISTS user_legends
-                     (user_id INTEGER PRIMARY KEY, name TEXT, rarity TEXT,
-                     level INTEGER, exp INTEGER, fullness INTEGER, intimacy INTEGER, fatigue INTEGER,
-                     cleanliness INTEGER, low_clean_since REAL, low_full_since REAL)''')
         await db.execute('''CREATE TABLE IF NOT EXISTS user_multi_pets
                      (user_id INTEGER PRIMARY KEY, pet_data TEXT)''')
         await db.execute('''CREATE TABLE IF NOT EXISTS user_items
@@ -21,9 +22,20 @@ async def init_db():
         await db.execute('''CREATE TABLE IF NOT EXISTS active_buffs
                      (user_id INTEGER, buff_name TEXT, expires_at REAL, vc_seconds_left REAL,
                      PRIMARY KEY (user_id, buff_name))''')
-        # 업적 테이블 추가
         await db.execute('''CREATE TABLE IF NOT EXISTS user_achievements
                      (user_id INTEGER PRIMARY KEY, synth_count INTEGER DEFAULT 0)''')
+
+        # user_legends 테이블 마이그레이션 (레거시 지원)
+        cursor = await db.execute("PRAGMA table_info(user_legends)")
+        columns = [col[1] for col in await cursor.fetchall()]
+        
+        if "cleanliness" not in columns:
+            await db.execute("ALTER TABLE user_legends ADD COLUMN cleanliness INTEGER DEFAULT 100")
+        if "low_clean_since" not in columns:
+            await db.execute("ALTER TABLE user_legends ADD COLUMN low_clean_since REAL DEFAULT 0")
+        if "low_full_since" not in columns:
+            await db.execute("ALTER TABLE user_legends ADD COLUMN low_full_since REAL DEFAULT 0")
+
         await db.commit()
 
 async def get_user(user_id):
@@ -33,7 +45,8 @@ async def get_user(user_id):
         if not data:
             await db.execute("INSERT INTO users VALUES (?, 3000, 0, 0, 0, 0)", (user_id,))
             await db.commit()
-            data = (user_id, 3000, 0, 0, 0, 0)
+            async with db.execute("SELECT * FROM users WHERE user_id = ?", (user_id,)) as cursor:
+                data = await cursor.fetchone()
         return data
 
 async def update_user_points(user_id, points_change):
@@ -54,6 +67,7 @@ async def get_legend_data(user_id):
             if row and row['pet_data']:
                 try: return json.loads(row['pet_data'])
                 except json.JSONDecodeError: pass
+        # 레거시 user_legends 테이블 데이터 마이그레이션
         async with db.execute("SELECT * FROM user_legends WHERE user_id = ?", (user_id,)) as cursor:
             row = await cursor.fetchone()
         return dict(row) if row else None
@@ -103,7 +117,6 @@ async def get_or_migrate_data(user_id):
     if 'pets' not in data: return {'pets': [data], 'active_idx': 0}
     return data
 
-# ✨ 업적/베팅을 위해 새롭게 추가된 기능들
 async def get_item_amount(user_id, item_name):
     async with aiosqlite.connect(DB_PATH) as db:
         async with db.execute("SELECT amount FROM user_items WHERE user_id = ? AND item_name = ?", (user_id, item_name)) as cursor:
