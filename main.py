@@ -22,7 +22,7 @@ class LegendBot(commands.Bot):
         await init_db()
         print("✅ 데이터베이스 초기화 완료")
 
-        extensions = [                 
+        extensions = [
             'cogs.help',                      # 개편된 도움말
             'cogs.sync',                      # 기존 동기화 (유지)
             'cogs.petsystem.core',            # 펫 시스템 코어 (알까기, 상태창)
@@ -33,7 +33,7 @@ class LegendBot(commands.Bot):
             'cogs.petsystem.cog_synthetis',   # 50회 업적 연동 합성
             'cogs.petsystem.cog_box',          # 기존 박스 (유지)
             'cogs.predict',
-            'cogs.ui_predict.py'
+            'cogs.ui_predict'
         ]
 
         for extension in extensions:
