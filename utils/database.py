@@ -27,15 +27,15 @@ async def init_db():
 
         # 💡 승부예측 시스템 관련 테이블
         await db.execute('''CREATE TABLE IF NOT EXISTS betting_sessions
-                     (topic TEXT PRIMARY KEY, option_a TEXT, option_b TEXT, status TEXT, message_id INTEGER, channel_id INTEGER)''')
+                     (topic TEXT PRIMARY KEY, option_a TEXT, option_b TEXT, status TEXT, message_id INTEGER, channel_id INTEGER, close_at REAL)''')
         await db.execute('''CREATE TABLE IF NOT EXISTS betting_records
                      (topic TEXT, user_id INTEGER, option TEXT, amount INTEGER, PRIMARY KEY (topic, user_id))''')
 
-        # 💡 예약 마감 업데이트 (기존 테이블에 마감 시간 칼럼 추가)
+        # 💡 컬럼 존재 여부 체크 후 추가 (예약 마감 시간)
         try:
             await db.execute("ALTER TABLE betting_sessions ADD COLUMN close_at REAL")
         except Exception:
-            pass # 이미 칼럼이 추가되어 있으면 오류를 무시하고 넘어갑니다.
+            pass
 
         await db.commit()
 
@@ -114,25 +114,11 @@ async def get_active_buffs(user_id):
             rows = await cursor.fetchall()
         return rows
 
-async def get_or_migrate_data(user_id):
-    data = await get_legend_data(user_id)
-    if not data: return {'pets': [], 'active_idx': 0}
-    if 'pets' not in data: return {'pets': [data], 'active_idx': 0}
-    return data
-
 async def get_item_amount(user_id, item_name):
     async with aiosqlite.connect(DB_PATH) as db:
         async with db.execute("SELECT amount FROM user_items WHERE user_id = ? AND item_name = ?", (user_id, item_name)) as cursor:
             row = await cursor.fetchone()
         return row[0] if row else 0
-
-async def set_item_amount(user_id, item_name, amount):
-    async with aiosqlite.connect(DB_PATH) as db:
-        if amount <= 0:
-            await db.execute("DELETE FROM user_items WHERE user_id = ? AND item_name = ?", (user_id, item_name))
-        else:
-            await db.execute("INSERT INTO user_items (user_id, item_name, amount) VALUES (?, ?, ?) ON CONFLICT(user_id, item_name) DO UPDATE SET amount = ?", (user_id, item_name, amount, amount))
-        await db.commit()
 
 async def add_synth_count(user_id):
     async with aiosqlite.connect(DB_PATH) as db:
@@ -144,11 +130,6 @@ async def get_synth_count(user_id):
         async with db.execute("SELECT synth_count FROM user_achievements WHERE user_id = ?", (user_id,)) as cursor:
             row = await cursor.fetchone()
         return row[0] if row else 0
-
-async def get_top_epic_egg_owners():
-    async with aiosqlite.connect(DB_PATH) as db:
-        async with db.execute("SELECT user_id, amount FROM user_items WHERE item_name = '서사급 알' ORDER BY amount DESC LIMIT 5") as cursor:
-            return await cursor.fetchall()
 
 # ==========================================
 # 💡 승부예측 전용 함수 모음
@@ -164,6 +145,13 @@ async def get_bet_session(topic):
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         async with db.execute("SELECT * FROM betting_sessions WHERE topic = ?", (topic,)) as cursor:
+            return await cursor.fetchone()
+
+# 💡 신규 추가: 메시지 ID로 세션 조회
+async def get_bet_session_by_message_id(message_id):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM betting_sessions WHERE message_id = ?", (message_id,)) as cursor:
             return await cursor.fetchone()
 
 async def update_bet_status(topic, status):
@@ -183,7 +171,6 @@ async def get_bet_totals(topic):
     async with aiosqlite.connect(DB_PATH) as db:
         async with db.execute("SELECT option, SUM(amount) FROM betting_records WHERE topic = ? GROUP BY option", (topic,)) as cursor:
             rows = await cursor.fetchall()
-
         totals = {'A': 0, 'B': 0}
         for row in rows:
             totals[row[0]] = row[1]
@@ -210,10 +197,6 @@ async def get_user_all_bets(user_id):
         ''', (user_id,)) as cursor:
             return await cursor.fetchall()
 
-# ==========================================
-# 💡 승부예측 자동 마감(예약) 전용 함수
-# ==========================================
-
 async def set_bet_close_time(topic, close_at):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("UPDATE betting_sessions SET close_at = ? WHERE topic = ?", (close_at, topic))
@@ -223,12 +206,5 @@ async def get_expired_bets():
     now = time.time()
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        # 현재 시간보다 예약된 마감 시간이 지났고, 아직 'active' 상태인 베팅만 가져옴
         async with db.execute("SELECT * FROM betting_sessions WHERE status = 'active' AND close_at IS NOT NULL AND close_at <= ?", (now,)) as cursor:
             return await cursor.fetchall()
-
-async def get_user_items(user_id):
-    async with aiosqlite.connect(DB_PATH) as db:
-        async with db.execute("SELECT item_name, amount FROM user_items WHERE user_id = ? AND amount > 0", (user_id,)) as cursor:
-            rows = await cursor.fetchall()
-        return rows
