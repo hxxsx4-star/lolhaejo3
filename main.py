@@ -32,7 +32,8 @@ class LegendBot(commands.Bot):
             'cogs.petsystem.battle',          # 배틀 및 베팅 시스템
             'cogs.petsystem.achievement',     # ✨ 신규 업적 시스템
             'cogs.petsystem.cog_synthetis',   # 50회 업적 연동 합성
-            'cogs.petsystem.cog_box'          # 기존 박스 (유지)
+            'cogs.petsystem.cog_box',          # 기존 박스 (유지)
+            'cogs.predict'
         ]
 
         for extension in extensions:
