@@ -3,7 +3,7 @@ from discord.ext import commands
 from discord import app_commands
 import aiosqlite
 
-from .ui_predict import create_prediction_embed, PredictionView, BetModal
+from cogs.ui_predict import create_prediction_embed, PredictionView, BetModal
 from ..petsystem.database import add_item, consume_item
 
 class PredictCog(commands.Cog):
