@@ -23,7 +23,6 @@ class LegendBot(commands.Bot):
         print("✅ 데이터베이스 초기화 완료")
 
         extensions = [
-            # 'cogs.gacha',                   # 에러 방지를 위해 주석 처리 (파일이 있다면 주석 해제)
             'cogs.help',                      # 개편된 도움말
             'cogs.sync',                      # 기존 동기화 (유지)
             'cogs.petsystem.core',            # 펫 시스템 코어 (알까기, 상태창)
@@ -32,7 +31,8 @@ class LegendBot(commands.Bot):
             'cogs.petsystem.battle',          # 배틀 및 베팅 시스템
             'cogs.petsystem.achievement',     # ✨ 신규 업적 시스템
             'cogs.petsystem.cog_synthetis',   # 50회 업적 연동 합성
-            'cogs.petsystem.cog_box'          # 기존 박스 (유지)
+            'cogs.petsystem.cog_box',          # 기존 박스 (유지)
+            'cogs.predict'
         ]
 
         for extension in extensions:
