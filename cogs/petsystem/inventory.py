@@ -3,7 +3,7 @@ from discord.ext import commands
 from discord import app_commands
 import aiosqlite
 
-from utils.data import ITEMS_INFO, ITEM_PRICES, PET_POOLS
+from utils.data import ITEMS_INFO, PET_POOLS, PET_IMAGES
 from utils.database import consume_item, add_item, get_user_items
 from .ui_inventory import InventoryView
 
