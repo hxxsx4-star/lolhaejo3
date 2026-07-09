@@ -1,5 +1,5 @@
 import discord
-from utils.database import get_legend_data, get_or_migrate_data, save_legend_data, consume_item, add_buff
+from utils.database import get_legend_data, get_or_migrate_data, save_legend_data, consume_item, add_buff, get_active_buffs
 from utils.data import ITEMS_INFO
 from utils.logs import ITEM_USE_LOG_CH, send_log_embed
 from utils.stats import add_points
@@ -40,12 +40,15 @@ class ItemQuantityModal(discord.ui.Modal):
 
     async def handle_use(self, interaction: discord.Interaction, user_id: int, amount: int):
         item_name = self.item_name
+
+        # 청결도 100% 조건문 전면 삭제 처리
         if "경험치 부스터" in item_name:
-            wrapper = await get_legend_data(user_id)
-            if wrapper and wrapper.get('pets'):
-                pet_data = wrapper['pets'][wrapper['active_idx']]
-                if pet_data.get('cleanliness', 0) == 100:
-                    return await interaction.response.send_message("❌ 청결도가 100(MAX) 상태일 때는 경험치 부스터를 사용할 수 없습니다!", ephemeral=True)
+            active_buffs = await get_active_buffs(user_id)
+            buffs = {b[0] for b in active_buffs}
+
+            # 경험치 부스터 종류가 버프 목록에 하나라도 존재하면 중복 실행 방지
+            if any("경험치 부스터" in b for b in buffs):
+                return await interaction.response.send_message("❌ 이미 적용 중인 경험치 부스터가 있습니다! 기존 부스터 효과가 끝난 후 사용해주세요.", ephemeral=True)
 
         success = await consume_item(user_id, item_name, amount)
         if not success: return await interaction.response.send_message("❌ 아이템을 보유하고 있지 않거나 부족합니다.", ephemeral=True)

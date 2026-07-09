@@ -4,19 +4,16 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f1982c64-012d-4ef1-a9cd-954fbe80761a" name="변경" comment="베팅">
-      <change afterPath="$PROJECT_DIR$/assets/font.ttf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/assets/profile_bg.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/image_3af4b8.jpg" afterDir="false" />
+    <list default="true" id="f1982c64-012d-4ef1-a9cd-954fbe80761a" name="변경" comment="UI 대폭 개선">
+      <change afterPath="$PROJECT_DIR$/.idea/dataSources.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cogs/petsystem/core.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/petsystem/core.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cogs/petsystem/database.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/image_generator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cogs/petsystem/debug.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cogs/petsystem/gacha.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cogs/petsystem/ui_action.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/petsystem/ui_action.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.ini" beforeDir="false" afterPath="$PROJECT_DIR$/config.ini" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/legends.db" beforeDir="false" afterPath="$PROJECT_DIR$/legends.db" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/font.ttf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/profile_bg.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cogs/petsystem/achievement.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/petsystem/achievement.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cogs/petsystem/battle.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/petsystem/battle.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cogs/petsystem/ui_inventory.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/petsystem/ui_inventory.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/utils/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/data.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/image_generator.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -48,23 +45,23 @@
 }</component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.3365628237944185" />
-      <entry key="MS500" value="3.54496723548083" />
-      <entry key="S2" value="8.375393770398976" />
-      <entry key="S5" value="11.568447108610256" />
-      <entry key="S10" value="13.650952097846263" />
-      <entry key="S30" value="15.708124015762593" />
-      <entry key="S60" value="16.833309355275276" />
-      <entry key="M2" value="19.41292073524625" />
-      <entry key="M5" value="26.8378398049712" />
-      <entry key="M10" value="40.70370368164413" />
-      <entry key="M15" value="54.53813654481771" />
-      <entry key="M30" value="89.03513632303127" />
-      <entry key="H1" value="132.1684524839159" />
-      <entry key="H2" value="173.1320153643741" />
-      <entry key="H4" value="214.77803249832513" />
-      <entry key="D1" value="388.1715002525228" />
-      <entry key="W1" value="648.5184550474744" />
+      <entry key="MS100" value="1.8390967810430878" />
+      <entry key="MS500" value="5.268585268759097" />
+      <entry key="S2" value="9.323680065726982" />
+      <entry key="S5" value="10.803485574259435" />
+      <entry key="S10" value="11.378172222610338" />
+      <entry key="S30" value="11.787220447259896" />
+      <entry key="S60" value="11.892904930672428" />
+      <entry key="M2" value="11.946757983034278" />
+      <entry key="M5" value="12.380582995878402" />
+      <entry key="M10" value="17.05560352933675" />
+      <entry key="M15" value="25.669720777708417" />
+      <entry key="M30" value="56.9061262295763" />
+      <entry key="H1" value="106.57231469214815" />
+      <entry key="H2" value="159.60643468762643" />
+      <entry key="H4" value="211.70852629571718" />
+      <entry key="D1" value="398.25253630637803" />
+      <entry key="W1" value="663.1019881682516" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
@@ -73,36 +70,36 @@
       <entry key="S5" value="0.0" />
       <entry key="S10" value="0.0" />
       <entry key="S30" value="0.0" />
-      <entry key="S60" value="1.7523418075726928E-213" />
-      <entry key="M2" value="4.1860981923178556E-107" />
-      <entry key="M5" value="2.8101128734431076E-43" />
-      <entry key="M10" value="5.301049776641522E-22" />
-      <entry key="M15" value="6.549999318954266E-15" />
-      <entry key="M30" value="8.093206607367932E-8" />
-      <entry key="H1" value="2.844856748258672E-4" />
-      <entry key="H2" value="0.016881957653794796" />
-      <entry key="H4" value="0.137689486972284" />
-      <entry key="D1" value="2.25981715911458" />
-      <entry key="W1" value="5.1508570792411295" />
+      <entry key="S60" value="5.327523899011522E-223" />
+      <entry key="M2" value="7.298988901903799E-112" />
+      <entry key="M5" value="3.5099835518632916E-45" />
+      <entry key="M10" value="5.924511416026893E-23" />
+      <entry key="M15" value="1.5197367318541479E-15" />
+      <entry key="M30" value="3.898380089029517E-8" />
+      <entry key="H1" value="1.9744319901600281E-4" />
+      <entry key="H2" value="0.014064156641255054" />
+      <entry key="H4" value="0.12567422793369387" />
+      <entry key="D1" value="2.225687615948743" />
+      <entry key="W1" value="5.139671280632345" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="1.2342965856659522" />
-      <entry key="MS500" value="3.4876364745617656" />
-      <entry key="S2" value="8.333844696182142" />
-      <entry key="S5" value="11.531976160088716" />
-      <entry key="S10" value="13.623418984203061" />
-      <entry key="S30" value="15.695544631387602" />
-      <entry key="S60" value="16.82644001792183" />
-      <entry key="M2" value="19.409261665376057" />
-      <entry key="M5" value="26.836219506785376" />
-      <entry key="M10" value="40.70273049969797" />
-      <entry key="M15" value="54.537320686525675" />
-      <entry key="M30" value="89.03436116301641" />
-      <entry key="H1" value="132.1680341214872" />
-      <entry key="H2" value="173.14837767763296" />
-      <entry key="H4" value="214.91535931785222" />
-      <entry key="D1" value="390.4310814466847" />
-      <entry key="W1" value="653.6692398754013" />
+      <entry key="MS100" value="1.7706891733783756" />
+      <entry key="MS500" value="5.2125380478586445" />
+      <entry key="S2" value="9.298389101307464" />
+      <entry key="S5" value="10.791821248271265" />
+      <entry key="S10" value="11.372043955574076" />
+      <entry key="S30" value="11.785107874607712" />
+      <entry key="S60" value="11.89183965284631" />
+      <entry key="M2" value="11.946223007497101" />
+      <entry key="M5" value="12.380347397442938" />
+      <entry key="M10" value="17.05538413224206" />
+      <entry key="M15" value="25.669455563904855" />
+      <entry key="M30" value="56.905712759600824" />
+      <entry key="H1" value="106.5720034176822" />
+      <entry key="H2" value="159.62005519619964" />
+      <entry key="H4" value="211.83386405493775" />
+      <entry key="D1" value="400.47799060100516" />
+      <entry key="W1" value="668.2415872227258" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -127,7 +124,7 @@
     "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
     "git-widget-placeholder": "master",
     "junie.onboarding.icon.badge.shown": "true",
-    "last_opened_file_path": "C:/Users/polar/PycharmProjects/lolhaejo2/assets",
+    "last_opened_file_path": "C:/Users/polar/PycharmProjects/lolhaejo2",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.standard": "true",
     "node.js.detected.package.tslint": "true",
@@ -142,8 +139,8 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
-      <recent name="C:\Users\polar\PycharmProjects\lolhaejo2\assets" />
       <recent name="C:\Users\polar\PycharmProjects\lolhaejo2" />
+      <recent name="C:\Users\polar\PycharmProjects\lolhaejo2\assets" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\polar\PycharmProjects\lolhaejo2\assets" />
@@ -172,14 +169,6 @@
       <workItem from="1783249688743" duration="76000" />
       <workItem from="1783249778143" duration="5173000" />
       <workItem from="1783264957959" duration="8742000" />
-    </task>
-    <task id="LOCAL-00034" summary="명령어 사라진 거 롤백">
-      <option name="closed" value="true" />
-      <created>1783204995176</created>
-      <option name="number" value="00034" />
-      <option name="presentableId" value="LOCAL-00034" />
-      <option name="project" value="LOCAL" />
-      <updated>1783204995176</updated>
     </task>
     <task id="LOCAL-00035" summary="명령어 사라진 거 롤백">
       <option name="closed" value="true" />
@@ -565,7 +554,15 @@
       <option name="project" value="LOCAL" />
       <updated>1783499112580</updated>
     </task>
-    <option name="localTasksCounter" value="83" />
+    <task id="LOCAL-00083" summary="UI 대폭 개선">
+      <option name="closed" value="true" />
+      <created>1783578973812</created>
+      <option name="number" value="00083" />
+      <option name="presentableId" value="LOCAL-00083" />
+      <option name="project" value="LOCAL" />
+      <updated>1783578973812</updated>
+    </task>
+    <option name="localTasksCounter" value="84" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -595,14 +592,15 @@
     <MESSAGE value="." />
     <MESSAGE value="대규모 개편" />
     <MESSAGE value="베팅" />
-    <option name="LAST_COMMIT_MESSAGE" value="베팅" />
+    <MESSAGE value="UI 대폭 개선" />
+    <option name="LAST_COMMIT_MESSAGE" value="UI 대폭 개선" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/cogs/petsystem/battle.py</url>
-          <line>19</line>
+          <line>77</line>
           <option name="timeStamp" value="1" />
         </line-breakpoint>
       </breakpoints>

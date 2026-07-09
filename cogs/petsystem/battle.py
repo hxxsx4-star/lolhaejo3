@@ -77,8 +77,14 @@ class BattleCog(commands.Cog):
 
             async def p2_callback(p2_inter: discord.Interaction):
                 if p2_inter.user.id != 상대.id: return await p2_inter.response.send_message("❌ 권한 없음", ephemeral=True)
+
+                # 상호작용 오류 예방을 위해 즉시 봇이 생각 중인 상태로 전환(3초 대기 해제)
+                await p2_inter.response.defer()
+
                 p2_chosen_pet = p2_pets[int(p2_select.values[0])]
-                await p2_inter.response.edit_message(content="✅ 방어 전설이 선택 완료! 배틀을 시작합니다.", view=None)
+
+                # defer 이후이므로 response.edit_message 대신에 부모 메시지를 직접 수정합니다.
+                await p2_inter.message.edit(content="✅ 방어 전설이 선택 완료! 배틀을 시작합니다.", view=None)
                 await self.run_battle(inter.channel, interaction.user, 상대, [p1_chosen_pet], [p2_chosen_pet], is_5v5=False)
             p2_select.callback = p2_callback
         select.callback = p1_callback
@@ -116,7 +122,11 @@ class BattleCog(commands.Cog):
             @discord.ui.button(label="총력전 수락!", style=discord.ButtonStyle.danger, emoji="⚔️")
             async def accept(self, inter: discord.Interaction, button: discord.ui.Button):
                 if inter.user.id != 상대.id: return await inter.response.send_message("❌ 권한 없음", ephemeral=True)
-                await inter.response.edit_message(content="🔥 배틀이 시작됩니다!", view=None)
+
+                # 상호작용 제한시간(3초) 초기화 처리
+                await inter.response.defer()
+
+                await inter.message.edit(content="🔥 배틀이 시작됩니다!", view=None)
                 await self.cog.run_battle(inter.channel, interaction.user, 상대, p1_team, p2_team, is_5v5=True)
 
         await interaction.response.send_message(f"⚔️ {상대.mention}! {interaction.user.mention}님이 5vs5 총력전을 신청했습니다!\n*(규칙: 서로 다른 펫 5마리 출전)*", view=AcceptView(self))
