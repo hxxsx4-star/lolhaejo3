@@ -7,7 +7,9 @@ import aiosqlite
 
 from utils.data import PET_POOLS
 from utils.database import get_or_migrate_data, get_active_buffs, save_legend_data, update_max_star
-from .ui_action import create_status_embed, LegendActionView, get_pet_stats
+# 🌟 변경된 모듈 임포트
+from .ui_action import LegendActionView, get_pet_stats
+from utils.image_generator import generate_status_image
 from utils.logs import HATCH_LOG_CH, send_log_embed
 from utils.stats import get_points, add_points
 
@@ -277,10 +279,15 @@ class PetSystemCog(commands.Cog):
 
         await interaction.response.send_message(embed=embed, ephemeral=False)
 
+    # 🌟 새롭게 적용된 렌더링 방식의 상태창 명령어
     @app_commands.command(name="상태창", description="내 전설이의 상태를 확인하고 돌봅니다.")
     async def status_window(self, interaction: discord.Interaction):
+        # 이미지 렌더링 시간을 벌기 위해 봇이 생각중임을 표시합니다.
+        await interaction.response.defer(ephemeral=False)
+
         wrapper = await get_or_migrate_data(interaction.user.id)
-        if not wrapper.get('pets'): return await interaction.response.send_message("아직 전설이가 없습니다. `/알까기`로 시작하세요!", ephemeral=True)
+        if not wrapper.get('pets'):
+            return await interaction.followup.send("아직 전설이가 없습니다. `/알까기`로 시작하세요!", ephemeral=True)
 
         active_idx = wrapper.get('active_idx', 0)
         total_pets = len(wrapper['pets'])
@@ -290,9 +297,16 @@ class PetSystemCog(commands.Cog):
 
         data, buffs, is_annoyed, is_diseased = await self.evaluate_pet_status(interaction.user.id, wrapper, active_idx)
         current_points = await get_points(interaction.user.id)
-        embed = create_status_embed(interaction.user, data, current_points, buffs, is_annoyed, is_diseased, active_idx, total_pets)
+
+        # 새로 만든 이미지 생성기 호출
+        status_image_file = await generate_status_image(
+            data, current_points, buffs, is_annoyed, is_diseased, active_idx, total_pets
+        )
+
         view = LegendActionView(interaction.user.id, current_idx=active_idx, total_pets=total_pets, pet_level=data.get('level', 0))
-        await interaction.response.send_message(embed=embed, view=view)
+
+        # 이미지 파일과 뷰(버튼)를 함께 전송
+        await interaction.followup.send(file=status_image_file, view=view)
 
 async def setup(bot):
     await bot.add_cog(PetSystemCog(bot))

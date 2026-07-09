@@ -4,7 +4,20 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f1982c64-012d-4ef1-a9cd-954fbe80761a" name="변경" comment="베팅" />
+    <list default="true" id="f1982c64-012d-4ef1-a9cd-954fbe80761a" name="변경" comment="베팅">
+      <change afterPath="$PROJECT_DIR$/assets/font.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/assets/profile_bg.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/image_3af4b8.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cogs/petsystem/core.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/petsystem/core.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cogs/petsystem/database.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/image_generator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cogs/petsystem/debug.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cogs/petsystem/gacha.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cogs/petsystem/ui_action.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/petsystem/ui_action.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config.ini" beforeDir="false" afterPath="$PROJECT_DIR$/config.ini" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/legends.db" beforeDir="false" afterPath="$PROJECT_DIR$/legends.db" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/data.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -35,23 +48,23 @@
 }</component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.000000000141351" />
-      <entry key="MS500" value="1.010716666317114" />
-      <entry key="S2" value="1.3217473118253176" />
-      <entry key="S5" value="1.6353396666710471" />
-      <entry key="S10" value="1.7970819698569602" />
-      <entry key="S30" value="1.9272107869402255" />
-      <entry key="S60" value="1.9697000531381874" />
-      <entry key="M2" value="2.097864742432531" />
-      <entry key="M5" value="2.6548028982637226" />
-      <entry key="M10" value="3.3415801365338367" />
-      <entry key="M15" value="3.8463206638796206" />
-      <entry key="M30" value="4.811278867747557" />
-      <entry key="H1" value="6.014635862203607" />
-      <entry key="H2" value="9.900640698407413" />
-      <entry key="H4" value="22.06020506530944" />
-      <entry key="D1" value="149.16135764139042" />
-      <entry key="W1" value="330.1902051391558" />
+      <entry key="MS100" value="1.3365628237944185" />
+      <entry key="MS500" value="3.54496723548083" />
+      <entry key="S2" value="8.375393770398976" />
+      <entry key="S5" value="11.568447108610256" />
+      <entry key="S10" value="13.650952097846263" />
+      <entry key="S30" value="15.708124015762593" />
+      <entry key="S60" value="16.833309355275276" />
+      <entry key="M2" value="19.41292073524625" />
+      <entry key="M5" value="26.8378398049712" />
+      <entry key="M10" value="40.70370368164413" />
+      <entry key="M15" value="54.53813654481771" />
+      <entry key="M30" value="89.03513632303127" />
+      <entry key="H1" value="132.1684524839159" />
+      <entry key="H2" value="173.1320153643741" />
+      <entry key="H4" value="214.77803249832513" />
+      <entry key="D1" value="388.1715002525228" />
+      <entry key="W1" value="648.5184550474744" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
@@ -60,36 +73,36 @@
       <entry key="S5" value="0.0" />
       <entry key="S10" value="0.0" />
       <entry key="S30" value="0.0" />
-      <entry key="S60" value="2.994358726481423E-206" />
-      <entry key="M2" value="3.426311702765624E-103" />
-      <entry key="M5" value="2.3666455075824374E-41" />
-      <entry key="M10" value="9.725811031500325E-21" />
-      <entry key="M15" value="7.232127246808526E-14" />
-      <entry key="M30" value="5.378289144126165E-7" />
-      <entry key="H1" value="0.001466720479104389" />
-      <entry key="H2" value="0.0765955342904667" />
-      <entry key="H4" value="0.5539271315185917" />
-      <entry key="D1" value="3.1493475521566383" />
-      <entry key="W1" value="4.646539003645839" />
+      <entry key="S60" value="1.7523418075726928E-213" />
+      <entry key="M2" value="4.1860981923178556E-107" />
+      <entry key="M5" value="2.8101128734431076E-43" />
+      <entry key="M10" value="5.301049776641522E-22" />
+      <entry key="M15" value="6.549999318954266E-15" />
+      <entry key="M30" value="8.093206607367932E-8" />
+      <entry key="H1" value="2.844856748258672E-4" />
+      <entry key="H2" value="0.016881957653794796" />
+      <entry key="H4" value="0.137689486972284" />
+      <entry key="D1" value="2.25981715911458" />
+      <entry key="W1" value="5.1508570792411295" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="1.3395060598950639E-6" />
-      <entry key="MS500" value="0.07731666216477157" />
-      <entry key="S2" value="0.8280884016068112" />
-      <entry key="S5" value="1.3966043904141248" />
-      <entry key="S10" value="1.6694900917400761" />
-      <entry key="S30" value="1.8827056607626544" />
-      <entry key="S60" value="1.9471902373332182" />
-      <entry key="M2" value="2.086539838046843" />
-      <entry key="M5" value="2.6502469485309295" />
-      <entry key="M10" value="3.3392920768190844" />
-      <entry key="M15" value="3.8447902915655763" />
-      <entry key="M30" value="4.810508821585181" />
-      <entry key="H1" value="6.0157054353484805" />
-      <entry key="H2" value="9.976939080410078" />
-      <entry key="H4" value="22.613763597348168" />
-      <entry key="D1" value="152.3104388986144" />
-      <entry key="W1" value="334.8366834265465" />
+      <entry key="MS100" value="1.2342965856659522" />
+      <entry key="MS500" value="3.4876364745617656" />
+      <entry key="S2" value="8.333844696182142" />
+      <entry key="S5" value="11.531976160088716" />
+      <entry key="S10" value="13.623418984203061" />
+      <entry key="S30" value="15.695544631387602" />
+      <entry key="S60" value="16.82644001792183" />
+      <entry key="M2" value="19.409261665376057" />
+      <entry key="M5" value="26.836219506785376" />
+      <entry key="M10" value="40.70273049969797" />
+      <entry key="M15" value="54.537320686525675" />
+      <entry key="M30" value="89.03436116301641" />
+      <entry key="H1" value="132.1680341214872" />
+      <entry key="H2" value="173.14837767763296" />
+      <entry key="H4" value="214.91535931785222" />
+      <entry key="D1" value="390.4310814466847" />
+      <entry key="W1" value="653.6692398754013" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -101,33 +114,39 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python.stats.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
-    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.standard&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.standard&quot;: &quot;&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.stats.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "master",
+    "junie.onboarding.icon.badge.shown": "true",
+    "last_opened_file_path": "C:/Users/polar/PycharmProjects/lolhaejo2/assets",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.standard": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.standard": "",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\polar\PycharmProjects\lolhaejo2\assets" />
+      <recent name="C:\Users\polar\PycharmProjects\lolhaejo2" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\polar\PycharmProjects\lolhaejo2\assets" />
       <recent name="C:\Users\polar\PycharmProjects\lolhaejo2\cogs\petsystem" />
       <recent name="C:\Users\polar\PycharmProjects\lolhaejo2\utils" />
       <recent name="C:\Users\polar\PycharmProjects\lolhaejo2" />
@@ -153,14 +172,6 @@
       <workItem from="1783249688743" duration="76000" />
       <workItem from="1783249778143" duration="5173000" />
       <workItem from="1783264957959" duration="8742000" />
-    </task>
-    <task id="LOCAL-00033" summary="명령어 사라진 거 롤백">
-      <option name="closed" value="true" />
-      <created>1783204841822</created>
-      <option name="number" value="00033" />
-      <option name="presentableId" value="LOCAL-00033" />
-      <option name="project" value="LOCAL" />
-      <updated>1783204841822</updated>
     </task>
     <task id="LOCAL-00034" summary="명령어 사라진 거 롤백">
       <option name="closed" value="true" />
@@ -546,7 +557,15 @@
       <option name="project" value="LOCAL" />
       <updated>1783498388403</updated>
     </task>
-    <option name="localTasksCounter" value="82" />
+    <task id="LOCAL-00082" summary="베팅">
+      <option name="closed" value="true" />
+      <created>1783499112579</created>
+      <option name="number" value="00082" />
+      <option name="presentableId" value="LOCAL-00082" />
+      <option name="project" value="LOCAL" />
+      <updated>1783499112580</updated>
+    </task>
+    <option name="localTasksCounter" value="83" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
