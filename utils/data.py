@@ -78,10 +78,10 @@ ITEMS_INFO = {
 
 # 💡 등급 아이콘 이미지 URL (요청하신 신규/변경 이미지로 전면 교체)
 RARITY_IMAGES = {
-    "서사": "https://i.ibb.co/dw18Y7GY/image.png",
-    "전설": "https://i.ibb.co/hJgmVTv7/image.png",
-    "신화": "https://i.ibb.co/r2cCbZjV/image.png",
-    "프레스티지": "https://i.ibb.co/C334Bcq5/image.png",
-    "고귀": "https://i.ibb.co/tw46cqsR/image.png",
-    "초월": "https://i.ibb.co/tw46cqsR/image.png"
+    "서사": "https://i.ibb.co/JWqtSKyB/image.webp",
+    "전설": "https://i.ibb.co/fz8C42ZT/image.webp",
+    "신화": "https://i.ibb.co/23mnQTzC/image.webp",
+    "프레스티지": "https://i.ibb.co/QFbvp8Rw/image.png",
+    "고귀": "https://i.ibb.co/x88pZ5V2/image.png",
+    "초월": "https://i.ibb.co/W4HhFLGZ/image.png"
 }
