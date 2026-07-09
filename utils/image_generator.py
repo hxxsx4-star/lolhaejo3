@@ -1,4 +1,5 @@
 import io
+import asyncio  # 💡 재시도 대기(sleep)를 위해 추가됨
 import aiohttp
 from PIL import Image, ImageDraw, ImageFont
 import discord
@@ -9,25 +10,32 @@ from utils.data import PET_IMAGES, EXP_TABLE, PET_STATS, RARITY_IMAGES
 IMAGE_CACHE = {}
 
 async def fetch_image(url):
-    """URL에서 이미지를 다운로드하거나, 이미 다운받은 경우 캐시에서 바로 꺼냅니다."""
+    """URL에서 이미지를 다운로드하거나, 이미 다운받은 경우 캐시에서 바로 꺼냅니다. (재시도 로직 추가)"""
     if url in IMAGE_CACHE:
         return IMAGE_CACHE[url].copy()
 
-    try:
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        async with aiohttp.ClientSession(headers=headers) as session:
-            async with session.get(url, timeout=5) as resp:
-                if resp.status == 200:
-                    data = await resp.read()
-                    img = Image.open(io.BytesIO(data)).convert("RGBA")
-                    IMAGE_CACHE[url] = img
-                    return img.copy()
-                elif resp.status == 403:
-                    print(f"❌ [403 에러] 디스코드 링크 만료됨! Imgur 등으로 교체: {url}")
-                else:
-                    print(f"❌ 이미지 다운로드 실패 (상태 코드 {resp.status}): {url}")
-    except Exception as e:
-        print(f"❌ 이미지 다운로드 에러 ({url}): {e}")
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+
+    # 💡 일시적인 네트워크 오류를 대비해 최대 3번까지 다운로드를 재시도합니다.
+    for attempt in range(1, 4):
+        try:
+            async with aiohttp.ClientSession(headers=headers) as session:
+                async with session.get(url, timeout=5) as resp:
+                    if resp.status == 200:
+                        data = await resp.read()
+                        img = Image.open(io.BytesIO(data)).convert("RGBA")
+                        IMAGE_CACHE[url] = img
+                        return img.copy()
+                    else:
+                        print(f"⚠️ [시도 {attempt}/3] 이미지 다운로드 실패 (상태 코드 {resp.status}): {url}")
+        except Exception as e:
+            print(f"⚠️ [시도 {attempt}/3] 이미지 다운로드 에러 발생: {e}")
+
+        # 실패 시 1초 대기 후 재시도 (마지막 시도 제외)
+        if attempt < 3:
+            await asyncio.sleep(1)
+
+    print(f"❌ [최종 실패] 이미지 로드 실패: {url}")
     return None
 
 def draw_progress_bar(draw, x, y, width, height, progress, bg_color, fill_color):
@@ -95,11 +103,17 @@ async def generate_status_image(data, points, buffs, is_annoyed, is_diseased, cu
     if is_annoyed or is_diseased:
         draw.text((720, 247), "⚠️ 상태 이상 발생!", font=font_medium, fill=(255, 50, 50), stroke_width=1, stroke_fill="black")
 
-    # --- 3. EXP 바 수치화 표기 (n/max) ---
-    draw.text((500, 292), f"EXP ({int(current_exp)}/{int(max_exp)})", font=font_medium, fill=(255, 200, 100), stroke_width=1, stroke_fill="black")
-    draw_progress_bar(draw, 555, 297, 300, 15, exp_percent, (50, 50, 50), (255, 150, 50))
+    # --- 3. EXP 바 수치화 표기 (겹치지 않게 수정됨) ---
     if level >= 3:
-        draw.text((865, 294), "MAX", font=font_small, fill=(255, 255, 255), stroke_width=1, stroke_fill="black")
+        exp_text = "EXP (MAX)"
+    else:
+        exp_text = f"EXP ({int(current_exp):,} / {int(max_exp):,})"
+
+    # 텍스트는 위로(y=277), 바는 아래로(y=302), 너비는 355로 늘려 이름과 좌측 정렬되게 맞춤
+    draw.text((500, 277), exp_text, font=font_medium, fill=(255, 200, 100), stroke_width=1, stroke_fill="black")
+    draw_progress_bar(draw, 500, 302, 355, 15, exp_percent, (50, 50, 50), (255, 150, 50))
+    if level >= 3:
+        draw.text((865, 302), "MAX", font=font_small, fill=(255, 255, 255), stroke_width=1, stroke_fill="black")
 
     # --- 4. 스탯 (2x2) ---
     draw.text((500, 327), f"⚔️ AD: {stats.get('AD', 0)}", font=font_medium, fill=(255, 150, 150), stroke_width=1, stroke_fill="black")
