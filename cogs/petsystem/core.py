@@ -5,9 +5,9 @@ import random
 import time
 import aiosqlite
 
-from utils.data import PET_POOLS
+from utils.data import PET_POOLS, EXP_TABLE
 from utils.database import get_or_migrate_data, get_active_buffs, save_legend_data, update_max_star
-# 🌟 변경된 모듈 임포트
+# 변경된 모듈 임포트
 from .ui_action import LegendActionView, get_pet_stats
 from utils.image_generator import generate_status_image
 from utils.logs import HATCH_LOG_CH, send_log_embed
@@ -201,15 +201,10 @@ class PetSystemCog(commands.Cog):
 
         data['exp'] = data.get('exp', 0) + earned_exp
         rarity = data.get('rarity', '서사')
-        EXP_REQUIREMENTS = {
-            0: 100,
-            1: {"서사": 5000, "전설": 10000, "신화": 20000, "프레스티지": 30000},
-            2: {"서사": 10000, "전설": 20000, "신화": 40000, "프레스티지": 70000}
-        }
 
         while data.get('level', 0) < 3:
             current_lvl = data.get('level', 0)
-            required_exp = EXP_REQUIREMENTS[0] if current_lvl == 0 else EXP_REQUIREMENTS[current_lvl].get(rarity, EXP_REQUIREMENTS[current_lvl]["서사"])
+            required_exp = EXP_TABLE.get(rarity, {}).get(current_lvl, 100)
             if data.get('exp', 0) >= required_exp:
                 data['level'] = current_lvl + 1
                 data['exp'] -= required_exp
@@ -236,27 +231,54 @@ class PetSystemCog(commands.Cog):
 
         if not is_first_time: await add_points(user_id, -cost)
 
-        rarity = random.choices(list(PET_POOLS.keys()), weights=[85, 14, 0.9, 0.1], k=1)[0]
+        rarity = random.choices(list(PET_POOLS.keys()), weights=[85, 14, 0.9, 0.1, 0.0, 0.0], k=1)[0]
         embed = discord.Embed(title="🎉 알까기 당첨!", description=f"[{rarity}급] 알이 당첨되었습니다!\n아래 메뉴에서 원하는 종류의 전설이를 선택하세요.", color=discord.Color.gold())
 
         view = HatchView(self.bot, user_id, rarity, 이름, is_first_time)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
         view.message = await interaction.original_response()
 
-    @app_commands.command(name="펫교체", description="돌볼 전설이를 교체합니다.")
-    @app_commands.choices(슬롯=[
-        app_commands.Choice(name="1번 펫", value=0), app_commands.Choice(name="2번 펫", value=1),
-        app_commands.Choice(name="3번 펫", value=2), app_commands.Choice(name="4번 펫", value=3),
-        app_commands.Choice(name="5번 펫", value=4)
+    @app_commands.command(name="순서변경", description="보유 중인 전설이들의 파티 배치 순서를 변경합니다.")
+    @app_commands.choices(기존슬롯=[
+        app_commands.Choice(name="1번 슬롯", value=0), app_commands.Choice(name="2번 슬롯", value=1),
+        app_commands.Choice(name="3번 슬롯", value=2), app_commands.Choice(name="4번 슬롯", value=3),
+        app_commands.Choice(name="5번 슬롯", value=4)
+    ], 새슬롯=[
+        app_commands.Choice(name="1번 슬롯", value=0), app_commands.Choice(name="2번 슬롯", value=1),
+        app_commands.Choice(name="3번 슬롯", value=2), app_commands.Choice(name="4번 슬롯", value=3),
+        app_commands.Choice(name="5번 슬롯", value=4)
     ])
-    async def switch_pet(self, interaction: discord.Interaction, 슬롯: int):
+    async def change_pet_order(self, interaction: discord.Interaction, 기존슬롯: int, 새슬롯: int):
+        if 기존슬롯 == 새슬롯:
+            return await interaction.response.send_message("❌ 기존 슬롯과 변경할 슬롯이 같습니다.", ephemeral=True)
+
         wrapper = await get_or_migrate_data(interaction.user.id)
-        if 슬롯 >= len(wrapper.get('pets', [])):
-            return await interaction.response.send_message(f"해당 슬롯에는 아직 전설이가 없습니다.", ephemeral=True)
-        wrapper['active_idx'] = 슬롯
+        pets = wrapper.get('pets', [])
+
+        if 기존슬롯 >= len(pets) or 새슬롯 >= len(pets):
+            return await interaction.response.send_message(f"❌ 선택한 슬롯에 전설이가 존재하지 않습니다. (현재 보유 전설이 수: {len(pets)}마리)", ephemeral=True)
+
+        active_idx = wrapper.get('active_idx', 0)
+        if active_idx >= len(pets):
+            active_idx = 0
+        current_active_pet = pets[active_idx]
+
+        pets[기존슬롯], pets[새슬롯] = pets[새슬롯], pets[기존슬롯]
+
+        wrapper['active_idx'] = pets.index(current_active_pet)
+        wrapper['pets'] = pets
+
         await save_legend_data(interaction.user.id, wrapper)
-        pet_name = wrapper['pets'][슬롯].get('name', '이름없음')
-        await interaction.response.send_message(f"🔄 지금부터 `{pet_name}`(을)를 돌봅니다! `/상태창`을 확인하세요.", ephemeral=True)
+
+        p1_name = pets[새슬롯].get('name', '이름없음')
+        p2_name = pets[기존슬롯].get('name', '이름없음')
+
+        await interaction.response.send_message(
+            f"🔄 전설이들의 배치 순서가 성공적으로 변경되었습니다!\n"
+            f"▪️ {기존슬롯 + 1}번 슬롯 ➡️ {새슬롯 + 1}번 슬롯: `{p1_name}`\n"
+            f"▪️ {새슬롯 + 1}번 슬롯 ➡️ {기존슬롯 + 1}번 슬롯: `{p2_name}`",
+            ephemeral=True
+        )
 
     @app_commands.command(name="스탯", description="내 전설이(또는 다른 유저)의 스탯을 확인합니다.")
     async def pet_stats_cmd(self, interaction: discord.Interaction, 유저: discord.Member = None):
@@ -279,10 +301,8 @@ class PetSystemCog(commands.Cog):
 
         await interaction.response.send_message(embed=embed, ephemeral=False)
 
-    # 🌟 새롭게 적용된 렌더링 방식의 상태창 명령어
     @app_commands.command(name="상태창", description="내 전설이의 상태를 확인하고 돌봅니다.")
     async def status_window(self, interaction: discord.Interaction):
-        # 이미지 렌더링 시간을 벌기 위해 봇이 생각중임을 표시합니다.
         await interaction.response.defer(ephemeral=False)
 
         wrapper = await get_or_migrate_data(interaction.user.id)
@@ -298,14 +318,11 @@ class PetSystemCog(commands.Cog):
         data, buffs, is_annoyed, is_diseased = await self.evaluate_pet_status(interaction.user.id, wrapper, active_idx)
         current_points = await get_points(interaction.user.id)
 
-        # 새로 만든 이미지 생성기 호출
         status_image_file = await generate_status_image(
             data, current_points, buffs, is_annoyed, is_diseased, active_idx, total_pets
         )
 
         view = LegendActionView(interaction.user.id, current_idx=active_idx, total_pets=total_pets, pet_level=data.get('level', 0))
-
-        # 이미지 파일과 뷰(버튼)를 함께 전송
         await interaction.followup.send(file=status_image_file, view=view)
 
 async def setup(bot):

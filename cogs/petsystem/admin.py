@@ -5,8 +5,8 @@ import time
 import traceback
 import aiosqlite
 
-from utils.data import PET_POOLS
-from utils.database import get_or_migrate_data, save_legend_data, add_item, consume_item
+from utils.data import PET_POOLS, EXP_TABLE
+from utils.database import get_or_migrate_data, save_legend_data, add_item, consume_item, update_max_star
 from utils.logs import send_log_embed, ITEM_GIVE_TAKE_LOG_CH, EGG_GIVE_TAKE_LOG_CH
 
 class AdminEggGiveView(discord.ui.View):
@@ -166,8 +166,12 @@ class AdminCog(commands.Cog):
         wrapper = await get_or_migrate_data(유저.id)
         target_idx = next((i for i, p in enumerate(wrapper.get('pets', [])) if p.get('name') == 알이름), -1)
         if target_idx == -1: return await interaction.followup.send("❌ 펫을 찾을 수 없습니다.")
-        if wrapper['pets'][target_idx].get('level', 0) >= 3: return await interaction.followup.send("❌ 이미 최대성급입니다.")
+        if wrapper['pets'][target_idx].get('level', 0) >= 3: return await interaction.followup.send("❌ 이미 역할 최대성급입니다.")
         wrapper['pets'][target_idx]['level'] += 1; wrapper['pets'][target_idx]['exp'] = 0
+
+        if wrapper['pets'][target_idx]['level'] >= 3:
+            await update_max_star(유저.id, 3)
+
         await save_legend_data(유저.id, wrapper)
         await interaction.followup.send(f"✅ 성급 상승 완료!")
 
@@ -193,6 +197,66 @@ class AdminCog(commands.Cog):
         wrapper['pets'][target_idx]['name'] = 변경할이름
         await save_legend_data(유저.id, wrapper)
         await interaction.followup.send(f"✅ 이름 변경 완료!")
+
+    @app_commands.command(name="경험치지급", description="[관리자] 유저의 특정 전설이에게 경험치를 지급합니다.")
+    @app_commands.default_permissions(administrator=True)
+    async def admin_give_exp(self, interaction: discord.Interaction, 유저: discord.Member, 알이름: str, 수량: int):
+        if 수량 <= 0:
+            return await interaction.response.send_message("❌ 지급할 경험치는 1 이상이어야 합니다.", ephemeral=True)
+
+        await interaction.response.defer(ephemeral=True)
+        try:
+            wrapper = await get_or_migrate_data(유저.id)
+            if not wrapper.get('pets'):
+                return await interaction.followup.send("❌ 해당 유저는 보유한 전설이가 없습니다.")
+
+            target_idx = next((i for i, p in enumerate(wrapper.get('pets', [])) if p.get('name') == 알이름), -1)
+            if target_idx == -1:
+                return await interaction.followup.send("❌ 해당 이름의 전설이를 찾을 수 없습니다.")
+
+            data = wrapper['pets'][target_idx]
+            current_level = data.get('level', 0)
+            if current_level >= 3:
+                return await interaction.followup.send("❌ 이미 최대 성급(3성)에 도달한 전설이입니다.")
+
+            # 경험치 가산
+            data['exp'] = data.get('exp', 0) + 수량
+            rarity = data.get('rarity', '서사')
+
+            initial_level = current_level
+            # 💡 [핵심 수정] 하드코딩 사전을 전면 철거하고 data.py의 글로벌 EXP_TABLE을 추적 및 연동
+            while data.get('level', 0) < 3:
+                curr_lvl = data.get('level', 0)
+                req_exp = EXP_TABLE.get(rarity, {}).get(curr_lvl, 100)
+                if data.get('exp', 0) >= req_exp:
+                    data['level'] = curr_lvl + 1
+                    data['exp'] -= req_exp
+                else:
+                    break
+
+            if data.get('level', 0) >= 3:
+                await update_max_star(유저.id, 3)
+
+            wrapper['pets'][target_idx] = data
+            await save_legend_data(유저.id, wrapper)
+
+            msg = f"✅ {유저.display_name}님의 `{알이름}`에게 경험치 {수량:,} XP를 지급했습니다!"
+            if data['level'] > initial_level:
+                msg += f" 🎉 성급 상승: {initial_level}성 ➡️ {data['level']}성"
+
+            await interaction.followup.send(msg)
+
+            await send_log_embed(
+                interaction.client,
+                ITEM_GIVE_TAKE_LOG_CH,
+                "🛠️ [관리자] 경험치 지급",
+                f"대상: {유저.mention}\n전설이: {알이름} ({data.get('type', '알 수 없음')} - {rarity}급)\n지급량: +{수량:,} XP\n결과 상태: {data['level']}성 ({data['exp']:,} XP)",
+                interaction.user,
+                discord.Color.green()
+            )
+        except Exception:
+            traceback.print_exc()
+            await interaction.followup.send("❌ 경험치 지급 중 내부 오류가 발생했습니다.")
 
 async def setup(bot):
     await bot.add_cog(AdminCog(bot))
