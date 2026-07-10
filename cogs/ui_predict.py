@@ -120,6 +120,18 @@ async def generate_bet_embed(topic, opt_a, opt_b, status="active"):
 
     return embed
 
+def is_bet_open(session) -> bool:
+    """베팅 가능 여부. status 뿐 아니라 예약 마감시각(close_at)도 함께 확인합니다.
+    (auto_close_loop 가 아직 안 돌아 status 가 active 여도 마감시각이 지났으면 막습니다.)"""
+    if session is None:
+        return False
+    if session['status'] != 'active':
+        return False
+    close_at = session['close_at'] if 'close_at' in session.keys() else None
+    if close_at is not None and close_at <= time.time():
+        return False
+    return True
+
 class BetInputModal(discord.ui.Modal):
     def __init__(self, topic: str, option: str, opt_name: str):
         super().__init__(title=f"{opt_name}에 베팅하기")
@@ -154,7 +166,7 @@ class BetInputModal(discord.ui.Modal):
         session = await local_get_bet_session(self.topic)
         if not session:
             return await interaction.followup.send("❌ 예측 정보를 찾을 수 없습니다.", ephemeral=True)
-        if session['status'] != 'active':
+        if not is_bet_open(session):
             return await interaction.followup.send("❌ 이미 마감된 예측입니다.", ephemeral=True)
 
         existing_bet = await local_get_user_bet(self.topic, user_id)
@@ -202,7 +214,7 @@ class BettingView(discord.ui.View):
             session = await self._resolve_session(interaction)
             if not session:
                 return await interaction.response.send_message("❌ 예측 정보를 찾을 수 없습니다.", ephemeral=True)
-            if session['status'] != 'active':
+            if not is_bet_open(session):
                 return await interaction.response.send_message("❌ 이미 마감된 예측입니다.", ephemeral=True)
 
             opt_name = session['option_a'] if option == 'A' else session['option_b']
