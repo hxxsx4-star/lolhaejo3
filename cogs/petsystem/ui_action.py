@@ -5,7 +5,7 @@ import random
 from datetime import datetime
 
 from utils.database import get_legend_data, save_legend_data, get_active_buffs, consume_item, add_item, update_max_star
-from utils.data import ITEMS_INFO
+from utils.data import ITEMS_INFO, EXP_TABLE
 from utils.logs import WALK_LOG_CH, send_log_embed
 from utils.stats import get_points, add_points, spend_points
 from utils.image_generator import generate_status_image
@@ -166,11 +166,11 @@ class LegendActionView(discord.ui.View):
             gained_exp = num_walks
             data['exp'] = data.get('exp', 0) + gained_exp
             rarity = data.get('rarity', '서사')
-            EXP_REQ = {0: 100, 1: {"서사": 5000, "전설": 10000, "신화": 20000, "프레스티지": 30000, "고귀": 100000, "초월": 200000}, 2: {"서사": 10000, "전설": 20000, "신화": 40000, "프레스티지": 70000, "고귀": 200000, "초월": 300000}}
 
+            # 통화방 레벨업(core.py)과 동일하게 EXP_TABLE 단일 기준을 사용합니다.
             while data.get('level', 0) < 3:
                 curr_level = data.get('level', 0)
-                req_exp = EXP_REQ[curr_level].get(rarity, EXP_REQ[curr_level]["서사"])
+                req_exp = EXP_TABLE.get(rarity, {}).get(curr_level, 100)
                 if data.get('exp', 0) >= req_exp:
                     data['level'] = curr_level + 1
                     data['exp'] -= req_exp
