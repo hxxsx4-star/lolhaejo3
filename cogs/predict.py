@@ -50,11 +50,20 @@ class PredictCog(commands.Cog):
         await self.bot.wait_until_ready()
         # predictions.db 전용 betting 테이블 초기화 및 보장
         async with aiosqlite.connect('predictions.db') as db:
+            # 동시에 여러 명이 베팅할 때 'database is locked' 로 인한 상호작용 실패를
+            # 줄이기 위해 WAL 모드를 켭니다. (파일 단위로 영구 적용)
+            await db.execute("PRAGMA journal_mode=WAL")
+            await db.execute("PRAGMA busy_timeout=5000")
             await db.execute('''CREATE TABLE IF NOT EXISTS betting_sessions
                          (topic TEXT PRIMARY KEY, option_a TEXT, option_b TEXT, status TEXT, message_id INTEGER, channel_id INTEGER, close_at REAL)''')
             await db.execute('''CREATE TABLE IF NOT EXISTS betting_records
                          (topic TEXT, user_id INTEGER, option TEXT, amount INTEGER, PRIMARY KEY (topic, user_id))''')
             await db.commit()
+
+        # 🌟 예측 버튼을 영구(persistent) 뷰로 등록합니다.
+        # 이렇게 하면 봇이 재시작돼도 기존 예측 메시지의 버튼이 죽지 않아
+        # '상호작용 실패'가 발생하지 않습니다.
+        self.bot.add_view(BettingView())
 
     @app_commands.command(name="예측생성", description="새로운 예측을 생성합니다. (관리자 전용)")
     @app_commands.checks.has_permissions(administrator=True)
