@@ -57,48 +57,49 @@ class AchievementCog(commands.Cog):
                 try: await member.add_roles(role)
                 except discord.Forbidden: pass
 
-            @app_commands.command(name="업적", description="나의 업적 달성 현황을 확인합니다.")
-            async def view_achievements(self, interaction: discord.Interaction):
-                await self.check_and_grant_roles(interaction.user)
+    # 💡 들여쓰기 정상화 완료!
+    @app_commands.command(name="업적", description="나의 업적 달성 현황을 확인합니다.")
+    async def view_achievements(self, interaction: discord.Interaction):
+        await self.check_and_grant_roles(interaction.user)
 
-                wrapper = await get_or_migrate_data(interaction.user.id)
-                pets = wrapper.get('pets', [])
-                box_pets = wrapper.get('box', []) # 박스에 보관된 펫 리스트 가져오기
+        wrapper = await get_or_migrate_data(interaction.user.id)
+        pets = wrapper.get('pets', [])
+        box_pets = wrapper.get('box', []) # 박스에 보관된 펫 리스트 가져오기
 
-                # 파티와 박스 전설이 병합하여 수집 현황 체크
-                all_owned_pets = pets + box_pets
+        # 파티와 박스 전설이 병합하여 수집 현황 체크
+        all_owned_pets = pets + box_pets
 
-                owned_types = {p['type'] for p in all_owned_pets}
-                owned_3stars_types = {p['type'] for p in all_owned_pets if p.get('level', 0) >= 3}
-                synth_count = await get_synth_count(interaction.user.id)
+        owned_types = {p['type'] for p in all_owned_pets}
+        owned_3stars_types = {p['type'] for p in all_owned_pets if p.get('level', 0) >= 3}
+        synth_count = await get_synth_count(interaction.user.id)
 
-                all_epic = len(PET_POOLS["서사"])
-                all_leg = len(PET_POOLS["전설"])
-                all_myth = len(PET_POOLS["신화"])
-                all_pres = len(PET_POOLS["프레스티지"])
-                all_noble = len(PET_POOLS.get("고귀", []))
-                all_trans = len(PET_POOLS.get("초월", []))
+        all_epic = len(PET_POOLS["서사"])
+        all_leg = len(PET_POOLS["전설"])
+        all_myth = len(PET_POOLS["신화"])
+        all_pres = len(PET_POOLS["프레스티지"])
+        all_noble = len(PET_POOLS.get("고귀", []))
+        all_trans = len(PET_POOLS.get("초월", []))
 
-                total_pets_count = all_epic + all_leg + all_myth + all_pres + all_noble + all_trans
+        total_pets_count = all_epic + all_leg + all_myth + all_pres + all_noble + all_trans
 
-                embed = discord.Embed(title=f"🏆 {interaction.user.display_name}님의 업적 현황", color=discord.Color.gold())
-                embed.add_field(name="🐾 전설이 수집가", value=f"{len(owned_types)} / {total_pets_count} 마리", inline=True)
-                embed.add_field(name="✨ 모든 서사 3성", value=f"{len(set(PET_POOLS['서사']) & owned_3stars_types)} / {all_epic} 마리", inline=True)
-                embed.add_field(name="⚔️ 모든 전설 3성", value=f"{len(set(PET_POOLS['전설']) & owned_3stars_types)} / {all_leg} 마리", inline=True)
-                embed.add_field(name="🌟 모든 신화 3성", value=f"{len(set(PET_POOLS['신화']) & owned_3stars_types)} / {all_myth} 마리", inline=True)
-                embed.add_field(name="👑 모든 프레스티지 3성", value=f"{len(set(PET_POOLS['프레스티지']) & owned_3stars_types)} / {all_pres} 마리", inline=True)
-                embed.add_field(name="🔮 합성 장인", value=f"{synth_count} / 50 회", inline=True)
+        embed = discord.Embed(title=f"🏆 {interaction.user.display_name}님의 업적 현황", color=discord.Color.gold())
+        embed.add_field(name="🐾 전설이 수집가", value=f"{len(owned_types)} / {total_pets_count} 마리", inline=True)
+        embed.add_field(name="✨ 모든 서사 3성", value=f"{len(set(PET_POOLS['서사']) & owned_3stars_types)} / {all_epic} 마리", inline=True)
+        embed.add_field(name="⚔️ 모든 전설 3성", value=f"{len(set(PET_POOLS['전설']) & owned_3stars_types)} / {all_leg} 마리", inline=True)
+        embed.add_field(name="🌟 모든 신화 3성", value=f"{len(set(PET_POOLS['신화']) & owned_3stars_types)} / {all_myth} 마리", inline=True)
+        embed.add_field(name="👑 모든 프레스티지 3성", value=f"{len(set(PET_POOLS['프레스티지']) & owned_3stars_types)} / {all_pres} 마리", inline=True)
+        embed.add_field(name="🔮 합성 장인", value=f"{synth_count} / 50 회", inline=True)
 
-                member_roles = [r.id for r in interaction.user.roles]
-                achieved_list = []
-                if ROLE_IDS["FIRST_MYTHIC_3"] in member_roles: achieved_list.append("🥇 신화 3성 최초 달성")
-                if ROLE_IDS["FIRST_PRESTIGE_3"] in member_roles: achieved_list.append("💎 프레스티지 3성 최초 달성")
-                if ROLE_IDS["TOP5_EPIC_EGG"] in member_roles: achieved_list.append("🥚 서사급 알 만수르 (TOP 5)")
+        member_roles = [r.id for r in interaction.user.roles]
+        achieved_list = []
+        if ROLE_IDS["FIRST_MYTHIC_3"] in member_roles: achieved_list.append("🥇 신화 3성 최초 달성")
+        if ROLE_IDS["FIRST_PRESTIGE_3"] in member_roles: achieved_list.append("💎 프레스티지 3성 최초 달성")
+        if ROLE_IDS["TOP5_EPIC_EGG"] in member_roles: achieved_list.append("🥚 서사급 알 만수르 (TOP 5)")
 
-                if achieved_list:
-                    embed.add_field(name="🎉 특별 타이틀 달성", value="\n".join(achieved_list), inline=False)
+        if achieved_list:
+            embed.add_field(name="🎉 특별 타이틀 달성", value="\n".join(achieved_list), inline=False)
 
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="알개수", description="서사급 알 보유량 순위 TOP 5를 확인합니다.")
     async def egg_ranking(self, interaction: discord.Interaction):
