@@ -4,7 +4,7 @@ import aiohttp
 from PIL import Image, ImageDraw, ImageFont
 import discord
 import textwrap
-from utils.data import PET_IMAGES, EXP_TABLE, PET_STATS, RARITY_IMAGES
+from utils.data import PET_IMAGES, PET_IMAGES_EVOLVED, EXP_TABLE, PET_STATS, RARITY_IMAGES
 
 # 다운로드한 이미지를 저장해둘 캐시 메모리 딕셔너리 생성 (속도 최적화)
 IMAGE_CACHE = {}
@@ -146,7 +146,11 @@ async def generate_status_image(data, points, buffs, is_annoyed, is_diseased, cu
         draw.text((580, 532), wrapped_buffs, font=font_small, fill=(150, 255, 150), stroke_width=1, stroke_fill="black")
 
     # --- 7. 메인 펫 이미지 (원본 pet_type으로 캐싱 및 다운로드) ---
-    pet_url = PET_IMAGES.get(pet_type)
+    # 3성 도달 시 진화 이미지가 있는 전설이(초월 등급)는 진화 이미지로 교체
+    if level >= 3 and pet_type in PET_IMAGES_EVOLVED:
+        pet_url = PET_IMAGES_EVOLVED[pet_type]
+    else:
+        pet_url = PET_IMAGES.get(pet_type)
     if pet_url:
         pet_img_downloaded = await fetch_image(pet_url)
         if pet_img_downloaded:

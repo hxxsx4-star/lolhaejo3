@@ -15,7 +15,9 @@ class SynthesisCog(commands.Cog):
     @app_commands.choices(등급=[
         app_commands.Choice(name="서사 (전설급 확률 80%)", value="서사"),
         app_commands.Choice(name="전설 (신화급 확률 50%)", value="전설"),
-        app_commands.Choice(name="신화 (프레스티지급 확률 20%)", value="신화")
+        app_commands.Choice(name="신화 (프레스티지급 확률 20%)", value="신화"),
+        app_commands.Choice(name="프레스티지 (고귀급 확률 5%)", value="프레스티지"),
+        app_commands.Choice(name="고귀 (초월급 확률 1%)", value="고귀")
     ])
     async def synthesis_cmd(self, interaction: discord.Interaction, 등급: str):
         wrapper = await get_or_migrate_data(interaction.user.id)
@@ -56,6 +58,10 @@ class SynthesisCog(commands.Cog):
                 target_rarity = "신화"; prob = 0.5
             elif 등급 == "신화":
                 target_rarity = "프레스티지"; prob = 0.2
+            elif 등급 == "프레스티지":
+                target_rarity = "고귀"; prob = 0.05
+            elif 등급 == "고귀":
+                target_rarity = "초월"; prob = 0.01
 
             indices_to_remove = sorted([idx1, idx2], reverse=True)
             for i in indices_to_remove:

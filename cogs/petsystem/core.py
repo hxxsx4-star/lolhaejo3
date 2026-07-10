@@ -231,7 +231,9 @@ class PetSystemCog(commands.Cog):
 
         if not is_first_time: await add_points(user_id, -cost)
 
-        rarity = random.choices(list(PET_POOLS.keys()), weights=[85, 14, 0.9, 0.1, 0.0, 0.0], k=1)[0]
+        # 확률(순서: 서사, 전설, 신화, 프레스티지, 고귀, 초월)
+        # 고귀=0.001%, 초월은 알까기로 획득 불가(0.0) → 고귀 3성 2마리 합성으로만 획득
+        rarity = random.choices(list(PET_POOLS.keys()), weights=[85, 14, 0.9, 0.1, 0.001, 0.0], k=1)[0]
         embed = discord.Embed(title="🎉 알까기 당첨!", description=f"[{rarity}급] 알이 당첨되었습니다!\n아래 메뉴에서 원하는 종류의 전설이를 선택하세요.", color=discord.Color.gold())
 
         view = HatchView(self.bot, user_id, rarity, 이름, is_first_time)

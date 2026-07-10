@@ -154,7 +154,9 @@ class LegendActionView(discord.ui.View):
 
         for _ in range(num_walks):
             r_egg = random.random()
-            if r_egg < 0.0001: found_eggs.append("프레스티지")
+            # 초월급 알은 산책으로 획득 불가(합성 전용). 고귀급 알만 극악 확률로 등장.
+            if r_egg < 0.000005: found_eggs.append("고귀")  # 0.0005%
+            elif r_egg < 0.0001: found_eggs.append("프레스티지")
             elif r_egg < 0.0021: found_eggs.append("신화")
             elif r_egg < 0.0221: found_eggs.append("전설")
             elif r_egg < 0.1221: found_eggs.append("서사")
@@ -170,7 +172,7 @@ class LegendActionView(discord.ui.View):
             gained_exp = num_walks
             data['exp'] = data.get('exp', 0) + gained_exp
             rarity = data.get('rarity', '서사')
-            EXP_REQ = {0: 100, 1: {"서사": 5000, "전설": 10000, "신화": 20000, "프레스티지": 30000}, 2: {"서사": 10000, "전설": 20000, "신화": 40000, "프레스티지": 70000}}
+            EXP_REQ = {0: 100, 1: {"서사": 5000, "전설": 10000, "신화": 20000, "프레스티지": 30000, "고귀": 50000, "초월": 80000}, 2: {"서사": 10000, "전설": 20000, "신화": 40000, "프레스티지": 70000, "고귀": 120000, "초월": 200000}}
 
             while data.get('level', 0) < 3:
                 curr_level = data.get('level', 0)
