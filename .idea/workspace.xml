@@ -4,10 +4,10 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f1982c64-012d-4ef1-a9cd-954fbe80761a" name="변경" comment="UI 대폭 개선">
-      <change beforePath="$PROJECT_DIR$/cogs/petsystem/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/petsystem/admin.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cogs/petsystem/core.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/petsystem/core.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/data.py" afterDir="false" />
+    <list default="true" id="f1982c64-012d-4ef1-a9cd-954fbe80761a" name="변경" comment="대폭 변경">
+      <change beforePath="$PROJECT_DIR$/cogs/petsystem/betting.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cogs/predict.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/predict.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cogs/ui_predict.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/ui_predict.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -39,23 +39,23 @@
 }</component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.8390967810430878" />
-      <entry key="MS500" value="5.268585268759097" />
-      <entry key="S2" value="9.323680065726982" />
-      <entry key="S5" value="10.803485574259435" />
-      <entry key="S10" value="11.378172222610338" />
-      <entry key="S30" value="11.787220447259896" />
-      <entry key="S60" value="11.892904930672428" />
-      <entry key="M2" value="11.946757983034278" />
-      <entry key="M5" value="12.380582995878402" />
-      <entry key="M10" value="17.05560352933675" />
-      <entry key="M15" value="25.669720777708417" />
-      <entry key="M30" value="56.9061262295763" />
-      <entry key="H1" value="106.57231469214815" />
-      <entry key="H2" value="159.60643468762643" />
-      <entry key="H4" value="211.70852629571718" />
-      <entry key="D1" value="398.25253630637803" />
-      <entry key="W1" value="663.1019881682516" />
+      <entry key="MS100" value="2.657486824701172" />
+      <entry key="MS500" value="6.160159351790133" />
+      <entry key="S2" value="10.275335717038077" />
+      <entry key="S5" value="11.781043698931995" />
+      <entry key="S10" value="12.366348248497198" />
+      <entry key="S30" value="12.783136015768994" />
+      <entry key="S60" value="12.890844225843711" />
+      <entry key="M2" value="12.94572292017401" />
+      <entry key="M5" value="13.380153925003812" />
+      <entry key="M10" value="18.055307980810014" />
+      <entry key="M15" value="26.669424231178294" />
+      <entry key="M30" value="57.90579752785102" />
+      <entry key="H1" value="107.57200689967823" />
+      <entry key="H2" value="160.60620420706326" />
+      <entry key="H4" value="212.70837343622225" />
+      <entry key="D1" value="399.2524883814464" />
+      <entry key="W1" value="664.1019767687658" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
@@ -64,36 +64,36 @@
       <entry key="S5" value="0.0" />
       <entry key="S10" value="0.0" />
       <entry key="S30" value="0.0" />
-      <entry key="S60" value="5.327523899011522E-223" />
-      <entry key="M2" value="7.298988901903799E-112" />
-      <entry key="M5" value="3.5099835518632916E-45" />
-      <entry key="M10" value="5.924511416026893E-23" />
-      <entry key="M15" value="1.5197367318541479E-15" />
-      <entry key="M30" value="3.898380089029517E-8" />
-      <entry key="H1" value="1.9744319901600281E-4" />
-      <entry key="H2" value="0.014064156641255054" />
-      <entry key="H4" value="0.12567422793369387" />
-      <entry key="D1" value="2.225687615948743" />
-      <entry key="W1" value="5.139671280632345" />
+      <entry key="S60" value="5.326600789452689E-223" />
+      <entry key="M2" value="7.298356520102762E-112" />
+      <entry key="M5" value="3.509861907211106E-45" />
+      <entry key="M10" value="5.924408752956799E-23" />
+      <entry key="M15" value="1.5197191752683775E-15" />
+      <entry key="M30" value="3.8983575711681556E-8" />
+      <entry key="H1" value="1.974426287785066E-4" />
+      <entry key="H2" value="0.014064136331831128" />
+      <entry key="H4" value="0.12567413719337583" />
+      <entry key="D1" value="2.2256873481138464" />
+      <entry key="W1" value="5.139671192275484" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="1.7706891733783756" />
-      <entry key="MS500" value="5.2125380478586445" />
-      <entry key="S2" value="9.298389101307464" />
-      <entry key="S5" value="10.791821248271265" />
-      <entry key="S10" value="11.372043955574076" />
-      <entry key="S30" value="11.785107874607712" />
-      <entry key="S60" value="11.89183965284631" />
-      <entry key="M2" value="11.946223007497101" />
-      <entry key="M5" value="12.380347397442938" />
-      <entry key="M10" value="17.05538413224206" />
-      <entry key="M15" value="25.669455563904855" />
-      <entry key="M30" value="56.905712759600824" />
-      <entry key="H1" value="106.5720034176822" />
-      <entry key="H2" value="159.62005519619964" />
-      <entry key="H4" value="211.83386405493775" />
-      <entry key="D1" value="400.47799060100516" />
-      <entry key="W1" value="668.2415872227258" />
+      <entry key="MS100" value="2.4970848992580796" />
+      <entry key="MS500" value="6.084685863603819" />
+      <entry key="S2" value="10.244990774666274" />
+      <entry key="S5" value="11.76732632202564" />
+      <entry key="S10" value="12.359187169387747" />
+      <entry key="S30" value="12.780677661611248" />
+      <entry key="S60" value="12.88960586081833" />
+      <entry key="M2" value="12.945101351342785" />
+      <entry key="M5" value="13.379883677974957" />
+      <entry key="M10" value="18.05507125898778" />
+      <entry key="M15" value="26.6691474680523" />
+      <entry key="M30" value="57.90537828405401" />
+      <entry key="H1" value="107.57169273800218" />
+      <entry key="H2" value="160.6198232519121" />
+      <entry key="H4" value="212.8337103829174" />
+      <entry key="D1" value="401.47794228792867" />
+      <entry key="W1" value="669.2415757176932" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -163,15 +163,7 @@
       <workItem from="1783249688743" duration="76000" />
       <workItem from="1783249778143" duration="5173000" />
       <workItem from="1783264957959" duration="8742000" />
-      <workItem from="1783618276236" duration="2172000" />
-    </task>
-    <task id="LOCAL-00039" summary="UI 개선">
-      <option name="closed" value="true" />
-      <created>1783209969977</created>
-      <option name="number" value="00039" />
-      <option name="presentableId" value="LOCAL-00039" />
-      <option name="project" value="LOCAL" />
-      <updated>1783209969977</updated>
+      <workItem from="1783618276236" duration="3261000" />
     </task>
     <task id="LOCAL-00040" summary="UI 개선">
       <option name="closed" value="true" />
@@ -557,7 +549,15 @@
       <option name="project" value="LOCAL" />
       <updated>1783619381944</updated>
     </task>
-    <option name="localTasksCounter" value="88" />
+    <task id="LOCAL-00088" summary="대폭 변경">
+      <option name="closed" value="true" />
+      <created>1783620475541</created>
+      <option name="number" value="00088" />
+      <option name="presentableId" value="LOCAL-00088" />
+      <option name="project" value="LOCAL" />
+      <updated>1783620475541</updated>
+    </task>
+    <option name="localTasksCounter" value="89" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -588,7 +588,8 @@
     <MESSAGE value="대규모 개편" />
     <MESSAGE value="베팅" />
     <MESSAGE value="UI 대폭 개선" />
-    <option name="LAST_COMMIT_MESSAGE" value="UI 대폭 개선" />
+    <MESSAGE value="대폭 변경" />
+    <option name="LAST_COMMIT_MESSAGE" value="대폭 변경" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
