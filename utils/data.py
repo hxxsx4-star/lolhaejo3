@@ -168,6 +168,6 @@ RARITY_IMAGES = {
     "전설": "https://i.ibb.co/fz8C42ZT/image.webp",
     "신화": "https://i.ibb.co/23mnQTzC/image.webp",
     "프레스티지": "https://i.ibb.co/QFbvp8Rw/image.png",
-    "고귀": "https://i.ibb.co/x88pZ5V2/image.png",
-    "초월": "https://i.ibb.co/W4HhFLGZ/image.png"
+    "고귀": "https://i.ibb.co/7xXqRnMf/image.png",
+    "초월": "https://i.ibb.co/PGKqDdXF/image.png"
 }
