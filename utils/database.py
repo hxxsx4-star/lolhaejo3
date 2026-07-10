@@ -89,13 +89,17 @@ async def add_item(user_id, item_name, amount=1):
 
 async def consume_item(user_id, item_name, amount=1) -> bool:
     async with aiosqlite.connect(DB_PATH) as db:
-        async with db.execute("SELECT amount FROM user_items WHERE user_id = ? AND item_name = ?", (user_id, item_name)) as cursor:
-            row = await cursor.fetchone()
-        if not row or row[0] < amount: return False
-        await db.execute("UPDATE user_items SET amount = amount - ? WHERE user_id = ? AND item_name = ?", (amount, user_id, item_name))
-        await db.execute("DELETE FROM user_items WHERE amount <= 0")
+        # 조건부 UPDATE 한 번으로 '보유량 확인 + 차감'을 원자적으로 처리합니다.
+        # amount >= ? 조건 덕분에 동시에 여러 번 눌러도 보유량을 초과해 차감되지 않습니다.
+        cursor = await db.execute(
+            "UPDATE user_items SET amount = amount - ? WHERE user_id = ? AND item_name = ? AND amount >= ?",
+            (amount, user_id, item_name, amount),
+        )
+        success = cursor.rowcount > 0
+        if success:
+            await db.execute("DELETE FROM user_items WHERE amount <= 0")
         await db.commit()
-        return True
+        return success
 
 async def add_buff(user_id, buff_name, duration_sec=0, vc_sec=0):
     async with aiosqlite.connect(DB_PATH) as db:

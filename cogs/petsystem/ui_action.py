@@ -9,6 +9,7 @@ from utils.data import ITEMS_INFO, EXP_TABLE
 from utils.logs import WALK_LOG_CH, send_log_embed
 from utils.stats import get_points, add_points, spend_points
 from utils.image_generator import generate_status_image
+from .locks import get_user_lock
 
 # 전투/스탯 계산 로직은 combat.py 로 분리되었습니다.
 # 기존 `from .ui_action import get_pet_stats` 호출부 호환을 위해 여기서 재노출합니다.
@@ -76,27 +77,34 @@ class LegendActionView(discord.ui.View):
     @discord.ui.button(label="밥주기 (5P)", style=discord.ButtonStyle.primary, emoji="🍚", row=0)
     async def feed(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer() # 🌟 3초 타임아웃 방지
-        wrapper, data = await self.get_pet_data()
-        if not data: return await interaction.followup.send("펫 데이터가 없습니다.", ephemeral=True)
-        success = await spend_points(self.user_id, 5)
-        if not success: return await interaction.followup.send("❌ 밥값(5P)이 부족합니다!", ephemeral=True)
-        data['fullness'] = min(100, data.get('fullness', 0) + 20)
-        await save_legend_data(self.user_id, wrapper)
-        await self.update_status_message(interaction, data, popup_msg=f"🍚 {data['name']}(이)가 맛있게 밥을 먹었습니다! (포만도 +20, 밥값 -5P)")
+        async with get_user_lock(self.user_id):  # 연타로 인한 데이터 유실 방지
+            wrapper, data = await self.get_pet_data()
+            if not data: return await interaction.followup.send("펫 데이터가 없습니다.", ephemeral=True)
+            success = await spend_points(self.user_id, 5)
+            if not success: return await interaction.followup.send("❌ 밥값(5P)이 부족합니다!", ephemeral=True)
+            data['fullness'] = min(100, data.get('fullness', 0) + 20)
+            await save_legend_data(self.user_id, wrapper)
+            await self.update_status_message(interaction, data, popup_msg=f"🍚 {data['name']}(이)가 맛있게 밥을 먹었습니다! (포만도 +20, 밥값 -5P)")
 
     @discord.ui.button(label="샤워하기 (10P)", style=discord.ButtonStyle.primary, emoji="🚿", row=0)
     async def shower(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer() # 🌟 3초 타임아웃 방지
-        wrapper, data = await self.get_pet_data()
-        if not data: return await interaction.followup.send("펫 데이터가 없습니다.", ephemeral=True)
-        success = await spend_points(self.user_id, 10)
-        if not success: return await interaction.followup.send("❌ 수도세(10P)가 부족합니다!", ephemeral=True)
-        data['cleanliness'] = min(100, data.get('cleanliness', 0) + 20)
-        await save_legend_data(self.user_id, wrapper)
-        await self.update_status_message(interaction, data, popup_msg=f"🚿 {data['name']}(이)가 깨끗해졌습니다! (청결도 +20, 수도세 -10P)")
+        async with get_user_lock(self.user_id):  # 연타로 인한 데이터 유실 방지
+            wrapper, data = await self.get_pet_data()
+            if not data: return await interaction.followup.send("펫 데이터가 없습니다.", ephemeral=True)
+            success = await spend_points(self.user_id, 10)
+            if not success: return await interaction.followup.send("❌ 수도세(10P)가 부족합니다!", ephemeral=True)
+            data['cleanliness'] = min(100, data.get('cleanliness', 0) + 20)
+            await save_legend_data(self.user_id, wrapper)
+            await self.update_status_message(interaction, data, popup_msg=f"🚿 {data['name']}(이)가 깨끗해졌습니다! (청결도 +20, 수도세 -10P)")
 
     async def handle_walk(self, interaction: discord.Interaction, num_walks: int):
         await interaction.response.defer() # 🌟 3초 타임아웃 방지
+        # 같은 유저의 산책 연타로 인한 포인트 이중 소모/데이터 유실을 막기 위해 직렬화
+        async with get_user_lock(self.user_id):
+            await self._handle_walk_locked(interaction, num_walks)
+
+    async def _handle_walk_locked(self, interaction: discord.Interaction, num_walks: int):
         wrapper, data = await self.get_pet_data()
         if not data: return await interaction.followup.send("펫 데이터가 없습니다.", ephemeral=True)
         user_id = self.user_id

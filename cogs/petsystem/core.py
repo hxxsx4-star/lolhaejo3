@@ -9,6 +9,7 @@ from utils.data import PET_POOLS, EXP_TABLE
 from utils.database import get_or_migrate_data, get_active_buffs, save_legend_data, update_max_star
 # 변경된 모듈 임포트
 from .ui_action import LegendActionView, get_pet_stats
+from .locks import get_user_lock
 from utils.image_generator import generate_status_image
 from utils.logs import HATCH_LOG_CH, send_log_embed
 from utils.stats import get_points, add_points
@@ -33,21 +34,25 @@ class HatchView(discord.ui.View):
         if interaction.user.id != self.user_id:
             return await interaction.response.send_message("❌ 본인의 알만 선택할 수 있습니다.", ephemeral=True)
 
+        # 연타로 인한 전설이 중복 생성 방지: chosen 플래그를 (await 이전에) 즉시 세워 재진입 차단
+        if self.chosen:
+            return await interaction.response.send_message("⏳ 이미 부화 처리된 알입니다.", ephemeral=True)
         self.chosen = True
         selected_type = self.select.values[0]
 
-        wrapper = await get_or_migrate_data(self.user_id)
-        if 'pets' not in wrapper: wrapper['pets'] = []
+        async with get_user_lock(self.user_id):
+            wrapper = await get_or_migrate_data(self.user_id)
+            if 'pets' not in wrapper: wrapper['pets'] = []
 
-        new_pet_data = {
-            'name': self.pet_name, 'type': selected_type, 'rarity': self.rarity, 'level': 0, 'exp': 0, 'fullness': 100,
-            'intimacy': 50, 'fatigue': 0, 'cleanliness': 100, 'walk_count': 0, 'total_walk_count': 0,
-            'last_fatigue_calc': time.time()
-        }
+            new_pet_data = {
+                'name': self.pet_name, 'type': selected_type, 'rarity': self.rarity, 'level': 0, 'exp': 0, 'fullness': 100,
+                'intimacy': 50, 'fatigue': 0, 'cleanliness': 100, 'walk_count': 0, 'total_walk_count': 0,
+                'last_fatigue_calc': time.time()
+            }
 
-        wrapper['pets'].append(new_pet_data)
-        wrapper['active_idx'] = len(wrapper['pets']) - 1
-        await save_legend_data(self.user_id, wrapper)
+            wrapper['pets'].append(new_pet_data)
+            wrapper['active_idx'] = len(wrapper['pets']) - 1
+            await save_legend_data(self.user_id, wrapper)
 
         embed = discord.Embed(title="🥚 알 부화 성공!", description=f"[{self.rarity}급] {selected_type} 알을 얻었습니다!\n이름: `{self.pet_name}`\n`/상태창`으로 돌봐주세요.", color=discord.Color.green())
         await interaction.response.edit_message(embed=embed, view=None)
@@ -57,19 +62,21 @@ class HatchView(discord.ui.View):
 
     async def on_timeout(self):
         if not self.chosen:
+            self.chosen = True  # 선택 처리와의 중복 부화 방지
             try:
-                wrapper = await get_or_migrate_data(self.user_id)
-                selected_type = random.choice(PET_POOLS[self.rarity])
+                async with get_user_lock(self.user_id):
+                    wrapper = await get_or_migrate_data(self.user_id)
+                    selected_type = random.choice(PET_POOLS[self.rarity])
 
-                if 'pets' not in wrapper: wrapper['pets'] = []
-                new_pet_data = {
-                    'name': self.pet_name, 'type': selected_type, 'rarity': self.rarity, 'level': 0, 'exp': 0, 'fullness': 100,
-                    'intimacy': 50, 'fatigue': 0, 'cleanliness': 100, 'walk_count': 0, 'total_walk_count': 0,
-                    'last_fatigue_calc': time.time()
-                }
-                wrapper['pets'].append(new_pet_data)
-                wrapper['active_idx'] = len(wrapper['pets']) - 1
-                await save_legend_data(self.user_id, wrapper)
+                    if 'pets' not in wrapper: wrapper['pets'] = []
+                    new_pet_data = {
+                        'name': self.pet_name, 'type': selected_type, 'rarity': self.rarity, 'level': 0, 'exp': 0, 'fullness': 100,
+                        'intimacy': 50, 'fatigue': 0, 'cleanliness': 100, 'walk_count': 0, 'total_walk_count': 0,
+                        'last_fatigue_calc': time.time()
+                    }
+                    wrapper['pets'].append(new_pet_data)
+                    wrapper['active_idx'] = len(wrapper['pets']) - 1
+                    await save_legend_data(self.user_id, wrapper)
 
                 embed = discord.Embed(title="⏰ 선택 시간 초과!", description=f"자동으로 [{self.rarity}급] {selected_type} 알이 선택되었습니다!\n이름: `{self.pet_name}`", color=discord.Color.orange())
                 if self.message:

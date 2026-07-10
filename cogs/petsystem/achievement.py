@@ -1,9 +1,12 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord import app_commands
 
 from utils.database import get_or_migrate_data, get_synth_count, get_top_epic_egg_owners
 from utils.data import PET_POOLS
+
+# 서사급 알 상위 N명에게 순위 역할을 부여합니다. (원하는 인원수로 이 값만 바꾸면 됨)
+TOP_EGG_RANK = 3
 
 ROLE_IDS = {
     "ALL_PETS": 1523077720404398131,
@@ -21,6 +24,58 @@ ROLE_IDS = {
 class AchievementCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.top_egg_role_loop.start()
+
+    def cog_unload(self):
+        self.top_egg_role_loop.cancel()
+
+    # ==========================================
+    # 💡 서사급 알 순위 역할 실시간 동기화
+    # ==========================================
+    @tasks.loop(seconds=60)
+    async def top_egg_role_loop(self):
+        # 60초마다 순위를 확인해 이탈자 회수 + 신규 진입자 부여를 자동 처리
+        for guild in self.bot.guilds:
+            if guild.get_role(ROLE_IDS["TOP5_EPIC_EGG"]):
+                try:
+                    await self.reconcile_top_egg_role(guild)
+                except Exception as e:
+                    print(f"⚠️ 서사급 알 순위 역할 동기화 실패({guild.id}): {e}")
+
+    @top_egg_role_loop.before_loop
+    async def before_top_egg_role_loop(self):
+        await self.bot.wait_until_ready()
+
+    async def reconcile_top_egg_role(self, guild: discord.Guild):
+        """현재 서사급 알 상위 TOP_EGG_RANK 명에게만 역할이 유지되도록 동기화합니다.
+
+        - 순위 밖으로 밀려난 기존 보유자에게서는 역할을 회수
+        - 새로 순위권에 든 유저에게는 역할을 부여
+        변화가 없으면 Discord API 호출도 하지 않습니다(가드 조건).
+        """
+        role = guild.get_role(ROLE_IDS["TOP5_EPIC_EGG"])
+        if not role:
+            return
+
+        top_owners = await get_top_epic_egg_owners()  # 보유량 내림차순 (최대 5명)
+        top_ids = {uid for uid, amt in top_owners[:TOP_EGG_RANK] if amt and amt > 0}
+
+        # 1) 순위에서 이탈한 보유자에게서 역할 회수
+        for member in list(role.members):
+            if member.id not in top_ids:
+                try:
+                    await member.remove_roles(role, reason="서사급 알 순위 이탈")
+                except discord.HTTPException:
+                    pass
+
+        # 2) 새로 순위권에 든 유저에게 역할 부여
+        for uid in top_ids:
+            member = guild.get_member(uid)
+            if member and role not in member.roles:
+                try:
+                    await member.add_roles(role, reason="서사급 알 순위 진입")
+                except discord.HTTPException:
+                    pass
 
     async def check_and_grant_roles(self, member: discord.Member):
         if not member.guild: return
@@ -94,7 +149,7 @@ class AchievementCog(commands.Cog):
         achieved_list = []
         if ROLE_IDS["FIRST_MYTHIC_3"] in member_roles: achieved_list.append("🥇 신화 3성 최초 달성")
         if ROLE_IDS["FIRST_PRESTIGE_3"] in member_roles: achieved_list.append("💎 프레스티지 3성 최초 달성")
-        if ROLE_IDS["TOP5_EPIC_EGG"] in member_roles: achieved_list.append("🥚 서사급 알 만수르 (TOP 5)")
+        if ROLE_IDS["TOP5_EPIC_EGG"] in member_roles: achieved_list.append(f"🥚 서사급 알 만수르 (TOP {TOP_EGG_RANK})")
 
         if achieved_list:
             embed.add_field(name="🎉 특별 타이틀 달성", value="\n".join(achieved_list), inline=False)
@@ -109,19 +164,23 @@ class AchievementCog(commands.Cog):
         if not top_users:
             embed.description = "아직 랭킹에 등록된 유저가 없습니다."
         else:
-            role = interaction.guild.get_role(ROLE_IDS["TOP5_EPIC_EGG"])
             desc = ""
             for idx, (uid, amt) in enumerate(top_users, 1):
                 member = interaction.guild.get_member(uid)
                 name = member.display_name if member else f"알수없는유저({uid})"
-                desc += f"{idx}위: {name} - {amt}개\n"
-
-                if member and role and role not in member.roles:
-                    try: await member.add_roles(role)
-                    except: pass
+                crown = " 👑" if idx <= TOP_EGG_RANK else ""
+                desc += f"{idx}위: {name} - {amt}개{crown}\n"
             embed.description = desc
+            embed.set_footer(text=f"👑 상위 {TOP_EGG_RANK}위에게 순위 역할이 자동 부여/회수됩니다.")
 
         await interaction.response.send_message(embed=embed)
+
+        # 순위 역할을 즉시 동기화(이탈자 회수 + 신규 진입자 부여)
+        if interaction.guild:
+            try:
+                await self.reconcile_top_egg_role(interaction.guild)
+            except discord.HTTPException:
+                pass
 
 async def setup(bot):
     await bot.add_cog(AchievementCog(bot))
