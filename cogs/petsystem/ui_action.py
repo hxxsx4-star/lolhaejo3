@@ -5,20 +5,14 @@ import random
 from datetime import datetime
 
 from utils.database import get_legend_data, save_legend_data, get_active_buffs, consume_item, add_item, update_max_star
-from utils.data import ITEMS_INFO, EXP_TABLE, PET_STATS
+from utils.data import ITEMS_INFO
 from utils.logs import WALK_LOG_CH, send_log_embed
 from utils.stats import get_points, add_points, spend_points
 from utils.image_generator import generate_status_image
 
-def get_pet_stats(pet_type, level):
-    base_stats = PET_STATS.get(pet_type, {"AD": 5, "DF": 5, "AP": 5, "MR": 5})
-    multiplier = (1.5+max(0, level - 1)) if level > 0 else 1
-    return {
-        "AD": int(base_stats["AD"] * multiplier),
-        "DF": int(base_stats["DF"] * multiplier),
-        "AP": int(base_stats["AP"] * multiplier),
-        "MR": int(base_stats["MR"] * multiplier)
-    }
+# 전투/스탯 계산 로직은 combat.py 로 분리되었습니다.
+# 기존 `from .ui_action import get_pet_stats` 호출부 호환을 위해 여기서 재노출합니다.
+from .combat import get_pet_stats
 
 class LegendActionView(discord.ui.View):
     def __init__(self, user_id, current_idx=0, total_pets=1, pet_level=1):
@@ -172,7 +166,7 @@ class LegendActionView(discord.ui.View):
             gained_exp = num_walks
             data['exp'] = data.get('exp', 0) + gained_exp
             rarity = data.get('rarity', '서사')
-            EXP_REQ = {0: 100, 1: {"서사": 5000, "전설": 10000, "신화": 20000, "프레스티지": 30000, "고귀": 50000, "초월": 80000}, 2: {"서사": 10000, "전설": 20000, "신화": 40000, "프레스티지": 70000, "고귀": 120000, "초월": 200000}}
+            EXP_REQ = {0: 100, 1: {"서사": 5000, "전설": 10000, "신화": 20000, "프레스티지": 30000, "고귀": 100000, "초월": 200000}, 2: {"서사": 10000, "전설": 20000, "신화": 40000, "프레스티지": 70000, "고귀": 200000, "초월": 300000}}
 
             while data.get('level', 0) < 3:
                 curr_level = data.get('level', 0)

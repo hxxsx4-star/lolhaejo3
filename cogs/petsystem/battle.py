@@ -5,7 +5,7 @@ import asyncio
 import random
 
 from utils.database import get_or_migrate_data, add_item, consume_item, get_item_amount, set_item_amount
-from .ui_action import get_pet_stats
+from .combat import calc_pet_power, calc_win_rate
 from utils.stats import add_points
 
 class BetView(discord.ui.View):
@@ -42,9 +42,8 @@ class BattleCog(commands.Cog):
         self.active_battles = set()
 
     def calc_pet_power(self, pet_data):
-        if pet_data.get('level', 0) == 0: return 0
-        stats = get_pet_stats(pet_data['type'], pet_data['level'])
-        return stats['AD'] + stats['DF'] + stats['AP'] + stats['MR']
+        # 팀 선발(강한 5마리 정렬)용 순수 스탯 총합. 실제 승패는 combat.calc_win_rate 가 결정.
+        return calc_pet_power(pet_data)
 
     @app_commands.command(name="배틀1vs1", description="내 전설이 한 마리를 선택해 상대방과 1vs1 배틀을 벌입니다.")
     async def battle_1v1(self, interaction: discord.Interaction, 상대: discord.Member):
@@ -134,19 +133,19 @@ class BattleCog(commands.Cog):
     async def run_battle(self, channel, p1, p2, p1_team, p2_team, is_5v5):
         self.active_battles.add(p1.id); self.active_battles.add(p2.id)
         try:
-            p1_power = sum(self.calc_pet_power(p) for p in p1_team)
-            p2_power = sum(self.calc_pet_power(p) for p in p2_team)
+            # 스탯 상성 기반 승률: 우리 팀 AD/AP 를 상대 팀 DF/MR 로 감쇄한 유효 전투력으로 계산
+            p1_win_rate, p1_score, p2_score = calc_win_rate(p1_team, p2_team)
+            p1_power = round(p1_score)
+            p2_power = round(p2_score)
 
             battle_title = f"⚔️ {'5vs5 총력전' if is_5v5 else '1vs1 배틀'}: {p1.display_name} VS {p2.display_name} ⚔️"
-            total_power = p1_power + p2_power or 1
-            p1_win_rate = p1_power / total_power
             winner = p1 if random.random() < p1_win_rate else p2
             p1_won = (winner == p1)
 
             embed = discord.Embed(title=battle_title, description="🔥 양측 전설이들이 격돌합니다! (결과 계산 중... 15초)\n관전자들은 아래 버튼으로 응원(베팅)하세요!", color=discord.Color.orange())
-            embed.add_field(name=f"🔵 {p1.display_name}", value=f"합산 전투력: {p1_power}", inline=True)
+            embed.add_field(name=f"🔵 {p1.display_name}", value=f"유효 전투력: {p1_power} (승률 {p1_win_rate*100:.1f}%)", inline=True)
             embed.add_field(name="VS", value="⚡", inline=True)
-            embed.add_field(name=f"🔴 {p2.display_name}", value=f"합산 전투력: {p2_power}", inline=True)
+            embed.add_field(name=f"🔴 {p2.display_name}", value=f"유효 전투력: {p2_power} (승률 {(1-p1_win_rate)*100:.1f}%)", inline=True)
 
             bet_view = BetView(p1, p2)
             battle_msg = await channel.send(embed=embed, view=bet_view)

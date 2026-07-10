@@ -5,7 +5,10 @@ import random
 import time
 
 from utils.data import PET_POOLS
-from utils.database import get_or_migrate_data, save_legend_data, add_synth_count
+from utils.database import get_or_migrate_data, save_legend_data, add_synth_count, consume_item, get_item_amount
+
+# 합성 실패 시 재료를 지켜주는 방어 아이템 이름 (/알상점 에서 판매)
+SYNTH_PROTECT_ITEM = "합성 방어권"
 
 class SynthesisCog(commands.Cog):
     def __init__(self, bot):
@@ -63,12 +66,19 @@ class SynthesisCog(commands.Cog):
             elif 등급 == "고귀":
                 target_rarity = "초월"; prob = 0.01
 
-            indices_to_remove = sorted([idx1, idx2], reverse=True)
-            for i in indices_to_remove:
-                wrapper['pets'].pop(i)
-
-            wrapper['active_idx'] = max(0, len(wrapper['pets']) - 1)
             is_success = random.random() < prob
+
+            # 실패했을 때만 합성 방어권을 시도 소모 (성공 시엔 소모하지 않음)
+            protected = False
+            if not is_success:
+                protected = await consume_item(interaction.user.id, SYNTH_PROTECT_ITEM, 1)
+
+            # 성공했거나(재료 소멸 후 상위 등급 획득), 방어에 실패한 경우에만 재료를 소멸시킴
+            if is_success or not protected:
+                indices_to_remove = sorted([idx1, idx2], reverse=True)
+                for i in indices_to_remove:
+                    wrapper['pets'].pop(i)
+                wrapper['active_idx'] = max(0, len(wrapper['pets']) - 1)
 
             if is_success:
                 new_type = random.choice(PET_POOLS[target_rarity])
@@ -85,6 +95,13 @@ class SynthesisCog(commands.Cog):
                 embed = discord.Embed(title="✨ 전설이 합성 대성공!! ✨", color=discord.Color.gold())
                 embed.description = f"희생된 두 마리의 힘이 모여...\n\n🎉 [{target_rarity}급] {new_type} 알이 탄생했습니다!\n*(새로운 알이 파티에 합류했습니다)*"
                 embed.set_thumbnail(url="https://i.imgur.com/2sR9O1j.gif")
+            elif protected:
+                embed = discord.Embed(title="🛡️ 합성 실패... 하지만 방어 성공!", color=discord.Color.blue())
+                embed.description = (
+                    "합성에 실패했지만 `합성 방어권`이 발동하여\n"
+                    "재료 전설이 두 마리가 무사히 보호되었습니다!\n"
+                    "*(합성 방어권 1개가 소모되었습니다)*"
+                )
             else:
                 embed = discord.Embed(title="💥 합성 실패...", color=discord.Color.dark_gray())
                 embed.description = "두 전설이의 힘이 엇갈려 폭발해버렸습니다...\n\n💀 합성에 사용된 두 마리의 전설이가 모두 소멸했습니다."
@@ -96,7 +113,7 @@ class SynthesisCog(commands.Cog):
         view = discord.ui.View(timeout=60)
         view.add_item(select)
 
-        await interaction.response.send_message("합성로에 넣을 전설이 두 마리를 선택하세요.\n⚠️ 주의: 합성 성공 여부와 상관없이 선택한 두 마리는 소멸합니다!", view=view, ephemeral=True)
+        await interaction.response.send_message("합성로에 넣을 전설이 두 마리를 선택하세요.\n⚠️ 주의: 합성 시 선택한 두 마리는 소멸합니다! (단, `합성 방어권` 보유 시 실패해도 재료가 보존됩니다)", view=view, ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(SynthesisCog(bot))

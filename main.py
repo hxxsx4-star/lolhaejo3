@@ -31,6 +31,7 @@ class LegendBot(commands.Bot):
             'cogs.petsystem.battle',          # 배틀 및 베팅 시스템
             'cogs.petsystem.achievement',     # ✨ 신규 업적 시스템
             'cogs.petsystem.cog_synthetis',   # 50회 업적 연동 합성
+            'cogs.petsystem.egg_shop',         # 알 상점 (합성 방어권 등 판매)
             'cogs.petsystem.cog_box',          # 기존 박스 (유지)
             'cogs.predict'
         ]
