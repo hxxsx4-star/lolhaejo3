@@ -5,16 +5,16 @@
 (ui_action.py 는 여기서 재노출하므로 기존 import 경로는 그대로 동작합니다.)
 """
 
-# 스탯 배율 계산은 utils.data.get_pet_stats 로 통합되었습니다.
-# (성급당 2배) 기존 `from .combat import get_pet_stats` 호출부 호환을 위해 여기서 재노출합니다.
-from utils.data import get_pet_stats
+# 스탯 계산은 utils.data 로 통합되었습니다. (성급당 2배 + 장비 보너스)
+# 기존 `from .combat import get_pet_stats` 호출부 호환을 위해 여기서 재노출합니다.
+from utils.data import get_pet_stats, get_pet_total_stats
 
 
 def calc_pet_power(pet_data):
-    """단일 전설이의 순수 스탯 총합(전투력). 팀 선발 정렬 등에 사용합니다."""
+    """단일 전설이의 스탯 총합(전투력, 장비 포함). 팀 선발 정렬 등에 사용합니다."""
     if pet_data.get('level', 0) == 0:
         return 0
-    stats = get_pet_stats(pet_data['type'], pet_data['level'])
+    stats = get_pet_total_stats(pet_data)
     return stats['AD'] + stats['DF'] + stats['AP'] + stats['MR']
 
 
@@ -34,8 +34,8 @@ def calc_team_battle_score(team, enemy_team):
     - 우리 팀 총 AP 는 상대 팀 평균 MR 로 감쇄
     성급/등급이 아니라 실제 스탯 상성(공격 vs 방어)이 승패를 좌우합니다.
     """
-    team_stats = [get_pet_stats(p['type'], p['level']) for p in team if p.get('level', 0) > 0]
-    enemy_stats = [get_pet_stats(p['type'], p['level']) for p in enemy_team if p.get('level', 0) > 0]
+    team_stats = [get_pet_total_stats(p) for p in team if p.get('level', 0) > 0]
+    enemy_stats = [get_pet_total_stats(p) for p in enemy_team if p.get('level', 0) > 0]
     if not team_stats:
         return 0.0
 

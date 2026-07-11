@@ -4,9 +4,9 @@ from discord import app_commands
 import asyncio
 import random
 
-from utils.database import get_or_migrate_data, add_item, consume_item, get_item_amount, set_item_amount
+from utils.database import get_or_migrate_data, add_item, consume_item, get_item_amount, set_item_amount, save_legend_data
+from utils.data import EQUIPMENTS
 from .combat import calc_pet_power, calc_win_rate
-from utils.stats import add_points
 
 class BetView(discord.ui.View):
     def __init__(self, p1: discord.Member, p2: discord.Member):
@@ -42,8 +42,26 @@ class BattleCog(commands.Cog):
         self.active_battles = set()
 
     def calc_pet_power(self, pet_data):
-        # 팀 선발(강한 5마리 정렬)용 순수 스탯 총합. 실제 승패는 combat.calc_win_rate 가 결정.
+        # 팀 선발(강한 5마리 정렬)용 스탯 총합(장비 포함). 실제 승패는 combat.calc_win_rate 가 결정.
         return calc_pet_power(pet_data)
+
+    async def _apply_win_stacks(self, user_id, wrapper, team):
+        """승리한 팀의 참전 펫이 장착한 특수 장비(메자이/오만 등)의 누적 스택을 +1 합니다."""
+        msgs = []
+        changed = False
+        for pet in team:
+            for eq in pet.get('equipment', []) or []:
+                sp = EQUIPMENTS.get(eq, {}).get('special')
+                if not sp:
+                    continue
+                stacks = pet.setdefault('equip_stacks', {})
+                stacks[eq] = stacks.get(eq, 0) + 1
+                changed = True
+                total_bonus = stacks[eq] * sp['per_win']
+                msgs.append(f"📈 {pet.get('name', '?')}의 [{eq}] 스택 +1 ({sp['stat']} +{total_bonus} 누적)")
+        if changed:
+            await save_legend_data(user_id, wrapper)
+        return msgs
 
     @app_commands.command(name="배틀1vs1", description="내 전설이 한 마리를 선택해 상대방과 1vs1 배틀을 벌입니다.")
     async def battle_1v1(self, interaction: discord.Interaction, 상대: discord.Member):
@@ -84,7 +102,7 @@ class BattleCog(commands.Cog):
 
                 # defer 이후이므로 response.edit_message 대신에 부모 메시지를 직접 수정합니다.
                 await p2_inter.message.edit(content="✅ 방어 전설이 선택 완료! 배틀을 시작합니다.", view=None)
-                await self.run_battle(inter.channel, interaction.user, 상대, [p1_chosen_pet], [p2_chosen_pet], is_5v5=False)
+                await self.run_battle(inter.channel, interaction.user, 상대, [p1_chosen_pet], [p2_chosen_pet], p1_data, p2_data, is_5v5=False)
             p2_select.callback = p2_callback
         select.callback = p1_callback
 
@@ -126,11 +144,11 @@ class BattleCog(commands.Cog):
                 await inter.response.defer()
 
                 await inter.message.edit(content="🔥 배틀이 시작됩니다!", view=None)
-                await self.cog.run_battle(inter.channel, interaction.user, 상대, p1_team, p2_team, is_5v5=True)
+                await self.cog.run_battle(inter.channel, interaction.user, 상대, p1_team, p2_team, p1_data, p2_data, is_5v5=True)
 
         await interaction.response.send_message(f"⚔️ {상대.mention}! {interaction.user.mention}님이 5vs5 총력전을 신청했습니다!\n*(규칙: 서로 다른 펫 5마리 출전)*", view=AcceptView(self))
 
-    async def run_battle(self, channel, p1, p2, p1_team, p2_team, is_5v5):
+    async def run_battle(self, channel, p1, p2, p1_team, p2_team, p1_data, p2_data, is_5v5):
         self.active_battles.add(p1.id); self.active_battles.add(p2.id)
         try:
             # 스탯 상성 기반 승률: 우리 팀 AD/AP 를 상대 팀 DF/MR 로 감쇄한 유효 전투력으로 계산
@@ -172,11 +190,19 @@ class BattleCog(commands.Cog):
                             await set_item_amount(uid, "서사급 알", 0)
                             bet_results.append(f"🔴 {member.display_name} (서사알 전부 파산!)")
 
+            # 승리 보상: 서사급 알 1,000개 지급
+            await add_item(winner.id, "서사급 알", 1000)
+
+            # 메자이/오만 등 특수 장비의 배틀 승리 누적 스택 증가 (승리 팀의 참전 펫 한정)
+            winner_data = p1_data if p1_won else p2_data
+            winner_team = p1_team if p1_won else p2_team
+            stack_msgs = await self._apply_win_stacks(winner.id, winner_data, winner_team)
+
             result_embed = discord.Embed(title=battle_title, color=discord.Color.green())
-            result_embed.description = f"🎉 치열한 접전 끝에 {winner.mention}님의 승리! (전리품 10P 획득)\n"
+            result_embed.description = f"🎉 치열한 접전 끝에 {winner.mention}님의 승리! (전리품 서사급 알 1,000개 획득)\n"
+            if stack_msgs: result_embed.description += "\n".join(stack_msgs) + "\n"
             if bet_results: result_embed.add_field(name="📊 베팅 결과", value="\n".join(bet_results), inline=False)
 
-            await add_points(winner.id, 10)
             await battle_msg.edit(embed=result_embed, view=None)
 
         finally:

@@ -80,15 +80,105 @@ PET_STATS = {
 }
 
 def get_pet_stats(pet_type: str, level: int) -> dict:
-    """전설이 종류/레벨에 따른 최종 스탯을 계산합니다.
+    """전설이 종류/레벨에 따른 기본 스탯을 계산합니다. (장비 미포함)
 
     💡 성급이 오를 때마다 모든 능력치가 2배가 됩니다.
        (1성 = 기본 스탯, 2성 = ×2, 3성 = ×4)
-    스탯 명령·상태창·배틀이 모두 이 함수를 공유합니다.
     """
     base = PET_STATS.get(pet_type, {"AD": 5, "DF": 5, "AP": 5, "MR": 5})
     multiplier = 2 ** (level - 1) if level > 0 else 1  # 0성(알)은 기본 스탯 그대로
     return {stat: int(value * multiplier) for stat, value in base.items()}
+
+# ==========================================
+# 💡 장비 시스템
+# ==========================================
+# 전설이 한 마리당 장비는 최대 MAX_EQUIP_PER_PET 개, 등급 무관하게 아무거나 장착 가능.
+MAX_EQUIP_PER_PET = 3
+
+# 장비 정보: 이름 -> {rarity, stats, (special)}
+#   special = {"stat": 증가스탯, "per_win": 배틀 승리 1회당 증가량} (메자이/오만 전용 누적)
+EQUIPMENTS = {
+    # --- 서사 ---
+    "천 갑옷": {"rarity": "서사", "stats": {"DF": 10}},
+    "롱소드": {"rarity": "서사", "stats": {"AD": 10}},
+    "마법무효화의 망토": {"rarity": "서사", "stats": {"MR": 10}},
+    "증폭의 고서": {"rarity": "서사", "stats": {"AP": 10}},
+    # --- 전설 ---
+    "도란의 검": {"rarity": "전설", "stats": {"AD": 25}},
+    "도란의 반지": {"rarity": "전설", "stats": {"AP": 25}},
+    "도란의 투구": {"rarity": "전설", "stats": {"MR": 25}},
+    "도란의 방패": {"rarity": "전설", "stats": {"DF": 25}},
+    # --- 신화 ---
+    "톱날 단검": {"rarity": "신화", "stats": {"AD": 63}},
+    "사라진 양피지": {"rarity": "신화", "stats": {"AP": 63}},
+    "덤불 조끼": {"rarity": "신화", "stats": {"DF": 63}},
+    "음전자 망토": {"rarity": "신화", "stats": {"MR": 63}},
+    # --- 프레스티지 ---
+    "삼위일체": {"rarity": "프레스티지", "stats": {"AD": 70, "DF": 70, "MR": 70}},
+    "징수의 총": {"rarity": "프레스티지", "stats": {"AD": 210}},
+    "지평선의 초점": {"rarity": "프레스티지", "stats": {"AP": 210}},
+    "존야의 모래시계": {"rarity": "프레스티지", "stats": {"AP": 105, "DF": 105}},
+    "해신 작쇼": {"rarity": "프레스티지", "stats": {"DF": 105, "MR": 105}},
+    "공허한 광휘": {"rarity": "프레스티지", "stats": {"MR": 210}},
+    "태양불꽃 방패": {"rarity": "프레스티지", "stats": {"DF": 210}},
+    # --- 고귀 ---
+    "메자이의 영혼약탈자": {"rarity": "고귀", "stats": {"AP": 200}, "special": {"stat": "AP", "per_win": 5}},
+    "오만": {"rarity": "고귀", "stats": {"AD": 200}, "special": {"stat": "AD", "per_win": 5}},
+    "자객의 발톱": {"rarity": "고귀", "stats": {"AD": 500}},
+    "거대한 히드라": {"rarity": "고귀", "stats": {"AD": 200, "DF": 200, "MR": 100}},
+    "승천의 부적": {"rarity": "고귀", "stats": {"AD": 150, "DF": 150, "MR": 200}},
+    "라이트쉴드 문장": {"rarity": "고귀", "stats": {"DF": 250, "MR": 250}},
+    # --- 초월 ---
+    "우글렛의 마녀 모자": {"rarity": "초월", "stats": {"AP": 1000}},
+    "황금 뒤집개": {"rarity": "초월", "stats": {"AD": 250, "DF": 250, "AP": 250, "MR": 250}},
+}
+
+# 장비 구매 가격 (등급별, 서사급 알로 결제)
+EQUIP_PRICE = {
+    "서사": 100,
+    "전설": 1000,
+    "신화": 10000,
+    "프레스티지": 500000,
+    "고귀": 100000,
+    "초월": 500000,
+}
+
+def format_equip_effect(name: str) -> str:
+    """장비 효과를 사람이 읽기 좋은 문자열로 변환합니다."""
+    info = EQUIPMENTS.get(name)
+    if not info:
+        return "-"
+    parts = [f"{stat} +{val}" for stat, val in info["stats"].items()]
+    sp = info.get("special")
+    if sp:
+        parts.append(f"배틀 승리당 {sp['stat']} +{sp['per_win']} 누적")
+    return ", ".join(parts)
+
+def get_equipment_bonus(pet: dict) -> dict:
+    """전설이가 장착한 장비들의 합산 스탯 보너스(특수 누적 포함)를 반환합니다."""
+    bonus = {"AD": 0, "DF": 0, "AP": 0, "MR": 0}
+    equipped = pet.get("equipment", []) or []
+    stacks = pet.get("equip_stacks", {}) or {}
+    for name in equipped:
+        info = EQUIPMENTS.get(name)
+        if not info:
+            continue
+        for stat, val in info["stats"].items():
+            bonus[stat] = bonus.get(stat, 0) + val
+        sp = info.get("special")
+        if sp:
+            n = stacks.get(name, 0)
+            bonus[sp["stat"]] = bonus.get(sp["stat"], 0) + sp["per_win"] * n
+    return bonus
+
+def get_pet_total_stats(pet: dict) -> dict:
+    """기본 스탯(성급 배율) + 장비 보너스를 합친 전설이의 최종 스탯입니다.
+
+    스탯 명령·상태창·배틀이 모두 이 함수를 공유합니다.
+    """
+    base = get_pet_stats(pet.get("type"), pet.get("level", 0))
+    bonus = get_equipment_bonus(pet)
+    return {stat: base.get(stat, 0) + bonus.get(stat, 0) for stat in ("AD", "DF", "AP", "MR")}
 
 # 💡 레벨별 필요 경험치 (고귀, 초월 가용 테이블 연동)
 EXP_TABLE = {

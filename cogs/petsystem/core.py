@@ -5,7 +5,7 @@ import random
 import time
 import aiosqlite
 
-from utils.data import PET_POOLS, EXP_TABLE
+from utils.data import PET_POOLS, EXP_TABLE, MAX_EQUIP_PER_PET, get_pet_total_stats
 from utils.database import get_or_migrate_data, get_active_buffs, save_legend_data, update_max_star
 # 변경된 모듈 임포트
 from .ui_action import LegendActionView, get_pet_stats
@@ -304,8 +304,11 @@ class PetSystemCog(commands.Cog):
 
             if level == 0: embed.add_field(name=f"[{i+1}] 🥚 {pet_name} (알)", value="아직 부화하지 않아 스탯이 없습니다.", inline=False)
             else:
-                stats = get_pet_stats(pet_type, level)
+                stats = get_pet_total_stats(pet)
                 stats_str = f"⚔️ 공격력(AD): {stats['AD']} | 🛡️ 방어력(DF): {stats['DF']}\n✨ 주문력(AP): {stats['AP']} | 🌀 마법저항력(MR): {stats['MR']}"
+                equipped = pet.get('equipment', []) or []
+                if equipped:
+                    stats_str += f"\n🎽 장비({len(equipped)}/{MAX_EQUIP_PER_PET}): " + ", ".join(equipped)
                 embed.add_field(name=f"[{i+1}] {pet_name} ({level}성 {pet_type})", value=stats_str, inline=False)
 
         await interaction.response.send_message(embed=embed, ephemeral=False)
