@@ -79,6 +79,17 @@ PET_STATS = {
     "💜 불멸의 전설 카이사": {"AD": 300, "DF": 100, "AP": 297, "MR": 100}
 }
 
+def get_pet_stats(pet_type: str, level: int) -> dict:
+    """전설이 종류/레벨에 따른 최종 스탯을 계산합니다.
+
+    💡 성급이 오를 때마다 모든 능력치가 2배가 됩니다.
+       (1성 = 기본 스탯, 2성 = ×2, 3성 = ×4)
+    스탯 명령·상태창·배틀이 모두 이 함수를 공유합니다.
+    """
+    base = PET_STATS.get(pet_type, {"AD": 5, "DF": 5, "AP": 5, "MR": 5})
+    multiplier = 2 ** (level - 1) if level > 0 else 1  # 0성(알)은 기본 스탯 그대로
+    return {stat: int(value * multiplier) for stat, value in base.items()}
+
 # 💡 레벨별 필요 경험치 (고귀, 초월 가용 테이블 연동)
 EXP_TABLE = {
     "서사": {0: 100, 1: 10000, 2: 15000, 3: 0},

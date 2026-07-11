@@ -5,22 +5,9 @@
 (ui_action.py 는 여기서 재노출하므로 기존 import 경로는 그대로 동작합니다.)
 """
 
-from utils.data import PET_STATS
-
-
-def get_pet_stats(pet_type, level):
-    """전설이 종류/레벨에 따른 최종 스탯을 계산합니다.
-
-    레벨 배율: 알(0성)=1배, 1성=1.5배, 2성=2.5배, 3성=3.5배
-    """
-    base_stats = PET_STATS.get(pet_type, {"AD": 5, "DF": 5, "AP": 5, "MR": 5})
-    multiplier = (1.5 + max(0, level - 1)) if level > 0 else 1
-    return {
-        "AD": int(base_stats["AD"] * multiplier),
-        "DF": int(base_stats["DF"] * multiplier),
-        "AP": int(base_stats["AP"] * multiplier),
-        "MR": int(base_stats["MR"] * multiplier),
-    }
+# 스탯 배율 계산은 utils.data.get_pet_stats 로 통합되었습니다.
+# (성급당 2배) 기존 `from .combat import get_pet_stats` 호출부 호환을 위해 여기서 재노출합니다.
+from utils.data import get_pet_stats
 
 
 def calc_pet_power(pet_data):

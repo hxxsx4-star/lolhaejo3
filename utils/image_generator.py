@@ -4,7 +4,7 @@ import aiohttp
 from PIL import Image, ImageDraw, ImageFont
 import discord
 import textwrap
-from utils.data import PET_IMAGES, PET_IMAGES_EVOLVED, EXP_TABLE, PET_STATS, RARITY_IMAGES
+from utils.data import PET_IMAGES, PET_IMAGES_EVOLVED, EXP_TABLE, RARITY_IMAGES, get_pet_stats
 
 # 다운로드한 이미지를 저장해둘 캐시 메모리 딕셔너리 생성 (속도 최적화)
 IMAGE_CACHE = {}
@@ -72,7 +72,7 @@ async def generate_status_image(data, points, buffs, is_annoyed, is_diseased, cu
     current_exp = data.get('exp', 0)
     max_exp = EXP_TABLE.get(rarity, {}).get(level, 100) if level < 3 else 1
     exp_percent = min(100, (current_exp / max_exp) * 100) if level < 3 else 100
-    stats = PET_STATS.get(pet_type, {"AD": 0, "DF": 0, "AP": 0, "MR": 0})
+    stats = get_pet_stats(pet_type, level)  # 성급 배율이 적용된 현재 스탯
 
     # 깨지는 이모지(특수문자) 제거: 첫 띄어쓰기를 기준으로 뒤쪽 텍스트만 사용
     pet_type_clean = pet_type.split(" ", 1)[-1] if " " in pet_type else pet_type
