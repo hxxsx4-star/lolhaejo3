@@ -6,6 +6,11 @@ DB_PATH = 'legends.db'
 
 async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
+        # 봇과 웹서버(별개 프로세스)가 같은 DB를 동시에 읽고 써도 서로 막히지 않도록 WAL 모드 사용.
+        # WAL 은 DB 헤더에 저장되어 영구 적용되며, 읽기는 쓰기를 막지 않아 동기화가 즉각적입니다.
+        await db.execute("PRAGMA journal_mode=WAL")
+        await db.execute("PRAGMA synchronous=NORMAL")
+        await db.execute("PRAGMA busy_timeout=5000")
         # 💡 기존 전설이/유저 관련 테이블
         await db.execute('''CREATE TABLE IF NOT EXISTS users
                      (user_id INTEGER PRIMARY KEY, points INTEGER, max_star_reached INTEGER,

@@ -58,7 +58,13 @@ _jinja = Environment(
 
 
 def render(name: str, **ctx) -> HTMLResponse:
-    return HTMLResponse(_jinja.get_template(name).render(**ctx))
+    resp = HTMLResponse(_jinja.get_template(name).render(**ctx))
+    # 대시보드/랭킹은 매번 최신 DB 상태를 보여줘야 하므로 브라우저 캐시를 끕니다.
+    # (뒤로가기·새로고침 시 예전 스탯이 남아 "동기화가 안 된 것처럼" 보이는 문제 방지)
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
 
 
 @app.on_event("startup")
