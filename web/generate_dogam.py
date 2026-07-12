@@ -153,5 +153,9 @@ footer{{text-align:center;margin-top:60px;padding-top:24px;border-top:1px solid 
 out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dogam.html")
 import os
 os.makedirs(os.path.dirname(out), exist_ok=True)
+# V2 확장(검색/정렬/배틀 시뮬레이터) 자동 적용
+from dogam_v2 import patch_html
+HTML = patch_html(HTML)
+
 open(out, "w", encoding="utf-8").write(HTML)
 print("생성 완료:", out, f"({len(HTML):,} bytes)")

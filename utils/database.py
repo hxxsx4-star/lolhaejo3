@@ -25,6 +25,17 @@ async def init_db():
         await db.execute('''CREATE TABLE IF NOT EXISTS user_achievements
                      (user_id INTEGER PRIMARY KEY, synth_count INTEGER DEFAULT 0)''')
 
+        # 💡 원정 시스템: 유저당 1개의 진행 중 원정
+        await db.execute('''CREATE TABLE IF NOT EXISTS expeditions
+                     (user_id INTEGER PRIMARY KEY, pet_name TEXT, pet_type TEXT,
+                     pet_level INTEGER, power INTEGER, start_ts REAL, duration_h INTEGER)''')
+
+        # 💡 일일 퀘스트: 유저·날짜별 진행도 (claimed = 수령한 퀘스트 비트마스크)
+        await db.execute('''CREATE TABLE IF NOT EXISTS daily_quests
+                     (user_id INTEGER, qdate TEXT, walk INTEGER DEFAULT 0,
+                     care INTEGER DEFAULT 0, battle INTEGER DEFAULT 0,
+                     claimed INTEGER DEFAULT 0, PRIMARY KEY (user_id, qdate))''')
+
         # 💡 승부예측 시스템 관련 테이블
         await db.execute('''CREATE TABLE IF NOT EXISTS betting_sessions
                      (topic TEXT PRIMARY KEY, option_a TEXT, option_b TEXT, status TEXT, message_id INTEGER, channel_id INTEGER)''')
@@ -153,6 +164,57 @@ async def get_top_epic_egg_owners():
     async with aiosqlite.connect(DB_PATH) as db:
         async with db.execute("SELECT user_id, amount FROM user_items WHERE item_name = '서사급 알' ORDER BY amount DESC LIMIT 5") as cursor:
             return await cursor.fetchall()
+
+# ==========================================
+# 💡 원정 시스템 전용 함수
+# ==========================================
+
+async def start_expedition(user_id, pet_name, pet_type, pet_level, power, duration_h):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('''INSERT OR REPLACE INTO expeditions
+                     (user_id, pet_name, pet_type, pet_level, power, start_ts, duration_h)
+                     VALUES (?, ?, ?, ?, ?, ?, ?)''',
+                     (user_id, pet_name, pet_type, pet_level, power, time.time(), duration_h))
+        await db.commit()
+
+async def get_expedition(user_id):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM expeditions WHERE user_id = ?", (user_id,)) as cursor:
+            return await cursor.fetchone()
+
+async def clear_expedition(user_id):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("DELETE FROM expeditions WHERE user_id = ?", (user_id,))
+        await db.commit()
+
+# ==========================================
+# 💡 일일 퀘스트 전용 함수
+# ==========================================
+
+async def add_quest_progress(user_id, qdate: str, field: str, amount: int = 1):
+    """일일 퀘스트 진행도를 누적합니다. field는 walk/care/battle 중 하나."""
+    if field not in ("walk", "care", "battle"):
+        return
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(f'''INSERT INTO daily_quests (user_id, qdate, {field})
+                     VALUES (?, ?, ?)
+                     ON CONFLICT(user_id, qdate) DO UPDATE SET {field} = {field} + ?''',
+                     (user_id, qdate, amount, amount))
+        await db.commit()
+
+async def get_quest_row(user_id, qdate: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM daily_quests WHERE user_id = ? AND qdate = ?", (user_id, qdate)) as cursor:
+            return await cursor.fetchone()
+
+async def set_quest_claimed(user_id, qdate: str, claimed_mask: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('''INSERT INTO daily_quests (user_id, qdate, claimed) VALUES (?, ?, ?)
+                     ON CONFLICT(user_id, qdate) DO UPDATE SET claimed = ?''',
+                     (user_id, qdate, claimed_mask, claimed_mask))
+        await db.commit()
 
 # ==========================================
 # 💡 승부예측 전용 함수 모음

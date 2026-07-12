@@ -7,6 +7,7 @@ import random
 from utils.database import get_or_migrate_data, add_item, consume_item, get_item_amount, set_item_amount, save_legend_data
 from utils.data import EQUIPMENTS
 from .combat import calc_pet_power, calc_win_rate
+from .daily_quest import quest_hook
 
 class BetView(discord.ui.View):
     def __init__(self, p1: discord.Member, p2: discord.Member):
@@ -192,6 +193,10 @@ class BattleCog(commands.Cog):
 
             # 승리 보상: 서사급 알 1,000개 지급
             await add_item(winner.id, "서사급 알", 1000)
+
+            # 일일 퀘스트 진행도: 양측 모두 '배틀 참여' 인정
+            await quest_hook(p1.id, 'battle', 1)
+            await quest_hook(p2.id, 'battle', 1)
 
             # 메자이/오만 등 특수 장비의 배틀 승리 누적 스택 증가 (승리 팀의 참전 펫 한정)
             winner_data = p1_data if p1_won else p2_data

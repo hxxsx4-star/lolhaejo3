@@ -10,6 +10,7 @@ from utils.logs import WALK_LOG_CH, send_log_embed
 from utils.stats import get_points, add_points, spend_points
 from utils.image_generator import generate_status_image
 from .locks import get_user_lock
+from .daily_quest import quest_hook
 
 # 전투/스탯 계산 로직은 combat.py 로 분리되었습니다.
 # 기존 `from .ui_action import get_pet_stats` 호출부 호환을 위해 여기서 재노출합니다.
@@ -84,6 +85,7 @@ class LegendActionView(discord.ui.View):
             if not success: return await interaction.followup.send("❌ 밥값(5P)이 부족합니다!", ephemeral=True)
             data['fullness'] = min(100, data.get('fullness', 0) + 20)
             await save_legend_data(self.user_id, wrapper)
+            await quest_hook(self.user_id, 'care', 1)
             await self.update_status_message(interaction, data, popup_msg=f"🍚 {data['name']}(이)가 맛있게 밥을 먹었습니다! (포만도 +20, 밥값 -5P)")
 
     @discord.ui.button(label="샤워하기 (10P)", style=discord.ButtonStyle.primary, emoji="🚿", row=0)
@@ -96,6 +98,7 @@ class LegendActionView(discord.ui.View):
             if not success: return await interaction.followup.send("❌ 수도세(10P)가 부족합니다!", ephemeral=True)
             data['cleanliness'] = min(100, data.get('cleanliness', 0) + 20)
             await save_legend_data(self.user_id, wrapper)
+            await quest_hook(self.user_id, 'care', 1)
             await self.update_status_message(interaction, data, popup_msg=f"🚿 {data['name']}(이)가 깨끗해졌습니다! (청결도 +20, 수도세 -10P)")
 
     async def handle_walk(self, interaction: discord.Interaction, num_walks: int):
@@ -191,6 +194,7 @@ class LegendActionView(discord.ui.View):
         for rarity, item_name in found_items: await add_item(user_id, item_name, 1)
 
         await save_legend_data(self.user_id, wrapper)
+        await quest_hook(user_id, 'walk', num_walks)
 
         result_embed = discord.Embed(title="🐾 산책 결과", color=discord.Color.green())
         desc = f"{data['name']}(와)과 {num_walks}회 산책했습니다!\n"

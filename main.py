@@ -34,6 +34,8 @@ class LegendBot(commands.Bot):
             'cogs.petsystem.egg_shop',         # 알 상점 (합성 방어권 / 장비 판매)
             'cogs.petsystem.equipment',        # 장비 장착/해제 시스템
             'cogs.petsystem.patchnote',        # 패치노트 이미지 게시
+            'cogs.petsystem.expedition',       # 원정 시스템
+            'cogs.petsystem.daily_quest',      # 일일 퀘스트
             'cogs.petsystem.cog_box',          # 기존 박스 (유지)
             'cogs.predict'
         ]

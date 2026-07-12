@@ -26,6 +26,24 @@ def guess_mime(url: str) -> str:
     return "image/png"
 
 
+def compress(data: bytes) -> tuple[bytes, str]:
+    """이미지를 카드 표시 크기(360px)로 축소하고 WEBP로 재압축합니다.
+
+    18MB -> 약 1MB 수준으로 줄어 웹 배포에 적합해집니다.
+    Pillow가 없으면 원본 그대로 반환합니다.
+    """
+    try:
+        import io
+        from PIL import Image
+        im = Image.open(io.BytesIO(data)).convert("RGBA")
+        im.thumbnail((360, 360))
+        buf = io.BytesIO()
+        im.save(buf, "WEBP", quality=80, method=6)
+        return buf.getvalue(), "image/webp"
+    except Exception:
+        return data, ""
+
+
 def main():
     html = open(SRC, encoding="utf-8").read()
     urls = sorted(set(re.findall(r'https://i\.ibb\.co/[^\s"\'<>]+', html)))
@@ -36,8 +54,10 @@ def main():
         try:
             req = urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0"})
             data = urllib.request.urlopen(req, timeout=25).read()
+            data, mime = compress(data)
+            mime = mime or guess_mime(u)
             b64 = base64.b64encode(data).decode()
-            html = html.replace(u, f"data:{guess_mime(u)};base64,{b64}")
+            html = html.replace(u, f"data:{mime};base64,{b64}")
             ok += 1
             print(f"  ✔ {u}  ({len(data):,} bytes)")
         except Exception as e:

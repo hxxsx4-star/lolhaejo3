@@ -59,6 +59,37 @@ background:linear-gradient(95deg,#ff6b6b,#ffe14e,#4f9dff,#b96bff);padding:3px 8p
 .eeff{color:var(--dim);text-align:right;}
 footer{text-align:center;margin-top:60px;padding-top:24px;border-top:1px solid var(--border);color:var(--faint);font-size:13px;}
 @media (max-width:520px){.petgrid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));}}
+
+/* ── V2: 검색/정렬 툴바 ── */
+.toolbar{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin:2px 0 8px;}
+.searchbox{width:min(420px,86vw);padding:11px 18px;border-radius:100px;border:1px solid var(--border2);
+background:var(--surface);color:var(--text);font-size:15px;font-family:inherit;outline:none;}
+.searchbox::placeholder{color:var(--faint);}
+.sortbtn{padding:11px 18px;border-radius:100px;border:1px solid var(--border2);background:var(--surface);
+color:var(--dim);font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;}
+.sortbtn.on{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 45%,transparent);}
+.nohit{display:none;text-align:center;color:var(--faint);padding:30px 0;}
+/* ── V2: 배틀 시뮬레이터 ── */
+.sim{margin-top:60px;scroll-margin-top:80px;}
+.sim h2{font-size:24px;font-weight:900;margin:0 0 6px;}
+.sim .simdesc{color:var(--dim);font-size:14px;margin:0 0 18px;}
+.simgrid{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:stretch;}
+.fighter{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:10px;}
+.fighter h3{margin:0 0 2px;font-size:15px;font-weight:800;letter-spacing:.06em;}
+.fighter select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);
+background:var(--surface2);color:var(--text);font-size:14px;font-family:inherit;}
+.fighter .fstats{font-size:13px;color:var(--dim);line-height:1.7;min-height:44px;}
+.fighter .fstats b{color:var(--text);font-variant-numeric:tabular-nums;}
+.vsmid{display:grid;place-items:center;font-weight:900;color:var(--gold);font-size:22px;padding:0 4px;}
+.simres{margin-top:16px;background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:18px 20px;}
+.simbar{display:flex;height:26px;border-radius:100px;overflow:hidden;border:1px solid var(--border2);margin-top:10px;}
+.simbar .ba{background:linear-gradient(90deg,#4f9dff,#38d6c2);}
+.simbar .bb{background:linear-gradient(90deg,#ff9d4e,#e5484d);}
+.simlabels{display:flex;justify-content:space-between;font-weight:900;font-size:18px;margin-top:8px;}
+.simlabels .la{color:#4fd6c8;} .simlabels .lb{color:#ff8a6b;}
+.simnote{color:var(--faint);font-size:12px;margin-top:10px;}
+@media (max-width:640px){.simgrid{grid-template-columns:1fr;}.vsmid{padding:2px 0;}}
+
 </style></head><body>
 <div class="wrap">
   <header class="hero">
@@ -67,6 +98,14 @@ footer{text-align:center;margin-top:60px;padding-top:24px;border-top:1px solid v
     <p>전체 <span class="count">45종</span>의 전설이와 <span class="count">27종</span>의 장비</p>
   </header>
   <nav class="gnav"><a href="#g0" class="navchip" style="--c:#3d8bf0"><span class="dot"></span>서사</a><a href="#g1" class="navchip" style="--c:#e5484d"><span class="dot"></span>전설</a><a href="#g2" class="navchip" style="--c:#a855f7"><span class="dot"></span>신화</a><a href="#g3" class="navchip" style="--c:#f0b73f"><span class="dot"></span>프레스티지</a><a href="#g4" class="navchip grad" style="--c:#2fb8a8;--g:linear-gradient(95deg,#f5d64a,#38d6c2)"><span class="dot"></span><span class="nm">고귀</span></a><a href="#g5" class="navchip grad" style="--c:#a56bff;--g:linear-gradient(95deg,#ff6b6b,#ffb14e,#ffe14e,#4fe08a,#4f9dff,#b96bff)"><span class="dot"></span><span class="nm">초월</span></a><a href="#equip" class="navchip" style="--c:#f2c268"><span class="dot"></span>장비</a></nav>
+
+<div class="toolbar">
+  <input class="searchbox" id="dsearch" type="search" placeholder="🔍 전설이 이름 검색 (예: 아리)">
+  <button class="sortbtn" id="dsort">📊 스탯순 정렬</button>
+  <a class="sortbtn" href="#sim">⚔️ 배틀 시뮬레이터</a>
+</div>
+<div class="nohit" id="dnohit">검색 결과가 없습니다 🥲</div>
+
   <section id="g0" class="grade">
       <div class="ghead"><span class="gbar" style="background:#3d8bf0"></span>
         <h2>서사</h2><span class="gcount">5종</span></div>
@@ -380,5 +419,96 @@ footer{text-align:center;margin-top:60px;padding-top:24px;border-top:1px solid v
           <div class="ehead"><span class="gbar" style="background:linear-gradient(95deg,#ff6b6b,#ffb14e,#ffe14e,#4fe08a,#4f9dff,#b96bff)"></span>
             <h3>초월 장비</h3><span class="eprice">서사급 알 500,000</span></div>
           <div class="erow"><span class="ename">우글렛의 마녀 모자</span><span class="eeff">AP +1000</span></div><div class="erow"><span class="ename">황금 뒤집개</span><span class="eeff">AD +250, DF +250, AP +250, MR +250</span></div></div></div></section>
-  <footer>전설이 키우기 · 전설이 도감 · 총 45종</footer>
-</div></body></html>
+  
+<section id="sim" class="sim">
+  <h2>⚔️ 배틀 시뮬레이터</h2>
+  <p class="simdesc">봇의 실제 배틀 공식 그대로! 전설이·성급·장비를 골라 승률을 미리 계산해보세요.</p>
+  <div class="simgrid">
+    <div class="fighter" id="fA"><h3 style="color:#4fd6c8">🔵 내 전설이</h3></div>
+    <div class="vsmid">VS</div>
+    <div class="fighter" id="fB"><h3 style="color:#ff8a6b">🔴 상대 전설이</h3></div>
+  </div>
+  <div class="simres" id="simres">👆 양쪽 전설이를 선택하면 승률이 표시됩니다.</div>
+  <p class="simnote">※ 메자이/오만의 배틀 승리 누적 스택은 계산에 포함되지 않습니다 (기본 수치만 반영).</p>
+</section>
+
+<footer>전설이 키우기 · 전설이 도감 · 총 45종</footer>
+</div><script>
+const DOGAM={"pets": [{"name": "🐧 펭구", "rarity": "서사", "AD": 15, "DF": 15, "AP": 15, "MR": 15}, {"name": "🗡️ 깃털기사", "rarity": "서사", "AD": 25, "DF": 10, "AP": 5, "MR": 10}, {"name": "🦄 뿔보", "rarity": "서사", "AD": 10, "DF": 25, "AP": 5, "MR": 20}, {"name": "👻 말랑이", "rarity": "서사", "AD": 5, "DF": 10, "AP": 25, "MR": 15}, {"name": "🐢 꾸릉이", "rarity": "서사", "AD": 10, "DF": 30, "AP": 5, "MR": 20}, {"name": "🥷 미니 아칼리", "rarity": "전설", "AD": 48, "DF": 18, "AP": 42, "MR": 19}, {"name": "⚔️ 미니 요네", "rarity": "전설", "AD": 60, "DF": 27, "AP": 13, "MR": 27}, {"name": "✨ 미니 럭스", "rarity": "전설", "AD": 13, "DF": 20, "AP": 67, "MR": 27}, {"name": "🎸 미니 유나라", "rarity": "전설", "AD": 43, "DF": 24, "AP": 37, "MR": 24}, {"name": "🦊 미니 아리", "rarity": "전설", "AD": 19, "DF": 19, "AP": 58, "MR": 32}, {"name": "🍙 해방된 포로 뭉치", "rarity": "전설", "AD": 18, "DF": 45, "AP": 15, "MR": 45}, {"name": "🍄‍🟫 미니 티모", "rarity": "전설", "AD": 25, "DF": 14, "AP": 75, "MR": 13}, {"name": "👮‍♀️ 미니 케이틀린", "rarity": "전설", "AD": 88, "DF": 15, "AP": 10, "MR": 15}, {"name": "🗡️ 미니 카타리나", "rarity": "전설", "AD": 25, "DF": 13, "AP": 78, "MR": 13}, {"name": "🥱 미니 조이", "rarity": "전설", "AD": 22, "DF": 14, "AP": 80, "MR": 13}, {"name": "🪖 미니 이렐리아", "rarity": "전설", "AD": 46, "DF": 36, "AP": 12, "MR": 36}, {"name": "🐱 미니 유미", "rarity": "전설", "AD": 5, "DF": 13, "AP": 95, "MR": 12}, {"name": "⚙️ 미니 오리아나", "rarity": "전설", "AD": 18, "DF": 10, "AP": 92, "MR": 9}, {"name": "🍌 미니 바나나 소라카", "rarity": "신화", "AD": 26, "DF": 39, "AP": 92, "MR": 53}, {"name": "🌹 미니 수정 장미 그웬", "rarity": "신화", "AD": 50, "DF": 40, "AP": 50, "MR": 40}, {"name": "🏆 미니 T1 요네", "rarity": "신화", "AD": 115, "DF": 43, "AP": 29, "MR": 43}, {"name": "🗡️ 미니 불멸의 영웅 이렐리아", "rarity": "신화", "AD": 75, "DF": 35, "AP": 25, "MR": 35}, {"name": "🐮 내가 젖소 포로", "rarity": "신화", "AD": 30, "DF": 80, "AP": 30, "MR": 80}, {"name": "🌕 미니 핏빛 달 아트록스", "rarity": "신화", "AD": 55, "DF": 50, "AP": 50, "MR": 55}, {"name": "🎵 미니 칠현금 소나", "rarity": "신화", "AD": 25, "DF": 28, "AP": 145, "MR": 28}, {"name": "⚔️ 미니 전투사관학교 카타리나", "rarity": "신화", "AD": 45, "DF": 23, "AP": 140, "MR": 22}, {"name": "😈 미니 작은 악마 티모", "rarity": "신화", "AD": 30, "DF": 27, "AP": 145, "MR": 26}, {"name": "🤖 미니 우주 그루브 블리츠크랭크", "rarity": "신화", "AD": 45, "DF": 80, "AP": 25, "MR": 80}, {"name": "👼 프레스티지 미니 빛의 인도자 요네", "rarity": "프레스티지", "AD": 173, "DF": 72, "AP": 43, "MR": 72}, {"name": "🌸 프레스티지 미니 영혼의 꽃 아리", "rarity": "프레스티지", "AD": 43, "DF": 58, "AP": 173, "MR": 87}, {"name": "☕ 프레스티지 미니 귀염둥이 카페 그웬", "rarity": "프레스티지", "AD": 109, "DF": 72, "AP": 109, "MR": 72}, {"name": "🎧 미니 헤드라이너 K/DA POP/STAR 카이사", "rarity": "프레스티지", "AD": 120, "DF": 60, "AP": 120, "MR": 63}, {"name": "🔫 미니 프레스티지 핏빛 달 미스포츈", "rarity": "프레스티지", "AD": 220, "DF": 55, "AP": 34, "MR": 55}, {"name": "🐉 미니 프레스티지 용의 권 리신", "rarity": "프레스티지", "AD": 165, "DF": 90, "AP": 20, "MR": 90}, {"name": "🤺 미니 프레스티지 용술사 야스오", "rarity": "프레스티지", "AD": 180, "DF": 83, "AP": 20, "MR": 83}, {"name": "🧙 미니 프레스티지 아케인 열혈 팬 애니", "rarity": "프레스티지", "AD": 34, "DF": 50, "AP": 220, "MR": 60}, {"name": "🦸 미니 프레스티지 불멸의 영웅 리븐", "rarity": "프레스티지", "AD": 150, "DF": 98, "AP": 20, "MR": 98}, {"name": "💛 미니 프레스티지 도자기 수호자 이즈리얼", "rarity": "프레스티지", "AD": 200, "DF": 36, "AP": 90, "MR": 36}, {"name": "🔫 아케인 분열 징크스", "rarity": "고귀", "AD": 400, "DF": 50, "AP": 0, "MR": 50}, {"name": "🌊 찬란한 바다뱀 세트", "rarity": "고귀", "AD": 64, "DF": 220, "AP": 0, "MR": 220}, {"name": "🧑🏻‍🦲 산-우잘 모데카이저", "rarity": "고귀", "AD": 120, "DF": 120, "AP": 150, "MR": 113}, {"name": "💮 영혼의 꽃 모르가나", "rarity": "고귀", "AD": 40, "DF": 60, "AP": 340, "MR": 60}, {"name": "⚰️ 망령의 지배자 비에고", "rarity": "고귀", "AD": 200, "DF": 152, "AP": 0, "MR": 151}, {"name": "♥️ 불멸의 전설 아리", "rarity": "초월", "AD": 60, "DF": 100, "AP": 520, "MR": 120}, {"name": "💜 불멸의 전설 카이사", "rarity": "초월", "AD": 300, "DF": 100, "AP": 297, "MR": 100}], "equips": [{"name": "천 갑옷", "rarity": "서사", "stats": {"DF": 10}}, {"name": "롱소드", "rarity": "서사", "stats": {"AD": 10}}, {"name": "마법무효화의 망토", "rarity": "서사", "stats": {"MR": 10}}, {"name": "증폭의 고서", "rarity": "서사", "stats": {"AP": 10}}, {"name": "도란의 검", "rarity": "전설", "stats": {"AD": 25}}, {"name": "도란의 반지", "rarity": "전설", "stats": {"AP": 25}}, {"name": "도란의 투구", "rarity": "전설", "stats": {"MR": 25}}, {"name": "도란의 방패", "rarity": "전설", "stats": {"DF": 25}}, {"name": "톱날 단검", "rarity": "신화", "stats": {"AD": 63}}, {"name": "사라진 양피지", "rarity": "신화", "stats": {"AP": 63}}, {"name": "덤불 조끼", "rarity": "신화", "stats": {"DF": 63}}, {"name": "음전자 망토", "rarity": "신화", "stats": {"MR": 63}}, {"name": "삼위일체", "rarity": "프레스티지", "stats": {"AD": 70, "DF": 70, "MR": 70}}, {"name": "징수의 총", "rarity": "프레스티지", "stats": {"AD": 210}}, {"name": "지평선의 초점", "rarity": "프레스티지", "stats": {"AP": 210}}, {"name": "존야의 모래시계", "rarity": "프레스티지", "stats": {"AP": 105, "DF": 105}}, {"name": "해신 작쇼", "rarity": "프레스티지", "stats": {"DF": 105, "MR": 105}}, {"name": "공허한 광휘", "rarity": "프레스티지", "stats": {"MR": 210}}, {"name": "태양불꽃 방패", "rarity": "프레스티지", "stats": {"DF": 210}}, {"name": "메자이의 영혼약탈자", "rarity": "고귀", "stats": {"AP": 200}}, {"name": "오만", "rarity": "고귀", "stats": {"AD": 200}}, {"name": "자객의 발톱", "rarity": "고귀", "stats": {"AD": 500}}, {"name": "거대한 히드라", "rarity": "고귀", "stats": {"AD": 200, "DF": 200, "MR": 100}}, {"name": "승천의 부적", "rarity": "고귀", "stats": {"AD": 150, "DF": 150, "MR": 200}}, {"name": "라이트쉴드 문장", "rarity": "고귀", "stats": {"DF": 250, "MR": 250}}, {"name": "우글렛의 마녀 모자", "rarity": "초월", "stats": {"AP": 1000}}, {"name": "황금 뒤집개", "rarity": "초월", "stats": {"AD": 250, "DF": 250, "AP": 250, "MR": 250}}]};
+(function(){
+// ── 검색 & 정렬 ──
+const q=document.getElementById('dsearch'), nohit=document.getElementById('dnohit');
+const sortBtn=document.getElementById('dsort'); let sorted=false;
+function applySearch(){
+  const t=(q.value||'').trim().toLowerCase(); let any=false;
+  document.querySelectorAll('section.grade').forEach(sec=>{
+    let vis=0;
+    sec.querySelectorAll('.pet').forEach(card=>{
+      const name=card.querySelector('.pname').textContent.toLowerCase();
+      const show=!t||name.includes(t);
+      card.style.display=show?'':'none'; if(show)vis++;
+    });
+    sec.style.display=vis?'':'none'; if(vis)any=true;
+  });
+  nohit.style.display=any?'none':'block';
+}
+if(q)q.addEventListener('input',applySearch);
+function totalOf(card){const b=card.querySelector('.total b');return b?parseInt(b.textContent)||0:0;}
+if(sortBtn)sortBtn.addEventListener('click',()=>{
+  sorted=!sorted; sortBtn.classList.toggle('on',sorted);
+  document.querySelectorAll('.petgrid').forEach(g=>{
+    const cards=[...g.children];
+    cards.sort((a,b)=>sorted? totalOf(b)-totalOf(a) : 0);
+    if(sorted){cards.forEach(c=>g.appendChild(c));}
+    else{ /* 원래 순서 복원: data-idx 사용 */
+      cards.sort((a,b)=>(+a.dataset.idx||0)-(+b.dataset.idx||0)).forEach(c=>g.appendChild(c));
+    }
+  });
+});
+document.querySelectorAll('.petgrid').forEach(g=>[...g.children].forEach((c,i)=>c.dataset.idx=i));
+
+// ── 배틀 시뮬레이터 ──
+const EQ_NONE='(없음)';
+function makeSelect(opts,ph){const s=document.createElement('select');
+  s.innerHTML=opts.map(o=>`<option value="${o.v}">${o.t}</option>`).join('');
+  if(ph){const p=document.createElement('option');p.value='';p.textContent=ph;p.selected=true;p.disabled=true;s.prepend(p);}
+  return s;}
+const petOpts=DOGAM.pets.map((p,i)=>({v:i,t:`[${p.rarity}] ${p.name}`}));
+const eqOpts=[{v:'',t:EQ_NONE}].concat(DOGAM.equips.map((e,i)=>({v:i,t:`[${e.rarity}] ${e.name}`})));
+const lvOpts=[{v:1,t:'1성'},{v:2,t:'2성'},{v:3,t:'3성'}];
+function buildFighter(box){
+  const pet=makeSelect(petOpts,'전설이 선택'); const lv=makeSelect(lvOpts); lv.value='3';
+  const eqs=[0,1,2].map(()=>makeSelect(eqOpts));
+  const st=document.createElement('div'); st.className='fstats'; st.textContent='전설이를 선택하세요';
+  box.append(pet,lv,...eqs,st);
+  return {pet,lv,eqs,st};
+}
+function statsOf(f){
+  if(f.pet.value==='')return null;
+  const p=DOGAM.pets[+f.pet.value]; const m=Math.pow(2,(+f.lv.value)-1);
+  const s={AD:Math.floor(p.AD*m),DF:Math.floor(p.DF*m),AP:Math.floor(p.AP*m),MR:Math.floor(p.MR*m)};
+  f.eqs.forEach(sel=>{ if(sel.value!==''){const e=DOGAM.equips[+sel.value];
+    for(const k in e.stats){s[k]=(s[k]||0)+e.stats[k];}}});
+  return {name:p.name,s};
+}
+function eff(a,b){return a.AD*100/(100+Math.max(0,b.DF))+a.AP*100/(100+Math.max(0,b.MR));}
+const fA=buildFighter(document.getElementById('fA'));
+const fB=buildFighter(document.getElementById('fB'));
+const res=document.getElementById('simres');
+function fmt(s){return `AD <b>${s.AD}</b> · DF <b>${s.DF}</b> · AP <b>${s.AP}</b> · MR <b>${s.MR}</b> (합 <b>${s.AD+s.DF+s.AP+s.MR}</b>)`;}
+function update(){
+  const A=statsOf(fA),B=statsOf(fB);
+  fA.st.innerHTML=A?fmt(A.s):'전설이를 선택하세요';
+  fB.st.innerHTML=B?fmt(B.s):'전설이를 선택하세요';
+  if(!A||!B){res.textContent='👆 양쪽 전설이를 선택하면 승률이 표시됩니다.';return;}
+  const ea=eff(A.s,B.s), eb=eff(B.s,A.s), tot=ea+eb||1;
+  const wa=ea/tot*100, wb=eb/tot*100;
+  res.innerHTML=`<div style="font-weight:800">🔵 ${A.name} <span style="color:var(--faint)">vs</span> 🔴 ${B.name}</div>
+  <div class="simbar"><div class="ba" style="width:${wa}%"></div><div class="bb" style="width:${wb}%"></div></div>
+  <div class="simlabels"><span class="la">${wa.toFixed(1)}%</span><span class="lb">${wb.toFixed(1)}%</span></div>
+  <div class="simnote">유효 전투력: ${ea.toFixed(0)} vs ${eb.toFixed(0)} (방어/마저가 상대 공격을 감쇄)</div>`;
+}
+[fA,fB].forEach(f=>[f.pet,f.lv,...f.eqs].forEach(el=>el.addEventListener('change',update)));
+})();
+</script>
+</body></html>
