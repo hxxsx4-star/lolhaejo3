@@ -6,7 +6,7 @@ from utils.database import get_or_migrate_data, get_synth_count, get_top_epic_eg
 from utils.data import PET_POOLS
 
 # 서사급 알 상위 N명에게 순위 역할을 부여합니다. (원하는 인원수로 이 값만 바꾸면 됨)
-TOP_EGG_RANK = 3
+TOP_EGG_RANK = 2
 
 ROLE_IDS = {
     "ALL_PETS": 1523077720404398131,
