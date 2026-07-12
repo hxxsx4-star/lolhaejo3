@@ -16,6 +16,8 @@ ROLE_IDS = {
     "ALL_LEGEND_3": 1523080441974751352,
     "ALL_MYTHIC_3": 1523080471960092722,
     "ALL_PRESTIGE_3": 1523080498715300092,
+    "ALL_NOBLE_3": 1523269218215399474,
+    "ALL_TRANS_3": 1523269417537114172,
     "ALL_PETS_3": 1523080369585524786,
     "TOP5_EPIC_EGG": 1523080677187260587,
     "SYNTH_50": 1523080635831423157
@@ -100,6 +102,9 @@ class AchievementCog(commands.Cog):
         if set(PET_POOLS["전설"]).issubset(set(owned_3stars.keys())): roles_to_add.append(ROLE_IDS["ALL_LEGEND_3"])
         if set(PET_POOLS["신화"]).issubset(set(owned_3stars.keys())): roles_to_add.append(ROLE_IDS["ALL_MYTHIC_3"])
         if set(PET_POOLS["프레스티지"]).issubset(set(owned_3stars.keys())): roles_to_add.append(ROLE_IDS["ALL_PRESTIGE_3"])
+        # 고귀/초월은 풀이 비어 있으면 issubset(빈집합)이 항상 참이 되므로, 풀이 존재할 때만 판정
+        if PET_POOLS.get("고귀") and set(PET_POOLS["고귀"]).issubset(set(owned_3stars.keys())): roles_to_add.append(ROLE_IDS["ALL_NOBLE_3"])
+        if PET_POOLS.get("초월") and set(PET_POOLS["초월"]).issubset(set(owned_3stars.keys())): roles_to_add.append(ROLE_IDS["ALL_TRANS_3"])
         if all_pet_types.issubset(set(owned_3stars.keys())): roles_to_add.append(ROLE_IDS["ALL_PETS_3"])
 
         synth_count = await get_synth_count(member.id)
@@ -143,12 +148,23 @@ class AchievementCog(commands.Cog):
         embed.add_field(name="⚔️ 모든 전설 3성", value=f"{len(set(PET_POOLS['전설']) & owned_3stars_types)} / {all_leg} 마리", inline=True)
         embed.add_field(name="🌟 모든 신화 3성", value=f"{len(set(PET_POOLS['신화']) & owned_3stars_types)} / {all_myth} 마리", inline=True)
         embed.add_field(name="👑 모든 프레스티지 3성", value=f"{len(set(PET_POOLS['프레스티지']) & owned_3stars_types)} / {all_pres} 마리", inline=True)
+        embed.add_field(name="💠 모든 고귀 3성", value=f"{len(set(PET_POOLS.get('고귀', [])) & owned_3stars_types)} / {all_noble} 마리", inline=True)
+        embed.add_field(name="🌌 모든 초월 3성", value=f"{len(set(PET_POOLS.get('초월', [])) & owned_3stars_types)} / {all_trans} 마리", inline=True)
+        embed.add_field(name="🏅 모든 전설이 3성", value=f"{len(owned_3stars_types)} / {total_pets_count} 마리", inline=True)
         embed.add_field(name="🔮 합성 장인", value=f"{synth_count} / 50 회", inline=True)
 
         member_roles = [r.id for r in interaction.user.roles]
         achieved_list = []
         if ROLE_IDS["FIRST_MYTHIC_3"] in member_roles: achieved_list.append("🥇 신화 3성 최초 달성")
         if ROLE_IDS["FIRST_PRESTIGE_3"] in member_roles: achieved_list.append("💎 프레스티지 3성 최초 달성")
+        if ROLE_IDS["ALL_EPIC_3"] in member_roles: achieved_list.append("✨ 모든 서사 3성 정복")
+        if ROLE_IDS["ALL_LEGEND_3"] in member_roles: achieved_list.append("⚔️ 모든 전설 3성 정복")
+        if ROLE_IDS["ALL_MYTHIC_3"] in member_roles: achieved_list.append("🌟 모든 신화 3성 정복")
+        if ROLE_IDS["ALL_PRESTIGE_3"] in member_roles: achieved_list.append("👑 모든 프레스티지 3성 정복")
+        if ROLE_IDS["ALL_NOBLE_3"] in member_roles: achieved_list.append("💠 모든 고귀 3성 정복")
+        if ROLE_IDS["ALL_TRANS_3"] in member_roles: achieved_list.append("🌌 모든 초월 3성 정복")
+        if ROLE_IDS["ALL_PETS_3"] in member_roles: achieved_list.append("🏅 모든 전설이 3성 정복")
+        if ROLE_IDS["ALL_PETS"] in member_roles: achieved_list.append("🐾 전설이 도감 완성")
         if ROLE_IDS["TOP5_EPIC_EGG"] in member_roles: achieved_list.append(f"🥚 서사급 알 만수르 (TOP {TOP_EGG_RANK})")
 
         if achieved_list:
