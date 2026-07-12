@@ -25,6 +25,7 @@ class LegendBot(commands.Bot):
         extensions = [
             'cogs.help',                      # 개편된 도움말
             'cogs.sync',                      # 기존 동기화 (유지)
+            'cogs.economy',                   # ✨ 자체 포인트 지갑(/지갑 /지급 /회수)
             'cogs.petsystem.core',            # 펫 시스템 코어 (알까기, 상태창)
             'cogs.petsystem.inventory',       # 보관함, 도감, 상점(알환전/분해) 통합
             'cogs.petsystem.admin',           # 관리자 명령어 (UI 방식 적용)

@@ -1,130 +1,50 @@
-from typing import Optional
-import json
-import os
-import asyncio
-from filelock import FileLock
-from datetime import datetime, timedelta, timezone
+# utils/stats.py
+# ✨ 포인트 저장소를 '공유 파일(stats.json)'에서 이 봇 전용 로컬 DB(legends.db)로 교체했습니다.
+#    함수 이름/시그니처는 그대로 유지되어 펫 시스템 등 기존 코드는 수정 없이 동작합니다.
+#    => 포인트가 더 이상 다른 봇과 공유되지 않고, 이 봇 안에서 전부 처리됩니다.
+import aiosqlite
+from utils.database import DB_PATH, get_user, update_user_points
 
-SHARED_FILE_PATH = "/home/hxxsx4/shared_data/stats.json"
-LOCK_FILE_PATH = "/home/hxxsx4/shared_data/stats.json.lock"
 
-os.makedirs(os.path.dirname(SHARED_FILE_PATH), exist_ok=True)
-lock = FileLock(LOCK_FILE_PATH, timeout=5)
-
-def _load_stats_nolock() -> dict:
-    if not os.path.exists(SHARED_FILE_PATH): return {}
+def format_num(num) -> str:
+    """숫자에 3자리마다 콤마를 찍어주는 유틸 함수입니다."""
     try:
-        with open(SHARED_FILE_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except json.JSONDecodeError:
-        return {}
+        return f"{int(num):,}"
+    except (TypeError, ValueError):
+        return str(num)
 
-def _save_stats_nolock(stats: dict):
-    with open(SHARED_FILE_PATH, "w", encoding="utf-8") as f:
-        json.dump(stats, f, indent=4, ensure_ascii=False)
-
-def ensure_user(stats: dict, user_id: str) -> dict:
-    if user_id not in stats:
-        stats[user_id] = {"포인트": 0, "경고": 0}
-    return stats[user_id]
-
-async def load_stats() -> dict:
-    def _task():
-        with lock:
-            return _load_stats_nolock()
-    return await asyncio.to_thread(_task)
-
-async def save_stats(stats: dict):
-    def _task():
-        with lock:
-            _save_stats_nolock(stats)
-    await asyncio.to_thread(_task)
 
 async def get_points(user_id: int) -> int:
-    def _task():
-        with lock:
-            stats = _load_stats_nolock()
-            return int(ensure_user(stats, str(user_id)).get("포인트", 0))
-    return await asyncio.to_thread(_task)
+    """유저의 보유 포인트를 반환합니다. (없으면 기본값으로 유저 생성)"""
+    data = await get_user(user_id)
+    return int(data[1] or 0)
+
 
 async def add_points(user_id: int, amount: int):
-    def _task():
-        with lock:
-            stats = _load_stats_nolock()
-            rec = ensure_user(stats, str(user_id))
-            rec["포인트"] = int(rec.get("포인트", 0)) + amount
-            _save_stats_nolock(stats)
-    await asyncio.to_thread(_task)
+    """유저에게 포인트를 지급합니다."""
+    await get_user(user_id)  # 유저 행이 없으면 먼저 생성
+    await update_user_points(user_id, amount)
+
 
 async def spend_points(user_id: int, amount: int) -> bool:
-    def _task():
-        with lock:
-            stats = _load_stats_nolock()
-            rec = ensure_user(stats, str(user_id))
-            current_points = int(rec.get("포인트", 0))
-            if current_points < amount:
-                return False
-            rec["포인트"] = current_points - amount
-            _save_stats_nolock(stats)
-            return True
-    return await asyncio.to_thread(_task)
+    """유저의 포인트를 차감합니다. 잔액이 부족하면 False를 반환합니다."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT points FROM users WHERE user_id = ?", (user_id,)) as cursor:
+            row = await cursor.fetchone()
+        if row is None:
+            # 유저가 없으면 기본값으로 생성 후 잔액 확인
+            await db.execute("INSERT INTO users VALUES (?, 3000, 0, 0, 0, 0)", (user_id,))
+            await db.commit()
+            current = 3000
+        else:
+            current = int(row[0] or 0)
 
-# ==========================================
-# ✨ 아래부터 누락되어 에러를 발생시키던 추가 함수들입니다.
-# (기존 FileLock 동기화 방식과 동일하게 작성되었습니다)
-# ==========================================
+        if current < amount:
+            return False
 
-def format_num(num: int) -> str:
-    """숫자에 3자리마다 콤마를 찍어주는 유틸 함수입니다."""
-    return f"{num:,}"
-
-async def process_attendance(user_id: int, reward: int, attend_key: str, today_str: str) -> bool:
-    """출석 체크를 진행하고 포인트를 지급하는 함수입니다."""
-    def _task():
-        with lock:
-            stats = _load_stats_nolock()
-            rec = ensure_user(stats, str(user_id))
-
-            # 이미 오늘 출석을 한 경우
-            if rec.get(attend_key) == today_str:
-                return False
-
-            # 출석 처리 및 포인트 지급
-            rec[attend_key] = today_str
-            rec["포인트"] = int(rec.get("포인트", 0)) + reward
-            _save_stats_nolock(stats)
-            return True
-
-    return await asyncio.to_thread(_task)
-
-async def add_warning(user_id: int, count: int) -> tuple[int, int]:
-    """유저에게 경고를 부여하는 함수입니다. (기존경고, 바뀐경고) 튜플을 반환합니다."""
-    def _task():
-        with lock:
-            stats = _load_stats_nolock()
-            rec = ensure_user(stats, str(user_id))
-
-            old_warn = int(rec.get("경고", 0))
-            new_warn = old_warn + count
-            rec["경고"] = new_warn
-
-            _save_stats_nolock(stats)
-            return old_warn, new_warn
-
-    return await asyncio.to_thread(_task)
-
-async def reduce_warning(user_id: int, count: int) -> tuple[int, int]:
-    """유저의 경고를 차감하는 함수입니다. (기존경고, 바뀐경고) 튜플을 반환합니다."""
-    def _task():
-        with lock:
-            stats = _load_stats_nolock()
-            rec = ensure_user(stats, str(user_id))
-
-            old_warn = int(rec.get("경고", 0))
-            new_warn = max(0, old_warn - count) # 경고가 마이너스가 되지 않도록 0 밑으로는 내리지 않음
-            rec["경고"] = new_warn
-
-            _save_stats_nolock(stats)
-            return old_warn, new_warn
-
-    return await asyncio.to_thread(_task)
+        await db.execute(
+            "UPDATE users SET points = MAX(0, points - ?) WHERE user_id = ?",
+            (amount, user_id),
+        )
+        await db.commit()
+        return True
