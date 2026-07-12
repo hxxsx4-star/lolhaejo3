@@ -1,0 +1,15 @@
+[Unit]
+Description=전설이 키우기 디스코드 봇
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hxxsx4
+WorkingDirectory=/home/hxxsx4/lolhaejo3
+ExecStart=/home/hxxsx4/lolhaejo3/venv/bin/python -u main.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
