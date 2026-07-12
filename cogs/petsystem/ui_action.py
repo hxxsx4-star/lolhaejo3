@@ -4,13 +4,11 @@ import time
 import random
 from datetime import datetime
 
-from utils.database import get_legend_data, save_legend_data, get_active_buffs, consume_item, add_item, update_max_star
-from utils.data import ITEMS_INFO, EXP_TABLE
+from utils.database import get_legend_data, get_active_buffs
 from utils.logs import WALK_LOG_CH, send_log_embed
-from utils.stats import get_points, add_points, spend_points
+from utils.stats import get_points
 from utils.image_generator import generate_status_image
-from .locks import get_user_lock
-from .daily_quest import quest_hook
+from utils.game import feed_pet, shower_pet, do_walk
 
 # 전투/스탯 계산 로직은 combat.py 로 분리되었습니다.
 # 기존 `from .ui_action import get_pet_stats` 호출부 호환을 위해 여기서 재노출합니다.
@@ -78,143 +76,44 @@ class LegendActionView(discord.ui.View):
     @discord.ui.button(label="밥주기 (5P)", style=discord.ButtonStyle.primary, emoji="🍚", row=0)
     async def feed(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer() # 🌟 3초 타임아웃 방지
-        async with get_user_lock(self.user_id):  # 연타로 인한 데이터 유실 방지
-            wrapper, data = await self.get_pet_data()
-            if not data: return await interaction.followup.send("펫 데이터가 없습니다.", ephemeral=True)
-            success = await spend_points(self.user_id, 5)
-            if not success: return await interaction.followup.send("❌ 밥값(5P)이 부족합니다!", ephemeral=True)
-            data['fullness'] = min(100, data.get('fullness', 0) + 20)
-            await save_legend_data(self.user_id, wrapper)
-            await quest_hook(self.user_id, 'care', 1)
-            await self.update_status_message(interaction, data, popup_msg=f"🍚 {data['name']}(이)가 맛있게 밥을 먹었습니다! (포만도 +20, 밥값 -5P)")
+        # 게임 로직은 utils/game.py 공용 함수에 위임 (내부에서 유저 락 처리)
+        res = await feed_pet(self.user_id, self.current_idx)
+        if not res["ok"]: return await interaction.followup.send(res["error"], ephemeral=True)
+        await self.update_status_message(interaction, res["data"], popup_msg=f"🍚 {res['name']}(이)가 맛있게 밥을 먹었습니다! (포만도 +20, 밥값 -5P)")
 
     @discord.ui.button(label="샤워하기 (10P)", style=discord.ButtonStyle.primary, emoji="🚿", row=0)
     async def shower(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer() # 🌟 3초 타임아웃 방지
-        async with get_user_lock(self.user_id):  # 연타로 인한 데이터 유실 방지
-            wrapper, data = await self.get_pet_data()
-            if not data: return await interaction.followup.send("펫 데이터가 없습니다.", ephemeral=True)
-            success = await spend_points(self.user_id, 10)
-            if not success: return await interaction.followup.send("❌ 수도세(10P)가 부족합니다!", ephemeral=True)
-            data['cleanliness'] = min(100, data.get('cleanliness', 0) + 20)
-            await save_legend_data(self.user_id, wrapper)
-            await quest_hook(self.user_id, 'care', 1)
-            await self.update_status_message(interaction, data, popup_msg=f"🚿 {data['name']}(이)가 깨끗해졌습니다! (청결도 +20, 수도세 -10P)")
+        res = await shower_pet(self.user_id, self.current_idx)
+        if not res["ok"]: return await interaction.followup.send(res["error"], ephemeral=True)
+        await self.update_status_message(interaction, res["data"], popup_msg=f"🚿 {res['name']}(이)가 깨끗해졌습니다! (청결도 +20, 수도세 -10P)")
 
     async def handle_walk(self, interaction: discord.Interaction, num_walks: int):
         await interaction.response.defer() # 🌟 3초 타임아웃 방지
-        # 같은 유저의 산책 연타로 인한 포인트 이중 소모/데이터 유실을 막기 위해 직렬화
-        async with get_user_lock(self.user_id):
-            await self._handle_walk_locked(interaction, num_walks)
+        # 산책 로직은 utils/game.py 공용 함수에 위임 (내부에서 유저 락 처리)
+        res = await do_walk(self.user_id, self.current_idx, num_walks)
+        if not res["ok"]: return await interaction.followup.send(res["error"], ephemeral=True)
 
-    async def _handle_walk_locked(self, interaction: discord.Interaction, num_walks: int):
-        wrapper, data = await self.get_pet_data()
-        if not data: return await interaction.followup.send("펫 데이터가 없습니다.", ephemeral=True)
-        user_id = self.user_id
-
-        if num_walks == 100:
-            has_ticket = await consume_item(user_id, "100회 산책 할인권", 1)
-            cost = 30 if has_ticket else 100
-        else:
-            has_ticket = False; cost = num_walks * 1
-
-        success = await spend_points(user_id, cost)
-        if not success:
-            if has_ticket: await add_item(user_id, "100회 산책 할인권", 1)
-            return await interaction.followup.send(f"❌ 산책 유지비({cost}P)가 부족합니다!", ephemeral=True)
-
-        active_buffs = await get_active_buffs(user_id)
-        buffs = {b[0] for b in active_buffs}
-
-        data['total_walk_count'] = data.get('total_walk_count', 0) + num_walks
-        old_walk_count = data.get('walk_count', 0)
-        data['walk_count'] = old_walk_count + num_walks
-        stat_triggers = data['walk_count'] // 20
-        data['walk_count'] = data['walk_count'] % 20
-        stat_msg = ""
-
-        if stat_triggers > 0:
-            stat_msg += f"✨ {stat_triggers * 20}회 산책 분량 달성!\n"
-            if "신비한 알약" in buffs or "배부름을 부르는 약" in buffs:
-                data['fullness'] = 100; stat_msg += "💊 [배부름 약] 효과로 포만도가 100으로 유지되었습니다!\n"
-            else: data['fullness'] = max(0, data.get('fullness', 100) - (20 * stat_triggers))
-
-            if "신비한 알약" in buffs or "트위치 나가라약" in buffs:
-                data['cleanliness'] = 100; stat_msg += "💊 [나가라 약] 효과로 청결도가 100으로 유지되었습니다!\n"
-            else: data['cleanliness'] = max(0, data.get('cleanliness', 100) - (20 * stat_triggers))
-
-            if "신비한 알약" in buffs or "아무무도 인싸로 만드는 약" in buffs:
-                data['intimacy'] = 100; stat_msg += "💊 [인싸 약] 효과로 친밀도가 100으로 유지되었습니다!\n"
-            else: data['intimacy'] = min(100, data.get('intimacy', 50) + (20 * stat_triggers))
-
-            if "신비한 알약" in buffs or "쌩쌩한약" in buffs:
-                data['fatigue'] = 0; stat_msg += "💊 [쌩쌩한약] 효과로 피로도가 0으로 유지되었습니다!\n"
-            else: data['fatigue'] = min(100, data.get('fatigue', 0) + (20 * stat_triggers))
-
-        found_eggs = []; found_items = []
-        epic_items = [k for k, v in ITEMS_INFO.items() if v['rarity'] == '서사']
-        legend_items = [k for k, v in ITEMS_INFO.items() if v['rarity'] == '전설']
-        mythic_items = [k for k, v in ITEMS_INFO.items() if v['rarity'] == '신화']
-        prestige_items = [k for k, v in ITEMS_INFO.items() if v['rarity'] == '프레스티지']
-
-        for _ in range(num_walks):
-            r_egg = random.random()
-            # 초월급 알은 산책으로 획득 불가(합성 전용). 고귀급 알만 극악 확률로 등장.
-            if r_egg < 0.000005: found_eggs.append("고귀")  # 0.0005%
-            elif r_egg < 0.0001: found_eggs.append("프레스티지")
-            elif r_egg < 0.0021: found_eggs.append("신화")
-            elif r_egg < 0.0221: found_eggs.append("전설")
-            elif r_egg < 0.1221: found_eggs.append("서사")
-
-            r_item = random.random()
-            if r_item < 0.0001 and prestige_items: found_items.append(("프레스티지", random.choice(prestige_items)))
-            elif r_item < 0.0005 and mythic_items: found_items.append(("신화", random.choice(mythic_items)))
-            elif r_item < 0.0015 and legend_items: found_items.append(("전설", random.choice(legend_items)))
-            elif r_item < 0.1015 and epic_items: found_items.append(("서사", random.choice(epic_items)))
-
-        gained_exp = 0
-        if 0 < data.get('level', 0) < 3:
-            gained_exp = num_walks
-            data['exp'] = data.get('exp', 0) + gained_exp
-            rarity = data.get('rarity', '서사')
-
-            # 통화방 레벨업(core.py)과 동일하게 EXP_TABLE 단일 기준을 사용합니다.
-            while data.get('level', 0) < 3:
-                curr_level = data.get('level', 0)
-                req_exp = EXP_TABLE.get(rarity, {}).get(curr_level, 100)
-                if data.get('exp', 0) >= req_exp:
-                    data['level'] = curr_level + 1
-                    data['exp'] -= req_exp
-                else: break
-
-            if data.get('level', 0) >= 3:
-                await update_max_star(user_id, 3)
-
-        for egg in found_eggs: await add_item(user_id, f"{egg}급 알", 1)
-        for rarity, item_name in found_items: await add_item(user_id, item_name, 1)
-
-        await save_legend_data(self.user_id, wrapper)
-        await quest_hook(user_id, 'walk', num_walks)
-
+        data = res["data"]
         result_embed = discord.Embed(title="🐾 산책 결과", color=discord.Color.green())
-        desc = f"{data['name']}(와)과 {num_walks}회 산책했습니다!\n"
-        if has_ticket: desc += "🎫 `100회 산책 할인권`이 적용되어 30P만 소모되었습니다.\n"
-        else: desc += f"💸 소모된 유지비: -{cost}P\n"
+        desc = f"{res['name']}(와)과 {num_walks}회 산책했습니다!\n"
+        if res["has_ticket"]: desc += "🎫 `100회 산책 할인권`이 적용되어 30P만 소모되었습니다.\n"
+        else: desc += f"💸 소모된 유지비: -{res['cost']}P\n"
         desc += "━━━━━━━━━━━━━━━━━━━━\n"
-        if gained_exp > 0: desc += f"📈 산책을 하며 경험치를 얻었다! (+{gained_exp} XP)\n"
-        for egg in found_eggs: desc += f"🥚 {egg}급 알을 발견했다!\n"
-        for rarity, item_name in found_items: desc += f"🎁 {rarity}급 아이템 [{item_name}]을 발견했다!\n"
-        if stat_msg: desc += f"\n{stat_msg}"
+        if res["gained_exp"] > 0: desc += f"📈 산책을 하며 경험치를 얻었다! (+{res['gained_exp']} XP)\n"
+        for egg in res["found_eggs"]: desc += f"🥚 {egg}급 알을 발견했다!\n"
+        for rarity, item_name in res["found_items"]: desc += f"🎁 {rarity}급 아이템 [{item_name}]을 발견했다!\n"
+        if res["stat_msgs"]: desc += "\n" + "\n".join(res["stat_msgs"])
 
         result_embed.description = desc
-        result_embed.set_footer(text=f"사용자 ID: {user_id} | 실행 시각: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        result_embed.set_footer(text=f"사용자 ID: {self.user_id} | 실행 시각: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
         await self.update_status_message(interaction, data, popup_embed=result_embed)
 
-        log_desc = f"🐾 {data['name']} 산책\n💸 소모 유지비: -{cost}P\n"
-        if gained_exp > 0: log_desc += f"📈 획득 경험치: +{gained_exp} XP\n"
-        if found_eggs: log_desc += f"🥚 획득한 알: {', '.join(found_eggs)}급 알\n"
-        if found_items: log_desc += f"🎁 획득한 아이템: {', '.join([i[1] for i in found_items])}\n"
+        log_desc = f"🐾 {res['name']} 산책\n💸 소모 유지비: -{res['cost']}P\n"
+        if res["gained_exp"] > 0: log_desc += f"📈 획득 경험치: +{res['gained_exp']} XP\n"
+        if res["found_eggs"]: log_desc += f"🥚 획득한 알: {', '.join(res['found_eggs'])}급 알\n"
+        if res["found_items"]: log_desc += f"🎁 획득한 아이템: {', '.join([i[1] for i in res['found_items']])}\n"
         await send_log_embed(interaction.client, WALK_LOG_CH, "👟 산책 로그", log_desc.strip(), interaction.user, discord.Color.green(), f"구분: {num_walks}회 산책")
 
     @discord.ui.button(label="1회 산책 (1P)", style=discord.ButtonStyle.success, emoji="🚶", row=1)

@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}내 전설이 · 전설이 키우기{% endblock %}
+{% block head %}
+<style>
+.summary{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+.summary .pill{padding:9px 16px;border-radius:100px;background:var(--surface2);border:1px solid var(--border2);font-weight:800;font-size:14px;}
+.pill b{color:var(--gold);}
+.petgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
+.pet{display:flex;flex-direction:column;gap:10px;}
+.pethead{display:flex;gap:12px;align-items:center;}
+.pimg{width:74px;height:74px;border-radius:14px;object-fit:cover;background:#0e0b1a;border:1px solid var(--border);}
+.pname{font-weight:900;font-size:16px;}
+.ptag{font-size:12.5px;color:var(--dim);}
+.rchip{display:inline-block;padding:2px 10px;border-radius:100px;font-size:11px;font-weight:800;
+background:color-mix(in srgb,var(--rc) 16%,transparent);border:1px solid color-mix(in srgb,var(--rc) 45%,transparent);color:var(--rc);}
+.gauges{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:12.5px;}
+.g label{color:var(--dim);display:flex;justify-content:space-between;}
+.gbar{height:7px;border-radius:100px;background:#0e0b1a;overflow:hidden;border:1px solid var(--border);}
+.gbar i{display:block;height:100%;border-radius:100px;}
+.pstats{font-size:12.5px;color:var(--dim);}
+.pstats b{color:var(--text);}
+.actions{display:flex;gap:6px;flex-wrap:wrap;}
+.actions .btn{padding:8px 12px;font-size:12.5px;}
+.qrow{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--border);font-size:14.5px;}
+.qrow:first-of-type{border-top:none;}
+.qbar{flex:1;height:9px;border-radius:100px;background:#0e0b1a;border:1px solid var(--border);overflow:hidden;min-width:80px;}
+.qbar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--teal));}
+.qdone{color:var(--teal);font-weight:800;}
+.expbox{display:flex;gap:16px;align-items:center;flex-wrap:wrap;}
+.itemlist{display:flex;flex-wrap:wrap;gap:8px;}
+.item{padding:7px 13px;border-radius:100px;background:var(--surface2);border:1px solid var(--border);font-size:13px;}
+.item b{color:var(--gold);}
+select{padding:9px 12px;border-radius:10px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:inherit;font-size:14px;}
+</style>
+{% endblock %}
+{% block content %}
+<div class="summary card">
+  <span style="font-weight:900;font-size:17px">👋 {{ user.username }}님의 목장</span>
+  <span class="pill">💰 <b>{{ '{:,}'.format(s.points) }}P</b></span>
+  <span class="pill">🐣 전설이 <b>{{ s.pets|length }}</b>/5</span>
+</div>
+
+<h2 class="sec"><span class="bar"></span>🐣 내 전설이 <span class="faint">버튼으로 바로 돌보기!</span></h2>
+{% if s.pets %}
+<div class="petgrid">
+  {% for p in s.pets %}
+  <div class="card pet">
+    <div class="pethead">
+      {% if p.img %}<img class="pimg" src="{{ p.img }}" alt="">{% else %}<div class="pimg" style="display:grid;place-items:center">🥚</div>{% endif %}
+      <div>
+        <div class="pname">{{ p.name }}</div>
+        <div class="ptag"><span class="rchip" style="--rc:var(--r-{{ p.rarity }})">{{ p.rarity }}</span>
+          {{ p.level }}성 · {{ p.type }}</div>
+        {% if p.stats %}<div class="ptag">⚔️ 전투력 <b style="color:var(--gold)">{{ '{:,}'.format(p.power) }}</b>
+          {% if p.equipment %} · 🎽 {{ p.equipment|length }}/3{% endif %}</div>{% endif %}
+      </div>
+    </div>
+    {% if p.level > 0 %}
+    <div class="gauges">
+      <div class="g"><label>🍚 포만도 <span>{{ p.fullness }}</span></label><div class="gbar"><i style="width:{{ p.fullness }}%;background:#f0b73f"></i></div></div>
+      <div class="g"><label>🚿 청결도 <span>{{ p.cleanliness }}</span></label><div class="gbar"><i style="width:{{ p.cleanliness }}%;background:#4f9dff"></i></div></div>
+      <div class="g"><label>💖 친밀도 <span>{{ p.intimacy }}</span></label><div class="gbar"><i style="width:{{ p.intimacy }}%;background:#ec6fae"></i></div></div>
+      <div class="g"><label>💤 피로도 <span>{{ p.fatigue }}</span></label><div class="gbar"><i style="width:{{ p.fatigue }}%;background:#8a7f74"></i></div></div>
+    </div>
+    <div class="pstats">AD <b>{{ p.stats.AD }}</b> · DF <b>{{ p.stats.DF }}</b> · AP <b>{{ p.stats.AP }}</b> · MR <b>{{ p.stats.MR }}</b></div>
+    <div class="actions">
+      <button class="btn" onclick="act('/api/feed',{pet_idx:{{ p.idx }}})">🍚 밥 (5P)</button>
+      <button class="btn" onclick="act('/api/shower',{pet_idx:{{ p.idx }}})">🚿 샤워 (10P)</button>
+      <button class="btn teal" onclick="act('/api/walk',{pet_idx:{{ p.idx }},n:1})">🚶 산책1</button>
+      <button class="btn teal" onclick="act('/api/walk',{pet_idx:{{ p.idx }},n:10})">🚶 산책10</button>
+      <button class="btn teal" onclick="act('/api/walk',{pet_idx:{{ p.idx }},n:100})">🏃 산책100</button>
+    </div>
+    {% else %}
+    <div class="faint">🥚 아직 부화하지 않은 알입니다. 디스코드 통화방에서 경험치를 모아 부화시켜 주세요!</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card">아직 전설이가 없어요. 디스코드에서 <b>/알까기</b>로 시작하세요!</div>
+{% endif %}
+
+<h2 class="sec"><span class="bar"></span>🏕️ 원정</h2>
+<div class="card expbox">
+  {% if s.expedition %}
+    {% if s.expedition.done %}
+      <span>🎉 <b>{{ s.expedition.pet_name }}</b>(이)가 원정에서 돌아왔습니다!</span>
+      <button class="btn gold" onclick="act('/api/expedition/claim',{})">🎁 보상 받기</button>
+    {% else %}
+      <span>⏰ <b>{{ s.expedition.pet_name }}</b> 원정 중 — 남은 시간 <b id="exptimer" data-end="{{ s.expedition.end_ts }}">계산 중...</b></span>
+    {% endif %}
+  {% else %}
+    <span>전설이를 보내 알·포인트를 획득하세요! (시간당 서사알 + 상위알 확률 + 20P)</span>
+    <select id="exp-pet">
+      {% for p in s.pets if p.level > 0 %}<option value="{{ p.idx }}">{{ p.name }} (전투력 {{ p.power }})</option>{% endfor %}
+    </select>
+    <select id="exp-hours">
+      {% for h in s.durations %}<option value="{{ h }}">{{ h }}시간</option>{% endfor %}
+    </select>
+    <button class="btn gold" onclick="expStart()">🏕️ 원정 보내기</button>
+  {% endif %}
+</div>
+
+<h2 class="sec"><span class="bar"></span>📋 오늘의 퀘스트 <span class="faint">{{ s.quest.date }}</span></h2>
+<div class="card">
+  {% for q in s.quest.quests %}
+  <div class="qrow">
+    <span style="min-width:180px">{{ q.title }}</span>
+    <div class="qbar"><i style="width:{{ (q.cur / q.goal * 100)|round }}%"></i></div>
+    <span style="min-width:64px;text-align:right;font-variant-numeric:tabular-nums">{{ q.cur }}/{{ q.goal }}</span>
+    <span style="min-width:96px;text-align:right">{% if q.claimed %}<span class="faint">수령완료</span>{% elif q.done %}<span class="qdone">완료!</span>{% else %}🥚{{ q.reward }}{% endif %}</span>
+  </div>
+  {% endfor %}
+  <div class="qrow">
+    <span style="min-width:180px">🌟 올클리어 보너스</span>
+    <div style="flex:1"></div>
+    <span>{% if s.quest.all_clear_claimed %}<span class="faint">수령완료</span>{% elif s.quest.all_clear %}<span class="qdone">완료!</span>{% else %}🥚{{ s.quest.all_clear_bonus }}{% endif %}</span>
+  </div>
+  <div style="margin-top:12px"><button class="btn gold" onclick="act('/api/quest/claim',{})">🎁 완료 보상 받기</button></div>
+</div>
+
+<h2 class="sec"><span class="bar"></span>🎒 보관함</h2>
+<div class="card itemlist">
+  {% for it in s['items'] %}<span class="item">{{ it.name }} <b>×{{ '{:,}'.format(it.amount) }}</b></span>
+  {% else %}<span class="faint">보관함이 비어있습니다.</span>{% endfor %}
+</div>
+{% endblock %}
+{% block script %}
+<script>
+async function act(path, body){
+  const r = await api(path, body);
+  if(!r.ok){ toast(r.error || '실패했습니다.'); return; }
+  let msg = '✅ 완료!';
+  if(path==='/api/walk'){
+    msg = `🐾 산책 완료! (-${r.cost}P${r.has_ticket?' · 할인권 적용':''})`;
+    if(r.gained_exp) msg += `\n📈 경험치 +${r.gained_exp}`;
+    if(r.found_eggs && r.found_eggs.length) msg += `\n🥚 발견: ${r.found_eggs.map(e=>e+'급 알').join(', ')}`;
+    if(r.found_items && r.found_items.length) msg += `\n🎁 아이템: ${r.found_items.map(i=>i[1]).join(', ')}`;
+  } else if(path==='/api/feed') msg = `🍚 냠냠! 포만도 ${r.fullness}`;
+  else if(path==='/api/shower') msg = `🚿 반짝반짝! 청결도 ${r.cleanliness}`;
+  else if(path==='/api/expedition/claim') msg = `🎉 원정 보상! 서사알 +${r.epic_eggs}${r.bonus_eggs.length?' · '+r.bonus_eggs.map(e=>e+'급 알').join(', '):''} · +${r.points}P`;
+  else if(path==='/api/quest/claim') msg = `🎉 퀘스트 보상! 서사알 +${r.total_eggs}`;
+  toast(msg, 3400);
+  setTimeout(()=>location.reload(), 1400);
+}
+function expStart(){
+  const pet = document.getElementById('exp-pet');
+  if(!pet || pet.value===''){ toast('원정 보낼 전설이가 없습니다.'); return; }
+  const hours = +document.getElementById('exp-hours').value;
+  api('/api/expedition/start',{pet_idx:+pet.value,hours}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    toast(`🏕️ ${r.name} ${r.hours}시간 원정 출발! (예상 서사알 ~${r.est_eggs})`, 3200);
+    setTimeout(()=>location.reload(), 1400);
+  });
+}
+const t = document.getElementById('exptimer');
+if(t){
+  const end = +t.dataset.end;
+  const tick = ()=>{
+    const s = Math.max(0, Math.floor(end - Date.now()/1000));
+    if(s<=0){ location.reload(); return; }
+    t.textContent = `${Math.floor(s/3600)}시간 ${Math.floor(s%3600/60)}분 ${s%60}초`;
+  };
+  tick(); setInterval(tick, 1000);
+}
+</script>
+{% endblock %}

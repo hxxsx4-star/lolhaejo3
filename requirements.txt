@@ -1,2 +1,7 @@
 discord.py
 filelock
+# 웹앱 (webapp/)
+fastapi
+uvicorn[standard]
+jinja2
+itsdangerous

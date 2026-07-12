@@ -1,49 +1,17 @@
-import time
-import random
-
 import discord
 from discord.ext import commands
 from discord import app_commands
 
-from utils.database import (get_or_migrate_data, start_expedition, get_expedition,
-                            clear_expedition, add_item)
-from utils.stats import add_points
+from utils.database import get_or_migrate_data
+from utils.game import (EXPEDITION_DURATIONS, get_expedition_status,
+                        start_expedition_for, claim_expedition)
 from .combat import calc_pet_power
-from .locks import get_user_lock
-
-# 원정 시간 선택지 (시간)
-DURATIONS = [1, 4, 8, 24]
-
-# 시간당 상위 등급 알 발견 확률
-HOURLY_EGG_ROLLS = [
-    ("고귀", 0.0003),      # 0.03%/h
-    ("프레스티지", 0.0025), # 0.25%/h
-    ("신화", 0.012),        # 1.2%/h
-    ("전설", 0.05),         # 5%/h
-]
-
-
-def calc_rewards(power: int, hours: int):
-    """원정 보상 계산: (서사급 알 개수, [상위 알 목록], 포인트)"""
-    epic_eggs = hours * (5 + power // 200)  # 전투력이 높을수록 시간당 알 증가
-    bonus_eggs = []
-    for _ in range(hours):
-        r = random.random()
-        acc = 0.0
-        for rarity, prob in HOURLY_EGG_ROLLS:
-            acc += prob
-            if r < acc:
-                bonus_eggs.append(rarity)
-                break
-    points = hours * 20
-    return epic_eggs, bonus_eggs, points
 
 
 class ExpeditionStartView(discord.ui.View):
     def __init__(self, user_id: int, pets: list):
         super().__init__(timeout=120)
         self.user_id = user_id
-        self.pets = pets
         self.pet_idx = None
 
         self.pet_select = discord.ui.Select(
@@ -58,7 +26,7 @@ class ExpeditionStartView(discord.ui.View):
 
         self.dur_select = discord.ui.Select(
             placeholder="② 원정 시간을 선택하세요",
-            options=[discord.SelectOption(label=f"{h}시간", value=str(h)) for h in DURATIONS],
+            options=[discord.SelectOption(label=f"{h}시간", value=str(h)) for h in EXPEDITION_DURATIONS],
         )
         self.dur_select.callback = self.on_duration
         self.add_item(self.dur_select)
@@ -76,31 +44,17 @@ class ExpeditionStartView(discord.ui.View):
             return await interaction.response.send_message("❌ 먼저 전설이를 선택해주세요!", ephemeral=True)
 
         hours = int(self.dur_select.values[0])
+        res = await start_expedition_for(self.user_id, self.pet_idx, hours, calc_pet_power)
+        if not res["ok"]:
+            return await interaction.response.send_message(f"❌ {res['error']}", ephemeral=True)
 
-        async with get_user_lock(self.user_id):
-            if await get_expedition(self.user_id):
-                return await interaction.response.send_message("❌ 이미 진행 중인 원정이 있습니다!", ephemeral=True)
-
-            wrapper = await get_or_migrate_data(self.user_id)
-            pets = wrapper.get('pets', [])
-            if self.pet_idx >= len(pets):
-                return await interaction.response.send_message("❌ 펫 데이터가 변경되었습니다. 다시 시도해주세요.", ephemeral=True)
-            pet = pets[self.pet_idx]
-            if pet.get('level', 0) == 0:
-                return await interaction.response.send_message("❌ 알은 원정을 갈 수 없습니다!", ephemeral=True)
-
-            power = calc_pet_power(pet)
-            await start_expedition(self.user_id, pet.get('name', '이름없음'), pet.get('type', '?'),
-                                   pet.get('level', 1), power, hours)
-
-        est_eggs = hours * (5 + power // 200)
         embed = discord.Embed(title="🏕️ 원정 출발!", color=discord.Color.green())
         embed.description = (
-            f"**{pet.get('name')}** ({pet.get('level')}성 {pet.get('type')})가 "
-            f"**{hours}시간** 원정을 떠났습니다!\n\n"
-            f"⚔️ 원정 전투력: **{power}**\n"
-            f"🥚 예상 기본 보상: 서사급 알 약 **{est_eggs}개** + 시간당 상위 알 확률\n\n"
-            f"⏰ {hours}시간 후 `/원정`으로 보상을 수령하세요!"
+            f"**{res['name']}** ({res['level']}성 {res['type']})가 "
+            f"**{res['hours']}시간** 원정을 떠났습니다!\n\n"
+            f"⚔️ 원정 전투력: **{res['power']}**\n"
+            f"🥚 예상 기본 보상: 서사급 알 약 **{res['est_eggs']}개** + 시간당 상위 알 확률\n\n"
+            f"⏰ {res['hours']}시간 후 `/원정`으로 보상을 수령하세요!"
         )
         await interaction.response.edit_message(embed=embed, view=None)
 
@@ -115,30 +69,17 @@ class ExpeditionClaimView(discord.ui.View):
         if interaction.user.id != self.user_id:
             return await interaction.response.send_message("❌ 본인만 수령할 수 있습니다.", ephemeral=True)
 
-        async with get_user_lock(self.user_id):
-            exp = await get_expedition(self.user_id)
-            if not exp:
-                return await interaction.response.send_message("❌ 진행 중인 원정이 없습니다.", ephemeral=True)
-            end_ts = exp['start_ts'] + exp['duration_h'] * 3600
-            if time.time() < end_ts:
-                remain = int((end_ts - time.time()) // 60) + 1
-                return await interaction.response.send_message(f"⏰ 아직 원정 중입니다! (남은 시간: 약 {remain}분)", ephemeral=True)
-
-            # 보상 지급 후 원정 종료 (락 안이라 이중 수령 불가)
-            epic_eggs, bonus_eggs, points = calc_rewards(exp['power'], exp['duration_h'])
-            await add_item(self.user_id, "서사급 알", epic_eggs)
-            for rarity in bonus_eggs:
-                await add_item(self.user_id, f"{rarity}급 알", 1)
-            await add_points(self.user_id, points)
-            await clear_expedition(self.user_id)
+        res = await claim_expedition(self.user_id)
+        if not res["ok"]:
+            return await interaction.response.send_message(res["error"], ephemeral=True)
 
         desc = (
-            f"**{exp['pet_name']}**(이)가 {exp['duration_h']}시간의 원정에서 돌아왔습니다!\n\n"
-            f"🥚 서사급 알 **+{epic_eggs}개**\n"
+            f"**{res['pet_name']}**(이)가 {res['hours']}시간의 원정에서 돌아왔습니다!\n\n"
+            f"🥚 서사급 알 **+{res['epic_eggs']}개**\n"
         )
-        for rarity in bonus_eggs:
+        for rarity in res["bonus_eggs"]:
             desc += f"✨ **{rarity}급 알 +1개** (희귀 발견!)\n"
-        desc += f"💰 포인트 **+{points}P**"
+        desc += f"💰 포인트 **+{res['points']}P**"
 
         embed = discord.Embed(title="🎉 원정 완료!", description=desc, color=discord.Color.gold())
         await interaction.response.edit_message(embed=embed, view=None)
@@ -151,21 +92,19 @@ class ExpeditionCog(commands.Cog):
     @app_commands.command(name="원정", description="전설이를 원정 보내 알과 포인트를 획득합니다. (유저당 1회 진행)")
     async def expedition(self, interaction: discord.Interaction):
         user_id = interaction.user.id
-        exp = await get_expedition(user_id)
+        status = await get_expedition_status(user_id)
 
-        if exp:
-            end_ts = exp['start_ts'] + exp['duration_h'] * 3600
-            now = time.time()
-            if now >= end_ts:
+        if status:
+            if status["done"]:
                 embed = discord.Embed(
                     title="🏕️ 원정 완료 대기 중!",
-                    description=f"**{exp['pet_name']}**(이)가 원정에서 돌아왔습니다!\n아래 버튼으로 보상을 수령하세요.",
+                    description=f"**{status['pet_name']}**(이)가 원정에서 돌아왔습니다!\n아래 버튼으로 보상을 수령하세요.",
                     color=discord.Color.gold())
                 return await interaction.response.send_message(embed=embed, view=ExpeditionClaimView(user_id), ephemeral=True)
-            remain_min = int((end_ts - now) // 60) + 1
+            remain_min = status["remain_sec"] // 60 + 1
             embed = discord.Embed(
                 title="🏕️ 원정 진행 중",
-                description=(f"**{exp['pet_name']}** ({exp['pet_level']}성 {exp['pet_type']}) 원정 중...\n"
+                description=(f"**{status['pet_name']}** ({status['pet_level']}성 {status['pet_type']}) 원정 중...\n"
                              f"⏰ 남은 시간: 약 **{remain_min // 60}시간 {remain_min % 60}분**"),
                 color=discord.Color.blue())
             return await interaction.response.send_message(embed=embed, ephemeral=True)
