@@ -5,6 +5,13 @@
 .summary{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
 .summary .pill{padding:9px 16px;border-radius:100px;background:var(--surface2);border:1px solid var(--border2);font-weight:800;font-size:14px;}
 .pill b{color:var(--gold);}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:22px 0 6px;position:sticky;top:0;z-index:20;
+background:linear-gradient(180deg,var(--bg) 70%,transparent);padding:8px 0;}
+.tab{padding:9px 15px;border-radius:100px;font-weight:800;font-size:13.5px;cursor:pointer;
+background:var(--surface);border:1px solid var(--border);color:var(--dim);}
+.tab.on{background:color-mix(in srgb,var(--gold) 16%,var(--surface));border-color:color-mix(in srgb,var(--gold) 45%,transparent);color:var(--gold);}
+.panel{display:none;}
+.panel.on{display:block;}
 .petgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
 .pet{display:flex;flex-direction:column;gap:10px;}
 .pethead{display:flex;gap:12px;align-items:center;}
@@ -30,16 +37,42 @@ background:color-mix(in srgb,var(--rc) 16%,transparent);border:1px solid color-m
 .itemlist{display:flex;flex-wrap:wrap;gap:8px;}
 .item{padding:7px 13px;border-radius:100px;background:var(--surface2);border:1px solid var(--border);font-size:13px;}
 .item b{color:var(--gold);}
-select{padding:9px 12px;border-radius:10px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:inherit;font-size:14px;}
+select,input[type=text]{padding:9px 12px;border-radius:10px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:inherit;font-size:14px;}
+.eqchip{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:100px;background:var(--surface2);border:1px solid var(--border2);font-size:12.5px;margin:3px 4px 0 0;}
+.eqchip button{background:none;border:none;color:var(--red);cursor:pointer;font-weight:900;font-size:14px;padding:0;}
+.eqrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px;}
+.shopgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;}
+.shopitem{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 13px;border-radius:12px;background:var(--surface2);border:1px solid var(--border);font-size:13px;}
+.shopitem .nm{font-weight:800;}
+.shopitem .ef{color:var(--dim);font-size:11.5px;}
+.shopitem .btn{padding:6px 12px;font-size:12px;white-space:nowrap;}
+.sub{color:var(--dim);font-size:13px;margin:2px 0 10px;}
+.synthcard{margin-bottom:12px;}
+.synthcard .head{font-weight:900;margin-bottom:8px;}
+.live{margin-left:auto;font-size:12px;color:var(--teal);display:flex;align-items:center;gap:6px;}
+.live .dot{width:8px;height:8px;border-radius:50%;background:var(--teal);animation:pulse 1.8s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
 </style>
 {% endblock %}
 {% block content %}
 <div class="summary card">
   <span style="font-weight:900;font-size:17px">👋 {{ user.username }}님의 목장</span>
   <span class="pill">💰 <b>{{ '{:,}'.format(s.points) }}P</b></span>
-  <span class="pill">🐣 전설이 <b>{{ s.pets|length }}</b>/5</span>
+  <span class="pill">🥚 서사알 <b>{{ '{:,}'.format(s.egg_count) }}</b></span>
+  <span class="pill">🐣 전설이 <b>{{ s.pets|length }}</b>/{{ s.max_pets }}</span>
+  <span class="live"><span class="dot"></span>실시간 동기화 켜짐</span>
 </div>
 
+<div class="tabs">
+  <div class="tab on" data-tab="farm">🐣 목장</div>
+  <div class="tab" data-tab="equip">🎽 장비</div>
+  <div class="tab" data-tab="synth">✨ 합성·부화</div>
+  <div class="tab" data-tab="shop">🛒 상점</div>
+  <div class="tab" data-tab="bag">🎒 보관함</div>
+</div>
+
+<!-- ===== 목장 ===== -->
+<div class="panel on" id="panel-farm">
 <h2 class="sec"><span class="bar"></span>🐣 내 전설이 <span class="faint">버튼으로 바로 돌보기!</span></h2>
 {% if s.pets %}
 <div class="petgrid">
@@ -52,7 +85,7 @@ select{padding:9px 12px;border-radius:10px;border:1px solid var(--border2);backg
         <div class="ptag"><span class="rchip" style="--rc:var(--r-{{ p.rarity }})">{{ p.rarity }}</span>
           {{ p.level }}성 · {{ p.type }}</div>
         {% if p.stats %}<div class="ptag">⚔️ 전투력 <b style="color:var(--gold)">{{ '{:,}'.format(p.power) }}</b>
-          {% if p.equipment %} · 🎽 {{ p.equipment|length }}/3{% endif %}</div>{% endif %}
+          {% if p.equipment %} · 🎽 {{ p.equipment|length }}/{{ p.max_equip }}{% endif %}</div>{% endif %}
       </div>
     </div>
     {% if p.level > 0 %}
@@ -77,7 +110,7 @@ select{padding:9px 12px;border-radius:10px;border:1px solid var(--border2);backg
   {% endfor %}
 </div>
 {% else %}
-<div class="card">아직 전설이가 없어요. 디스코드에서 <b>/알까기</b>로 시작하세요!</div>
+<div class="card">아직 전설이가 없어요. 아래 <b>✨ 합성·부화</b> 탭에서 알까기로 시작하세요!</div>
 {% endif %}
 
 <h2 class="sec"><span class="bar"></span>🏕️ 원정</h2>
@@ -118,16 +151,137 @@ select{padding:9px 12px;border-radius:10px;border:1px solid var(--border2);backg
   </div>
   <div style="margin-top:12px"><button class="btn gold" onclick="act('/api/quest/claim',{})">🎁 완료 보상 받기</button></div>
 </div>
+</div>
 
+<!-- ===== 장비 ===== -->
+<div class="panel" id="panel-equip">
+<h2 class="sec"><span class="bar"></span>🎽 장비 관리 <span class="faint">한 마리당 최대 {{ s.pets and s.pets[0].max_equip or 3 }}개</span></h2>
+<p class="sub">보유 장비를 전설이에게 장착·해제합니다. 장비는 <b>🛒 상점</b>에서 서사급 알로 구매하세요.</p>
+{% set equippable = s.pets|selectattr('level','greaterthan',0)|list %}
+{% if not equippable %}
+<div class="card faint">장비를 장착할 부화한 전설이가 없습니다.</div>
+{% else %}
+<div class="petgrid">
+  {% for p in equippable %}
+  <div class="card pet">
+    <div class="pethead">
+      {% if p.img %}<img class="pimg" src="{{ p.img }}" alt="">{% endif %}
+      <div>
+        <div class="pname">{{ p.name }}</div>
+        <div class="ptag"><span class="rchip" style="--rc:var(--r-{{ p.rarity }})">{{ p.rarity }}</span> {{ p.level }}성 · {{ p.type }}</div>
+        <div class="ptag">⚔️ 전투력 <b style="color:var(--gold)">{{ '{:,}'.format(p.power) }}</b>
+          {% if p.equip_bonus %} · 장비보너스 AD+{{ p.equip_bonus.AD }} DF+{{ p.equip_bonus.DF }} AP+{{ p.equip_bonus.AP }} MR+{{ p.equip_bonus.MR }}{% endif %}</div>
+      </div>
+    </div>
+    <div>
+      <div class="ptag">장착 중 ({{ p.equipment|length }}/{{ p.max_equip }})</div>
+      {% for e in p.equipment %}
+      <span class="eqchip" title="{{ e.effect }}">{{ e.name }} <button onclick="act('/api/unequip',{pet_idx:{{ p.idx }},equip:'{{ e.name }}'})">✕</button></span>
+      {% else %}<span class="faint">없음</span>{% endfor %}
+    </div>
+    {% if p.equipment|length < p.max_equip and s.owned_equips %}
+    <div class="eqrow">
+      <select id="eqsel-{{ p.idx }}">
+        {% for e in s.owned_equips %}<option value="{{ e.name }}">{{ e.name }} ×{{ e.amount }} — {{ e.effect }}</option>{% endfor %}
+      </select>
+      <button class="btn teal" onclick="equip({{ p.idx }})">장착</button>
+    </div>
+    {% elif p.equipment|length >= p.max_equip %}
+    <div class="faint">장비 슬롯이 가득 찼습니다.</div>
+    {% else %}
+    <div class="faint">보유한 장비가 없습니다. 상점에서 구매하세요.</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<h2 class="sec"><span class="bar"></span>🎒 보유 장비</h2>
+<div class="card itemlist">
+  {% for e in s.owned_equips %}<span class="item">{{ e.name }} <b>×{{ e.amount }}</b> <span class="faint">({{ e.effect }})</span></span>
+  {% else %}<span class="faint">보유한 장비가 없습니다.</span>{% endfor %}
+</div>
+</div>
+
+<!-- ===== 합성·부화 ===== -->
+<div class="panel" id="panel-synth">
+<h2 class="sec"><span class="bar"></span>🥚 알까기 (가챠)</h2>
+<div class="card">
+  <p class="sub">첫 전설이는 무료, 이후 <b>{{ '{:,}'.format(s.hatch_cost) }}P</b>. 등급이 뽑히면 원하는 종류를 고를 수 있어요. (파티 {{ s.pet_count }}/{{ s.max_pets }})</p>
+  {% if s.pet_count >= s.max_pets %}
+  <div class="faint">파티가 가득 찼습니다. 합성하거나 디스코드 박스에 보관 후 이용하세요.</div>
+  {% else %}
+  <div class="eqrow">
+    <input type="text" id="hatch-name" placeholder="전설이 이름" maxlength="20" style="flex:1;min-width:160px">
+    <button class="btn gold" onclick="hatchRoll()">🥚 알까기</button>
+  </div>
+  <div id="hatch-result" style="margin-top:12px"></div>
+  {% endif %}
+</div>
+
+<h2 class="sec"><span class="bar"></span>✨ 전설이 합성 <span class="faint">3성 2마리 → 상위 등급</span></h2>
+<p class="sub">같은 등급 <b>3성</b> 서로 다른 종류 2마리를 합성합니다. 실패 시 재료 소멸 — <b>합성 방어권</b>({{ '{:,}'.format(s.synth.protect_tickets) }}개 보유) 있으면 실패해도 보존!</p>
+{% set any_synth = s.synth.grades|selectattr('enough')|list %}
+{% if not any_synth %}
+<div class="card faint">합성 가능한 3성 전설이 2마리가 없습니다. (같은 등급·서로 다른 종류 필요)</div>
+{% endif %}
+{% for g in s.synth.grades %}
+{% if g.enough %}
+<div class="card synthcard">
+  <div class="head"><span class="rchip" style="--rc:var(--r-{{ g.rarity }})">{{ g.rarity }}</span>
+    → <span class="rchip" style="--rc:var(--r-{{ g.target }})">{{ g.target }}</span> 성공확률 {{ (g.prob*100)|round(1) }}%</div>
+  <div class="eqrow">
+    <select id="syn1-{{ g.rarity }}">
+      {% for c in g.candidates %}<option value="{{ c.idx }}">{{ c.name }} ({{ c.type }})</option>{% endfor %}
+    </select>
+    <span>+</span>
+    <select id="syn2-{{ g.rarity }}">
+      {% for c in g.candidates %}<option value="{{ c.idx }}" {% if loop.index==2 %}selected{% endif %}>{{ c.name }} ({{ c.type }})</option>{% endfor %}
+    </select>
+    <button class="btn gold" onclick="synth('{{ g.rarity }}')">✨ 합성</button>
+  </div>
+</div>
+{% endif %}
+{% endfor %}
+</div>
+
+<!-- ===== 상점 ===== -->
+<div class="panel" id="panel-shop">
+<h2 class="sec"><span class="bar"></span>🛒 알 상점 <span class="faint">보유 서사알 {{ '{:,}'.format(s.egg_count) }}개</span></h2>
+<p class="sub">모아둔 <b>서사급 알</b>로 장비와 합성 방어권을 구매합니다.</p>
+{% for cat in s.shop %}
+<h2 class="sec" style="font-size:16px;margin:18px 0 8px"><span class="bar" style="background:var(--r-{{ cat.rarity if cat.rarity != '특수' else '고귀' }})"></span>{{ cat.rarity }} {% if cat.rarity != '특수' %}장비{% endif %}</h2>
+<div class="shopgrid">
+  {% for it in cat['items'] %}
+  <div class="shopitem">
+    <div>
+      <div class="nm">{{ it.name }}</div>
+      <div class="ef">{{ it.effect }}</div>
+      <div class="ef">🥚 {{ '{:,}'.format(it.price) }}</div>
+    </div>
+    <button class="btn {% if s.egg_count >= it.price %}gold{% endif %}" {% if s.egg_count < it.price %}disabled{% endif %} onclick="buy('{{ it.name }}')">구매</button>
+  </div>
+  {% endfor %}
+</div>
+{% endfor %}
+</div>
+
+<!-- ===== 보관함 ===== -->
+<div class="panel" id="panel-bag">
 <h2 class="sec"><span class="bar"></span>🎒 보관함</h2>
 <div class="card itemlist">
   {% for it in s['items'] %}<span class="item">{{ it.name }} <b>×{{ '{:,}'.format(it.amount) }}</b></span>
   {% else %}<span class="faint">보관함이 비어있습니다.</span>{% endfor %}
 </div>
+</div>
 {% endblock %}
 {% block script %}
 <script>
+let lastAction = 0;               // 마지막 사용자 조작 시각 (자동 새로고침 억제용)
+function touched(){ lastAction = Date.now(); }
+
 async function act(path, body){
+  touched();
   const r = await api(path, body);
   if(!r.ok){ toast(r.error || '실패했습니다.'); return; }
   let msg = '✅ 완료!';
@@ -138,30 +292,134 @@ async function act(path, body){
     if(r.found_items && r.found_items.length) msg += `\n🎁 아이템: ${r.found_items.map(i=>i[1]).join(', ')}`;
   } else if(path==='/api/feed') msg = `🍚 냠냠! 포만도 ${r.fullness}`;
   else if(path==='/api/shower') msg = `🚿 반짝반짝! 청결도 ${r.cleanliness}`;
+  else if(path==='/api/unequip') msg = `🎽 ${r.equip} 해제! 보관함으로 돌아갔습니다.`;
   else if(path==='/api/expedition/claim') msg = `🎉 원정 보상! 서사알 +${r.epic_eggs}${r.bonus_eggs.length?' · '+r.bonus_eggs.map(e=>e+'급 알').join(', '):''} · +${r.points}P`;
   else if(path==='/api/quest/claim') msg = `🎉 퀘스트 보상! 서사알 +${r.total_eggs}`;
   toast(msg, 3400);
-  setTimeout(()=>location.reload(), 1400);
+  reloadSoon();
 }
+function reloadSoon(ms=1300){ setTimeout(()=>location.reload(), ms); }
+
 function expStart(){
+  touched();
   const pet = document.getElementById('exp-pet');
   if(!pet || pet.value===''){ toast('원정 보낼 전설이가 없습니다.'); return; }
   const hours = +document.getElementById('exp-hours').value;
   api('/api/expedition/start',{pet_idx:+pet.value,hours}).then(r=>{
     if(!r.ok){ toast(r.error); return; }
     toast(`🏕️ ${r.name} ${r.hours}시간 원정 출발! (예상 서사알 ~${r.est_eggs})`, 3200);
-    setTimeout(()=>location.reload(), 1400);
+    reloadSoon();
   });
 }
-const t = document.getElementById('exptimer');
-if(t){
-  const end = +t.dataset.end;
+function equip(idx){
+  touched();
+  const sel = document.getElementById('eqsel-'+idx);
+  if(!sel){ return; }
+  api('/api/equip',{pet_idx:idx,equip:sel.value}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    toast(`🎽 ${r.equip} 장착 완료!`, 3000); reloadSoon();
+  });
+}
+function buy(name){
+  touched();
+  api('/api/buy',{item:name}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    toast(`✅ ${r.item} 구매! (서사알 -${r.price.toLocaleString()} · 잔여 ${r.remain.toLocaleString()})`, 3400);
+    reloadSoon();
+  });
+}
+function synth(rarity){
+  touched();
+  const i1 = +document.getElementById('syn1-'+rarity).value;
+  const i2 = +document.getElementById('syn2-'+rarity).value;
+  if(i1===i2){ toast('서로 다른 두 마리를 선택하세요.'); return; }
+  api('/api/synthesize',{idx1:i1,idx2:i2}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    if(r.success) toast(`✨ 합성 대성공! [${r.target}급] ${r.new_type} 알 탄생!`, 4200);
+    else if(r.protected) toast(`🛡️ 합성 실패… 하지만 방어권으로 재료 보존!`, 4000);
+    else toast(`💥 합성 실패… 재료 두 마리가 소멸했습니다.`, 4000);
+    reloadSoon(1800);
+  });
+}
+
+// ── 알까기 (2단계: 등급 뽑기 → 종류 선택) ──
+let hatching = false;
+function hatchRoll(){
+  touched();
+  const name = (document.getElementById('hatch-name').value||'').trim();
+  if(!name){ toast('전설이 이름을 입력하세요.'); return; }
+  api('/api/hatch/roll',{name}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    hatching = true;
+    const box = document.getElementById('hatch-result');
+    const opts = r.pool.map(t=>`<option value="${t}">${t}</option>`).join('');
+    box.innerHTML = `<div class="card"><b>🎉 [${r.rarity}급] 알 당첨!</b> ${r.cost?('(-'+r.cost.toLocaleString()+'P)'):'(무료)'}<div class="eqrow" style="margin-top:8px">`
+      + `<select id="hatch-pick">${opts}</select>`
+      + `<button class="btn gold" onclick="hatchPick()">이 전설이로 부화!</button></div>`
+      + `<div class="faint" style="margin-top:6px">종류를 고르고 부화하면 파티에 알이 추가됩니다.</div></div>`;
+  });
+}
+function hatchPick(){
+  touched();
+  const t = document.getElementById('hatch-pick').value;
+  api('/api/hatch/pick',{type:t}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    hatching = false;
+    toast(`🥚 [${r.rarity}급] ${r.type} 알 "${r.name}" 부화 완료!`, 3600);
+    reloadSoon();
+  });
+}
+
+// ── 탭 전환 ──
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.onclick = ()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+    tab.classList.add('on');
+    document.getElementById('panel-'+tab.dataset.tab).classList.add('on');
+    location.hash = tab.dataset.tab;
+  };
+});
+if(location.hash){ const t=document.querySelector('.tab[data-tab="'+location.hash.slice(1)+'"]'); if(t) t.click(); }
+
+// ── 원정 타이머 ──
+const timerEl = document.getElementById('exptimer');
+if(timerEl){
+  const end = +timerEl.dataset.end;
   const tick = ()=>{
     const s = Math.max(0, Math.floor(end - Date.now()/1000));
     if(s<=0){ location.reload(); return; }
-    t.textContent = `${Math.floor(s/3600)}시간 ${Math.floor(s%3600/60)}분 ${s%60}초`;
+    timerEl.textContent = `${Math.floor(s/3600)}시간 ${Math.floor(s%3600/60)}분 ${s%60}초`;
   };
   tick(); setInterval(tick, 1000);
 }
+
+// ── 실시간 자동 동기화: 봇이나 다른 창에서 바뀐 내용을 감지해 새로고침 ──
+let sig = null;
+function stateSig(s){
+  return JSON.stringify([s.points, s.egg_count, s.pet_count,
+    s.expedition ? [s.expedition.done, s.expedition.pet_name] : 0,
+    s.pets.map(p=>[p.level, p.fullness, p.cleanliness, p.intimacy, p.fatigue, p.power, p.equipment.length]),
+    s.owned_equips.map(e=>[e.name,e.amount]),
+    s.quest.quests.map(q=>[q.cur, q.claimed])]);
+}
+async function poll(){
+  try{
+    const r = await fetch('/api/state', {headers:{'Cache-Control':'no-cache'}});
+    if(!r.ok) return;
+    const s = await r.json();
+    const ns = stateSig(s);
+    if(sig === null){ sig = ns; return; }
+    if(ns !== sig){
+      sig = ns;
+      // 사용자가 방금 조작했거나 알까기 진행 중이면 방해하지 않고 잠시 뒤 반영
+      if(hatching || Date.now()-lastAction < 6000) return;
+      toast('🔄 새 변경 사항을 동기화했습니다.', 1500);
+      reloadSoon(700);
+    }
+  }catch(e){}
+}
+setInterval(poll, 12000);
+poll();
 </script>
 {% endblock %}

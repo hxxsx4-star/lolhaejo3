@@ -31,7 +31,9 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from itsdangerous import URLSafeTimedSerializer, BadSignature
 
 import utils.database as udb
-from utils.data import PET_IMAGES, PET_IMAGES_EVOLVED, RARITY_IMAGES, get_pet_total_stats
+from utils.data import (PET_IMAGES, PET_IMAGES_EVOLVED, RARITY_IMAGES, EQUIPMENTS,
+                        MAX_EQUIP_PER_PET, format_equip_effect, get_pet_total_stats,
+                        get_equipment_bonus)
 from utils.database import get_or_migrate_data, get_user_items
 from utils.stats import get_points
 from utils import game
@@ -162,13 +164,16 @@ def pet_view(pet: dict, idx: int) -> dict:
     else:
         img = PET_IMAGES.get(ptype, "")
     stats = get_pet_total_stats(pet) if level > 0 else None
+    equipped = pet.get("equipment", []) or []
     return {"idx": idx, "name": pet.get("name", "이름없음"), "type": ptype,
             "rarity": pet.get("rarity", "서사"), "level": level, "img": img,
             "fullness": pet.get("fullness", 0), "cleanliness": pet.get("cleanliness", 0),
             "intimacy": pet.get("intimacy", 0), "fatigue": pet.get("fatigue", 0),
             "exp": pet.get("exp", 0), "stats": stats,
             "power": calc_pet_power(pet) if level > 0 else 0,
-            "equipment": pet.get("equipment", []) or []}
+            "max_equip": MAX_EQUIP_PER_PET,
+            "equipment": [{"name": n, "effect": format_equip_effect(n)} for n in equipped],
+            "equip_bonus": get_equipment_bonus(pet) if level > 0 else None}
 
 
 async def dashboard_state(uid: int) -> dict:
@@ -178,9 +183,19 @@ async def dashboard_state(uid: int) -> dict:
     points = await get_points(uid)
     quest = await game.get_quest_status(uid)
     expedition = await game.get_expedition_status(uid)
+    # 인벤토리에서 장착 가능한 장비만 추림 (장비 관리 UI 용)
+    owned_equips = [{"name": n, "amount": a, "rarity": EQUIPMENTS[n]["rarity"],
+                     "effect": format_equip_effect(n)}
+                    for n, a in items if n in EQUIPMENTS]
+    egg_count = next((a for n, a in items if n == "서사급 알"), 0)
+    synth = await game.synth_candidates(uid)
     return {"pets": pets, "items": [{"name": n, "amount": a} for n, a in items],
             "points": points, "quest": quest, "expedition": expedition,
-            "durations": game.EXPEDITION_DURATIONS}
+            "durations": game.EXPEDITION_DURATIONS,
+            "owned_equips": owned_equips, "egg_count": egg_count,
+            "shop": game.shop_catalog(), "synth": synth,
+            "max_pets": game.MAX_PETS, "hatch_cost": game.HATCH_COST,
+            "pet_count": len(pets)}
 
 
 async def rankings() -> dict:
@@ -290,6 +305,79 @@ async def api_quest_claim(request: Request):
     uid, err = _need_login(request)
     if err: return err
     return JSONResponse(await game.claim_daily_quests(uid))
+
+
+@app.post("/api/equip")
+async def api_equip(request: Request):
+    uid, err = _need_login(request)
+    if err: return err
+    body = await request.json()
+    return JSONResponse(await game.equip_pet(uid, int(body.get("pet_idx", 0)), body.get("equip", "")))
+
+
+@app.post("/api/unequip")
+async def api_unequip(request: Request):
+    uid, err = _need_login(request)
+    if err: return err
+    body = await request.json()
+    return JSONResponse(await game.unequip_pet(uid, int(body.get("pet_idx", 0)), body.get("equip", "")))
+
+
+@app.post("/api/buy")
+async def api_buy(request: Request):
+    uid, err = _need_login(request)
+    if err: return err
+    body = await request.json()
+    return JSONResponse(await game.buy_shop_item(uid, body.get("item", "")))
+
+
+@app.post("/api/hatch/roll")
+async def api_hatch_roll(request: Request):
+    uid, err = _need_login(request)
+    if err: return err
+    body = await request.json()
+    return JSONResponse(await game.hatch_roll(uid, body.get("name", "")))
+
+
+@app.post("/api/hatch/pick")
+async def api_hatch_pick(request: Request):
+    uid, err = _need_login(request)
+    if err: return err
+    body = await request.json()
+    return JSONResponse(await game.hatch_pick(uid, body.get("type", "")))
+
+
+@app.post("/api/synthesize")
+async def api_synthesize(request: Request):
+    uid, err = _need_login(request)
+    if err: return err
+    body = await request.json()
+    return JSONResponse(await game.synthesize(uid, int(body.get("idx1", -1)), int(body.get("idx2", -2))))
+
+
+@app.get("/api/state")
+async def api_state(request: Request):
+    """대시보드 실시간 자동 갱신용 JSON 상태."""
+    uid, err = _need_login(request)
+    if err: return err
+    resp = JSONResponse(await dashboard_state(uid))
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
+
+
+@app.get("/dogam", response_class=HTMLResponse)
+async def dogam():
+    """전설이 도감 (정적 페이지 통합)."""
+    path = os.path.join(ROOT, "web", "dogam.html")
+    if not os.path.exists(path):
+        return HTMLResponse("<h1>도감 파일이 아직 생성되지 않았습니다.</h1>"
+                            "<p>web/generate_dogam.py 를 실행해 dogam.html 을 만들어주세요.</p>",
+                            status_code=404)
+    with open(path, encoding="utf-8") as f:
+        html = f.read()
+    resp = HTMLResponse(html)
+    resp.headers["Cache-Control"] = "public, max-age=3600"
+    return resp
 
 
 if __name__ == "__main__":

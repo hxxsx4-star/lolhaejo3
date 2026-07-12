@@ -9,9 +9,12 @@ import time
 import random
 from datetime import datetime, timezone, timedelta
 
-from utils.data import ITEMS_INFO, EXP_TABLE, get_pet_total_stats
+from utils.data import (ITEMS_INFO, EXP_TABLE, PET_POOLS, EQUIPMENTS, EQUIP_PRICE,
+                        MAX_EQUIP_PER_PET, RARITY_ORDER, format_equip_effect,
+                        get_pet_total_stats, get_equipment_bonus)
 from utils.database import (get_or_migrate_data, save_legend_data, get_active_buffs,
-                            consume_item, add_item, update_max_star,
+                            consume_item, add_item, get_item_amount, add_synth_count,
+                            update_max_star,
                             start_expedition, get_expedition, clear_expedition,
                             add_quest_progress, get_quest_row, set_quest_claimed)
 from utils.stats import add_points, spend_points
@@ -313,3 +316,219 @@ async def claim_expedition(user_id: int) -> dict:
         await clear_expedition(user_id)
     return {"ok": True, "pet_name": exp['pet_name'], "hours": exp['duration_h'],
             "epic_eggs": epic_eggs, "bonus_eggs": bonus_eggs, "points": points}
+
+
+# ==========================================
+# 장비 장착 / 해제 (봇 /장비 와 동일 규칙)
+# ==========================================
+async def equip_pet(user_id: int, pet_idx: int, equip_name: str) -> dict:
+    """인벤토리의 장비를 전설이에게 장착 (최대 MAX_EQUIP_PER_PET 개)."""
+    if equip_name not in EQUIPMENTS:
+        return {"ok": False, "error": "존재하지 않는 장비입니다."}
+    async with get_user_lock(user_id):
+        wrapper = await get_or_migrate_data(user_id)
+        pets = wrapper.get('pets', [])
+        if pet_idx >= len(pets):
+            return {"ok": False, "error": "전설이 데이터가 변경되었습니다. 다시 시도하세요."}
+        pet = pets[pet_idx]
+        equipped = pet.get('equipment', []) or []
+        if len(equipped) >= MAX_EQUIP_PER_PET:
+            return {"ok": False, "error": f"장비는 최대 {MAX_EQUIP_PER_PET}개까지 장착할 수 있습니다."}
+        if not await consume_item(user_id, equip_name, 1):
+            return {"ok": False, "error": "해당 장비를 보유하고 있지 않습니다."}
+        equipped.append(equip_name)
+        pet['equipment'] = equipped
+        await save_legend_data(user_id, wrapper)
+    return {"ok": True, "name": pet.get('name', '이름없음'), "equip": equip_name,
+            "equipped": equipped}
+
+
+async def unequip_pet(user_id: int, pet_idx: int, equip_name: str) -> dict:
+    """장착된 장비를 해제하고 인벤토리로 반환. 특수 장비 누적 스택은 초기화."""
+    async with get_user_lock(user_id):
+        wrapper = await get_or_migrate_data(user_id)
+        pets = wrapper.get('pets', [])
+        if pet_idx >= len(pets):
+            return {"ok": False, "error": "전설이 데이터가 변경되었습니다. 다시 시도하세요."}
+        pet = pets[pet_idx]
+        equipped = pet.get('equipment', []) or []
+        if equip_name not in equipped:
+            return {"ok": False, "error": "이미 해제된 장비입니다."}
+        equipped.remove(equip_name)
+        pet['equipment'] = equipped
+        stacks = pet.get('equip_stacks', {})
+        if equip_name in stacks:
+            del stacks[equip_name]
+        await add_item(user_id, equip_name, 1)
+        await save_legend_data(user_id, wrapper)
+    return {"ok": True, "name": pet.get('name', '이름없음'), "equip": equip_name,
+            "equipped": equipped}
+
+
+# ==========================================
+# 알 상점 (서사급 알로 장비/합성 방어권 구매)
+# ==========================================
+SHOP_CURRENCY = "서사급 알"
+PROTECT_TICKET = "합성 방어권"
+PROTECT_TICKET_PRICE = 100000
+
+
+def shop_price(item_name: str):
+    if item_name == PROTECT_TICKET:
+        return PROTECT_TICKET_PRICE
+    info = EQUIPMENTS.get(item_name)
+    return EQUIP_PRICE[info["rarity"]] if info else None
+
+
+def shop_catalog() -> list:
+    """상점 진열 목록 (등급별 장비 + 합성 방어권)을 웹 표시용으로 반환."""
+    cats = [{"rarity": "특수", "items": [
+        {"name": PROTECT_TICKET, "price": PROTECT_TICKET_PRICE,
+         "effect": "합성 실패 시 재료 전설이 보존"}]}]
+    for rarity in RARITY_ORDER:
+        names = [n for n, i in EQUIPMENTS.items() if i["rarity"] == rarity]
+        if not names:
+            continue
+        cats.append({"rarity": rarity, "items": [
+            {"name": n, "price": EQUIP_PRICE[rarity], "effect": format_equip_effect(n)}
+            for n in names]})
+    return cats
+
+
+async def buy_shop_item(user_id: int, item_name: str) -> dict:
+    """서사급 알로 상점 아이템 1개 구매 (원자적 차감)."""
+    price = shop_price(item_name)
+    if price is None:
+        return {"ok": False, "error": "알 수 없는 아이템입니다."}
+    async with get_user_lock(user_id):
+        owned = await get_item_amount(user_id, SHOP_CURRENCY)
+        if owned < price:
+            return {"ok": False, "error": f"서사급 알이 부족합니다! (필요 {price:,} / 보유 {owned:,})"}
+        if not await consume_item(user_id, SHOP_CURRENCY, price):
+            return {"ok": False, "error": "결제에 실패했습니다. 잔여 수량을 확인해주세요."}
+        await add_item(user_id, item_name, 1)
+        remain = owned - price
+    return {"ok": True, "item": item_name, "price": price, "remain": remain,
+            "is_equip": item_name in EQUIPMENTS}
+
+
+# ==========================================
+# 알까기(가챠) / 합성
+# ==========================================
+MAX_PETS = 5
+HATCH_COST = 1000
+# 확률 순서: 서사, 전설, 신화, 프레스티지, 고귀, 초월
+# 고귀=0.001%, 초월은 알까기로 획득 불가(합성 전용)
+HATCH_WEIGHTS = [85, 14, 0.9, 0.1, 0.001, 0.0]
+
+# 합성: 등급 → (상위 등급, 성공 확률)
+SYNTH_TARGET = {
+    "서사": ("전설", 0.8), "전설": ("신화", 0.5), "신화": ("프레스티지", 0.2),
+    "프레스티지": ("고귀", 0.05), "고귀": ("초월", 0.01),
+}
+
+
+def _new_pet(name: str, ptype: str, rarity: str) -> dict:
+    return {'name': name, 'type': ptype, 'rarity': rarity, 'level': 0, 'exp': 0,
+            'fullness': 100, 'intimacy': 50, 'fatigue': 0, 'cleanliness': 100,
+            'walk_count': 0, 'total_walk_count': 0, 'last_fatigue_calc': time.time()}
+
+
+async def hatch_roll(user_id: int, name: str) -> dict:
+    """알까기 1단계: 포인트 차감 후 등급을 뽑고, 선택할 종류 목록을 돌려줍니다.
+    (첫 마리는 무료, 이후 1000P). 뽑힌 등급은 pending 으로 저장되어 pick 에서만 사용됩니다."""
+    name = (name or "").strip()[:20] or "이름없는 전설이"
+    async with get_user_lock(user_id):
+        wrapper = await get_or_migrate_data(user_id)
+        pets = wrapper.get('pets', [])
+        if len(pets) >= MAX_PETS:
+            return {"ok": False, "error": f"전설이는 최대 {MAX_PETS}마리까지만 파티에 둘 수 있습니다."}
+        is_first = (len(pets) == 0)
+        cost = 0 if is_first else HATCH_COST
+        if cost and not await spend_points(user_id, cost):
+            return {"ok": False, "error": f"가챠 비용이 부족합니다! (필요 {cost:,}P)"}
+        rarity = random.choices(RARITY_ORDER, weights=HATCH_WEIGHTS, k=1)[0]
+        wrapper['pending_hatch'] = {"rarity": rarity, "name": name, "ts": time.time()}
+        await save_legend_data(user_id, wrapper)
+    return {"ok": True, "rarity": rarity, "name": name, "cost": cost,
+            "pool": list(PET_POOLS[rarity])}
+
+
+async def hatch_pick(user_id: int, ptype: str) -> dict:
+    """알까기 2단계: pending 등급 안에서 원하는 종류를 골라 알을 생성합니다."""
+    async with get_user_lock(user_id):
+        wrapper = await get_or_migrate_data(user_id)
+        pend = wrapper.get('pending_hatch')
+        if not pend:
+            return {"ok": False, "error": "먼저 알까기를 진행해주세요."}
+        rarity = pend["rarity"]
+        if ptype not in PET_POOLS.get(rarity, []):
+            return {"ok": False, "error": "해당 등급에 없는 전설이입니다."}
+        if len(wrapper.get('pets', [])) >= MAX_PETS:
+            return {"ok": False, "error": f"전설이는 최대 {MAX_PETS}마리까지만 둘 수 있습니다."}
+        pet = _new_pet(pend["name"], ptype, rarity)
+        wrapper.setdefault('pets', []).append(pet)
+        wrapper['active_idx'] = len(wrapper['pets']) - 1
+        wrapper.pop('pending_hatch', None)
+        await save_legend_data(user_id, wrapper)
+    return {"ok": True, "rarity": rarity, "type": ptype, "name": pend["name"]}
+
+
+async def synth_candidates(user_id: int) -> dict:
+    """합성 가능한 등급별 3성 전설이 목록 (웹 선택 UI 용)."""
+    wrapper = await get_or_migrate_data(user_id)
+    pets = wrapper.get('pets', [])
+    by_rarity = {}
+    for i, p in enumerate(pets):
+        if p.get('level', 0) == 3 and p.get('rarity') in SYNTH_TARGET:
+            by_rarity.setdefault(p['rarity'], []).append(
+                {"idx": i, "name": p.get('name', '이름없음'), "type": p.get('type', '?')})
+    grades = []
+    for rarity, (target, prob) in SYNTH_TARGET.items():
+        cand = by_rarity.get(rarity, [])
+        grades.append({"rarity": rarity, "target": target, "prob": prob,
+                       "candidates": cand, "enough": len(cand) >= 2})
+    protect = await get_item_amount(user_id, PROTECT_TICKET)
+    return {"grades": grades, "protect_tickets": protect}
+
+
+async def synthesize(user_id: int, idx1: int, idx2: int) -> dict:
+    """3성 2마리를 합성. 성공 시 상위 등급 알 획득, 실패 시 합성 방어권으로 보존 가능."""
+    if idx1 == idx2:
+        return {"ok": False, "error": "서로 다른 두 마리를 선택하세요."}
+    async with get_user_lock(user_id):
+        wrapper = await get_or_migrate_data(user_id)
+        pets = wrapper.get('pets', [])
+        if max(idx1, idx2) >= len(pets):
+            return {"ok": False, "error": "전설이 데이터가 변경되었습니다. 다시 시도하세요."}
+        p1, p2 = pets[idx1], pets[idx2]
+        if p1.get('rarity') != p2.get('rarity') or p1.get('rarity') not in SYNTH_TARGET:
+            return {"ok": False, "error": "같은 등급의 합성 가능한 두 마리를 선택하세요."}
+        if p1.get('level', 0) != 3 or p2.get('level', 0) != 3:
+            return {"ok": False, "error": "두 마리 모두 3성이어야 합니다."}
+        if p1.get('type') == p2.get('type'):
+            return {"ok": False, "error": "합성에 쓰이는 두 전설이는 서로 다른 종류여야 합니다."}
+
+        rarity = p1['rarity']
+        target, prob = SYNTH_TARGET[rarity]
+        success = random.random() < prob
+
+        protected = False
+        if not success:
+            protected = await consume_item(user_id, PROTECT_TICKET, 1)
+
+        new_type = None
+        if success or not protected:
+            for i in sorted([idx1, idx2], reverse=True):
+                wrapper['pets'].pop(i)
+            wrapper['active_idx'] = max(0, len(wrapper['pets']) - 1)
+
+        if success:
+            new_type = random.choice(PET_POOLS[target])
+            wrapper.setdefault('pets', []).append(_new_pet(f"합성된 {new_type} 알", new_type, target))
+            await add_synth_count(user_id)
+
+        await save_legend_data(user_id, wrapper)
+
+    return {"ok": True, "success": success, "protected": protected,
+            "rarity": rarity, "target": target, "new_type": new_type}
