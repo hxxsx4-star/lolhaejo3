@@ -4,7 +4,7 @@ import time
 import random
 from datetime import datetime
 
-from utils.database import get_legend_data, get_active_buffs
+from utils.database import get_legend_data, get_or_migrate_data, save_legend_data, get_active_buffs
 from utils.logs import WALK_LOG_CH, send_log_embed
 from utils.stats import get_points
 from utils.image_generator import generate_status_image
@@ -16,7 +16,7 @@ from .combat import get_pet_stats
 
 class LegendActionView(discord.ui.View):
     def __init__(self, user_id, current_idx=0, total_pets=1, pet_level=1):
-        super().__init__(timeout=60)
+        super().__init__(timeout=300)  # 상태창 버튼 유효시간(초). 짧으면 잠깐 뒤에 눌러도 먹통이라 넉넉히
         self.user_id = user_id
         self.current_idx = current_idx
         self.total_pets = total_pets
@@ -127,18 +127,33 @@ class LegendActionView(discord.ui.View):
 
     @discord.ui.button(label="이전 펫", style=discord.ButtonStyle.secondary, emoji="◀️", row=2)
     async def prev_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        self.current_idx = (self.current_idx - 1) % self.total_pets
-        await self._change_pet(interaction)
+        await self._navigate(interaction, -1)
 
     @discord.ui.button(label="다음 펫", style=discord.ButtonStyle.secondary, emoji="▶️", row=2)
     async def next_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        self.current_idx = (self.current_idx + 1) % self.total_pets
-        await self._change_pet(interaction)
+        await self._navigate(interaction, +1)
 
-    async def _change_pet(self, interaction: discord.Interaction):
-        await interaction.response.defer() # 🌟 제일 중요! 여기서 3초 타임아웃을 막아줍니다.
-        wrapper = await get_legend_data(self.user_id)
-        if not wrapper or not wrapper.get('pets'): return
+    async def _navigate(self, interaction: discord.Interaction, delta: int):
+        await interaction.response.defer() # 🌟 3초 타임아웃 방지
+        wrapper = await get_or_migrate_data(self.user_id)
+        pets = wrapper.get('pets', [])
+        if len(pets) <= 1:
+            return await interaction.followup.send("전환할 다른 전설이가 없습니다.", ephemeral=True)
+        # 뷰 생성 이후 펫 수가 바뀌었어도 안전하도록 매번 최신값으로 갱신
+        self.total_pets = len(pets)
+        self.current_idx = (self.current_idx + delta) % self.total_pets
+        await self._change_pet(interaction, wrapper)
+
+    async def _change_pet(self, interaction: discord.Interaction, wrapper=None):
+        if wrapper is None:  # 직접 호출 대비(하위 호환)
+            await interaction.response.defer()
+            wrapper = await get_or_migrate_data(self.user_id)
+        pets = wrapper.get('pets', [])
+        if not pets:
+            return await interaction.followup.send("전설이 데이터가 없습니다.", ephemeral=True)
+        if self.current_idx >= len(pets):
+            self.current_idx = 0
+        self.total_pets = len(pets)
         wrapper['active_idx'] = self.current_idx
         data = wrapper['pets'][self.current_idx]
 
