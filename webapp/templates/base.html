@@ -2,8 +2,17 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>{% block title %}전설이 키우기{% endblock %}</title>
+<!-- PWA: 홈 화면에 설치하면 앱처럼 전체화면으로 실행됩니다 -->
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#16112a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="전설이 키우기">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="/static/icon-192.png">
 <style>
 :root{--bg:#0d0a17;--bg2:#0a0813;--surface:#16112a;--surface2:#1d1636;
 --border:rgba(185,165,255,.14);--border2:rgba(205,185,255,.26);
@@ -60,6 +69,10 @@ clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',ms);}
 async function api(path, body){
   const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})});
   return await r.json();
+}
+// PWA 서비스 워커 등록 (설치·오프라인 지원)
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
 }
 </script>
 {% block script %}{% endblock %}

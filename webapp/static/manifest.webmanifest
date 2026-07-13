@@ -1,0 +1,17 @@
+{
+  "name": "전설이 키우기",
+  "short_name": "전설이",
+  "description": "디스코드로 로그인해 전설이를 돌보고 원정·합성·랭킹을 즐기세요.",
+  "start_url": "/me",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d0a17",
+  "theme_color": "#16112a",
+  "lang": "ko",
+  "icons": [
+    { "src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/static/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/static/icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
