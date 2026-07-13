@@ -56,6 +56,12 @@ select,input[type=text]{padding:9px 12px;border-radius:10px;border:1px solid var
 .attday .atte{color:var(--gold);font-weight:800;margin-top:3px;}
 .attday .attp{color:var(--faint);font-size:11px;}
 .attday .attb{color:var(--teal);font-size:11px;font-weight:800;margin-top:2px;}
+.utable{width:100%;border-collapse:collapse;font-size:13px;}
+.utable th,.utable td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+.utable th{color:var(--faint);font-weight:700;font-size:12px;}
+.utable tbody tr{cursor:pointer;}
+.utable tbody tr:hover{background:var(--surface2);}
+.utable .num{text-align:right;font-variant-numeric:tabular-nums;}
 .att-now{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset;}
 .att-done{opacity:.55;border-color:var(--teal);}
 .live{margin-left:auto;font-size:12px;color:var(--teal);display:flex;align-items:center;gap:6px;}
@@ -71,6 +77,12 @@ select,input[type=text]{padding:9px 12px;border-radius:10px;border:1px solid var
   <span class="pill">🐣 전설이 <b>{{ s.pets|length }}</b>/{{ s.max_pets }}</span>
   <span class="live"><span class="dot"></span>실시간 동기화 켜짐</span>
 </div>
+{% if is_admin %}
+<div class="card" style="margin-top:10px;border-color:var(--red);background:color-mix(in srgb,var(--red) 12%,var(--surface))">
+  <b style="color:var(--red)">🛠️ 관리자님, 환영합니다!</b>
+  <span class="faint">— 우측 <b>🛠️ 관리자</b> 탭에서 전체 유저를 조회·관리할 수 있습니다.</span>
+</div>
+{% endif %}
 
 <div class="tabs">
   <div class="tab on" data-tab="farm">🐣 목장</div>
@@ -447,8 +459,22 @@ select,input[type=text]{padding:9px 12px;border-radius:10px;border:1px solid var
 {% if is_admin %}
 <!-- ===== 관리자 ===== -->
 <div class="panel" id="panel-admin">
-<h2 class="sec"><span class="bar" style="background:var(--red)"></span>🛠️ 관리자 패널</h2>
-<p class="sub">유저 디스코드 ID로 조회 후 관리합니다. 모든 작업은 즉시 반영됩니다.</p>
+<h2 class="sec"><span class="bar" style="background:var(--red)"></span>👥 전체 유저 <span class="faint">클릭하면 아래에서 관리</span></h2>
+<div class="card">
+  <div class="eqrow" style="margin-bottom:8px">
+    <input type="text" id="ad-search" placeholder="이름/ID 검색" style="flex:1;min-width:140px" oninput="renderUsers()">
+    <button class="btn" onclick="loadUsers()">🔄 새로고침</button>
+    <span id="ad-usercount" class="faint"></span>
+  </div>
+  <div style="overflow-x:auto">
+    <table class="utable" id="ad-users"><thead>
+      <tr><th>유저</th><th>ID</th><th>💰P</th><th>🥚서사알</th><th>🐣펫</th><th>📦박스</th><th></th></tr>
+    </thead><tbody></tbody></table>
+  </div>
+</div>
+
+<h2 class="sec"><span class="bar" style="background:var(--red)"></span>🛠️ 유저 관리</h2>
+<p class="sub">위 목록에서 유저를 클릭하거나, ID를 직접 입력해 조회하세요. 모든 작업은 즉시 반영됩니다.</p>
 <div class="card">
   <div class="eqrow">
     <input type="text" id="ad-target" placeholder="대상 유저 디스코드 ID" style="width:220px">
@@ -681,6 +707,30 @@ function adminFillTypes(){
   sel.innerHTML=(PET_POOLS_JS[r]||[]).map(t=>`<option value="${t}">${t}</option>`).join('');
 }
 function adTarget(){ return (document.getElementById('ad-target').value||'').trim(); }
+let AD_USERS=[];
+function loadUsers(){
+  api('/api/admin/users',{}).then(r=>{
+    if(!r.ok){ toast(r.error||'실패'); return; }
+    AD_USERS=r.users||[]; renderUsers();
+  });
+}
+function renderUsers(){
+  const q=(document.getElementById('ad-search').value||'').trim().toLowerCase();
+  const rows=AD_USERS.filter(u=>!q || u.name.toLowerCase().includes(q) || u.id.includes(q));
+  document.getElementById('ad-usercount').textContent=`${rows.length}명`;
+  const tb=document.querySelector('#ad-users tbody');
+  tb.innerHTML=rows.map(u=>`<tr onclick="pickUser('${u.id}')">`
+    +`<td>${u.name}</td><td class="faint">${u.id}</td>`
+    +`<td class="num">${u.points.toLocaleString()}</td><td class="num">${u.eggs.toLocaleString()}</td>`
+    +`<td class="num">${u.pets}</td><td class="num">${u.box}</td>`
+    +`<td><button class="btn" style="padding:4px 10px;font-size:11px">관리</button></td></tr>`).join('')
+    || '<tr><td colspan="7" class="faint">유저가 없습니다.</td></tr>';
+}
+function pickUser(id){
+  document.getElementById('ad-target').value=id;
+  adminLookup();
+  document.getElementById('ad-target').scrollIntoView({behavior:'smooth',block:'center'});
+}
 function adminLookup(){
   const tid=adTarget(); if(!tid){ toast('유저 ID를 입력하세요.'); return; }
   api('/api/admin/lookup',{target_id:tid}).then(r=>{
@@ -755,6 +805,7 @@ function adminResetItems(){
   });
 }
 adminFillTypes();
+loadUsers();
 {% endif %}
 
 // ── 탭 전환 ──

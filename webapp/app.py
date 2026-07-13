@@ -50,8 +50,9 @@ REDIRECT_URI = WEB.get("redirect_uri", "")
 SECRET_KEY = WEB.get("secret_key", "")
 OAUTH_READY = all([CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, SECRET_KEY])
 
-# 관리자 디스코드 ID 목록 (config.ini [web] admin_ids = 123, 456). 비어있으면 관리자 없음.
-ADMIN_IDS = set()
+# 관리자 디스코드 ID 목록. 기본 관리자 + config.ini [web] admin_ids = 123, 456 로 추가.
+DEFAULT_ADMIN_IDS = {1505506970361139210, 1517544497817583739}
+ADMIN_IDS = set(DEFAULT_ADMIN_IDS)
 for _a in WEB.get("admin_ids", "").replace(" ", "").split(","):
     if _a.isdigit():
         ADMIN_IDS.add(int(_a))
@@ -228,6 +229,42 @@ async def dashboard_state(uid: int) -> dict:
             "achievement": achievement,
             "max_pets": game.MAX_PETS, "hatch_cost": game.HATCH_COST,
             "pet_count": len(pets)}
+
+
+async def admin_list_users() -> list:
+    """DB에 흔적이 있는 모든 유저를 모아 요약(포인트/펫수/알 등)과 함께 반환."""
+    import json
+    ids = set()
+    pets_by_uid = {}
+    egg_by_uid = {}
+    async with aiosqlite.connect(udb.DB_PATH) as db:
+        async with db.execute("SELECT user_id, pet_data FROM user_multi_pets") as cur:
+            for uid, pj in await cur.fetchall():
+                ids.add(uid)
+                try:
+                    w = json.loads(pj)
+                    pets_by_uid[uid] = (len(w.get("pets", [])), len(w.get("box", [])))
+                except Exception:
+                    pets_by_uid[uid] = (0, 0)
+        async with db.execute("SELECT user_id, amount FROM user_items WHERE item_name = '서사급 알'") as cur:
+            for uid, amt in await cur.fetchall():
+                ids.add(uid)
+                egg_by_uid[uid] = amt
+        async with db.execute("SELECT DISTINCT user_id FROM user_items") as cur:
+            for (uid,) in await cur.fetchall():
+                ids.add(uid)
+
+    names = await get_usernames(list(ids))
+    users = []
+    for uid in ids:
+        parties, box = pets_by_uid.get(uid, (0, 0))
+        users.append({
+            "id": str(uid), "name": display_name(uid, names),
+            "points": await get_points(uid),
+            "pets": parties, "box": box, "eggs": egg_by_uid.get(uid, 0),
+        })
+    users.sort(key=lambda u: (-u["eggs"], -u["points"]))
+    return users
 
 
 async def rankings() -> dict:
@@ -447,6 +484,13 @@ def _target(b) -> int:
         return int(b.get("target_id", 0))
     except (TypeError, ValueError):
         return 0
+
+
+@app.post("/api/admin/users")
+async def api_admin_users(request: Request):
+    _, err = _need_admin(request)
+    if err: return err
+    return JSONResponse({"ok": True, "users": await admin_list_users()})
 
 
 @app.post("/api/admin/lookup")
