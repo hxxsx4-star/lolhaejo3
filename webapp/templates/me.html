@@ -49,6 +49,15 @@ select,input[type=text]{padding:9px 12px;border-radius:10px;border:1px solid var
 .sub{color:var(--dim);font-size:13px;margin:2px 0 10px;}
 .synthcard{margin-bottom:12px;}
 .synthcard .head{font-weight:900;margin-bottom:8px;}
+.attgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;}
+@media(max-width:620px){.attgrid{grid-template-columns:repeat(4,1fr);}}
+.attday{text-align:center;padding:10px 4px;border-radius:12px;background:var(--surface2);border:1px solid var(--border);font-size:12px;}
+.attday .attd{font-weight:800;font-size:12px;color:var(--dim);}
+.attday .atte{color:var(--gold);font-weight:800;margin-top:3px;}
+.attday .attp{color:var(--faint);font-size:11px;}
+.attday .attb{color:var(--teal);font-size:11px;font-weight:800;margin-top:2px;}
+.att-now{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset;}
+.att-done{opacity:.55;border-color:var(--teal);}
 .live{margin-left:auto;font-size:12px;color:var(--teal);display:flex;align-items:center;gap:6px;}
 .live .dot{width:8px;height:8px;border-radius:50%;background:var(--teal);animation:pulse 1.8s infinite;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
@@ -73,6 +82,30 @@ select,input[type=text]{padding:9px 12px;border-radius:10px;border:1px solid var
 
 <!-- ===== 목장 ===== -->
 <div class="panel on" id="panel-farm">
+<h2 class="sec"><span class="bar"></span>📅 출석체크 <span class="faint">매일 0시(KST) 초기화 · 연속 출석 보상!</span></h2>
+<div class="card">
+  <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+    <span>🔥 연속 <b style="color:var(--gold)">{{ s.attendance.streak }}일</b></span>
+    <span>📅 누적 <b style="color:var(--gold)">{{ s.attendance.total }}일</b></span>
+    {% if s.attendance.checked_today %}
+      <span class="qdone">✅ 오늘 출석 완료!</span>
+    {% else %}
+      <button class="btn gold" onclick="checkIn()">📅 출석하기</button>
+    {% endif %}
+  </div>
+  <div class="attgrid">
+    {% for rw in s.attendance.rewards %}
+    {% set day = loop.index %}
+    <div class="attday {% if day == s.attendance.today_day %}{% if s.attendance.checked_today %}att-done{% else %}att-now{% endif %}{% endif %}">
+      <div class="attd">{{ day }}일차</div>
+      <div class="atte">🥚{{ rw.eggs }}</div>
+      <div class="attp">{{ rw.points }}P</div>
+      {% if rw.bonus_egg %}<div class="attb">+{{ rw.bonus_egg }}알</div>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
 <h2 class="sec"><span class="bar"></span>🐣 내 전설이 <span class="faint">버튼으로 바로 돌보기!</span></h2>
 {% if s.pets %}
 <div class="petgrid">
@@ -300,6 +333,18 @@ async function act(path, body){
 }
 function reloadSoon(ms=1300){ setTimeout(()=>location.reload(), ms); }
 
+function checkIn(){
+  touched();
+  api('/api/attendance',{}).then(r=>{
+    if(!r.ok){ toast(r.error || '출석 실패'); return; }
+    let msg = `🎉 ${r.streak}일 연속 출석! 🥚+${r.eggs} · +${r.points}P`;
+    if(r.bonus_egg) msg += `\n✨ ${r.bonus_egg}급 알 +1 (7일차 보너스!)`;
+    if(r.reset) msg = `😢 연속이 끊겨 1일차부터! 🥚+${r.eggs} · +${r.points}P`;
+    toast(msg, 3600);
+    reloadSoon();
+  });
+}
+
 function expStart(){
   touched();
   const pet = document.getElementById('exp-pet');
@@ -401,6 +446,7 @@ function stateSig(s){
     s.expedition ? [s.expedition.done, s.expedition.pet_name] : 0,
     s.pets.map(p=>[p.level, p.fullness, p.cleanliness, p.intimacy, p.fatigue, p.power, p.equipment.length]),
     s.owned_equips.map(e=>[e.name,e.amount]),
+    s.attendance ? [s.attendance.checked_today, s.attendance.streak] : 0,
     s.quest.quests.map(q=>[q.cur, q.claimed])]);
 }
 async function poll(){

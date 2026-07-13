@@ -41,6 +41,11 @@ async def init_db():
                      care INTEGER DEFAULT 0, battle INTEGER DEFAULT 0,
                      claimed INTEGER DEFAULT 0, PRIMARY KEY (user_id, qdate))''')
 
+        # 💡 출석체크: 유저별 마지막 출석일·연속 출석·누적 출석일
+        await db.execute('''CREATE TABLE IF NOT EXISTS attendance
+                     (user_id INTEGER PRIMARY KEY, last_date TEXT,
+                     streak INTEGER DEFAULT 0, total_days INTEGER DEFAULT 0)''')
+
         # 💡 승부예측 시스템 관련 테이블
         await db.execute('''CREATE TABLE IF NOT EXISTS betting_sessions
                      (topic TEXT PRIMARY KEY, option_a TEXT, option_b TEXT, status TEXT, message_id INTEGER, channel_id INTEGER)''')
@@ -219,6 +224,25 @@ async def set_quest_claimed(user_id, qdate: str, claimed_mask: int):
         await db.execute('''INSERT INTO daily_quests (user_id, qdate, claimed) VALUES (?, ?, ?)
                      ON CONFLICT(user_id, qdate) DO UPDATE SET claimed = ?''',
                      (user_id, qdate, claimed_mask, claimed_mask))
+        await db.commit()
+
+# ==========================================
+# 💡 출석체크 전용 함수
+# ==========================================
+
+async def get_attendance(user_id):
+    """유저의 출석 기록(last_date/streak/total_days)을 반환. 없으면 None."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM attendance WHERE user_id = ?", (user_id,)) as cursor:
+            return await cursor.fetchone()
+
+async def set_attendance(user_id, last_date: str, streak: int, total_days: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('''INSERT INTO attendance (user_id, last_date, streak, total_days)
+                     VALUES (?, ?, ?, ?)
+                     ON CONFLICT(user_id) DO UPDATE SET last_date = ?, streak = ?, total_days = ?''',
+                     (user_id, last_date, streak, total_days, last_date, streak, total_days))
         await db.commit()
 
 # ==========================================

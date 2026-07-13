@@ -189,11 +189,12 @@ async def dashboard_state(uid: int) -> dict:
                     for n, a in items if n in EQUIPMENTS]
     egg_count = next((a for n, a in items if n == "서사급 알"), 0)
     synth = await game.synth_candidates(uid)
+    attendance = await game.get_attendance_status(uid)
     return {"pets": pets, "items": [{"name": n, "amount": a} for n, a in items],
             "points": points, "quest": quest, "expedition": expedition,
             "durations": game.EXPEDITION_DURATIONS,
             "owned_equips": owned_equips, "egg_count": egg_count,
-            "shop": game.shop_catalog(), "synth": synth,
+            "shop": game.shop_catalog(), "synth": synth, "attendance": attendance,
             "max_pets": game.MAX_PETS, "hatch_cost": game.HATCH_COST,
             "pet_count": len(pets)}
 
@@ -305,6 +306,13 @@ async def api_quest_claim(request: Request):
     uid, err = _need_login(request)
     if err: return err
     return JSONResponse(await game.claim_daily_quests(uid))
+
+
+@app.post("/api/attendance")
+async def api_attendance(request: Request):
+    uid, err = _need_login(request)
+    if err: return err
+    return JSONResponse(await game.check_in(uid))
 
 
 @app.post("/api/equip")

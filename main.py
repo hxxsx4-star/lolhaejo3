@@ -36,6 +36,7 @@ class LegendBot(commands.Bot):
             'cogs.petsystem.patchnote',        # 패치노트 이미지 게시
             'cogs.petsystem.expedition',       # 원정 시스템
             'cogs.petsystem.daily_quest',      # 일일 퀘스트
+            'cogs.petsystem.attendance',       # 출석체크 (연속 출석 보상)
             'cogs.petsystem.cog_box',          # 기존 박스 (유지)
             'cogs.predict'
         ]

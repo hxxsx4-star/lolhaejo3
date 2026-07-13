@@ -16,7 +16,8 @@ from utils.database import (get_or_migrate_data, save_legend_data, get_active_bu
                             consume_item, add_item, get_item_amount, add_synth_count,
                             update_max_star,
                             start_expedition, get_expedition, clear_expedition,
-                            add_quest_progress, get_quest_row, set_quest_claimed)
+                            add_quest_progress, get_quest_row, set_quest_claimed,
+                            get_attendance, set_attendance)
 from utils.stats import add_points, spend_points
 from utils.locks import get_user_lock
 
@@ -25,6 +26,10 @@ KST = timezone(timedelta(hours=9))
 
 def today_kst() -> str:
     return datetime.now(KST).strftime("%Y-%m-%d")
+
+
+def yesterday_kst() -> str:
+    return (datetime.now(KST) - timedelta(days=1)).strftime("%Y-%m-%d")
 
 
 # ==========================================
@@ -532,3 +537,76 @@ async def synthesize(user_id: int, idx1: int, idx2: int) -> dict:
 
     return {"ok": True, "success": success, "protected": protected,
             "rarity": rarity, "target": target, "new_type": new_type}
+
+
+# ==========================================
+# 출석체크 (연속 출석 보너스, 7일 주기)
+# ==========================================
+# 7일 주기 보상. 연속 출석일이 늘수록 커지고, 7일차는 대박(전설급 알 포함).
+ATTENDANCE_REWARDS = [
+    {"eggs": 10,  "points": 100},                      # 1일차
+    {"eggs": 15,  "points": 150},                      # 2일차
+    {"eggs": 20,  "points": 200},                      # 3일차
+    {"eggs": 25,  "points": 250},                      # 4일차
+    {"eggs": 30,  "points": 300},                      # 5일차
+    {"eggs": 40,  "points": 400},                      # 6일차
+    {"eggs": 100, "points": 1000, "bonus_egg": "전설"},  # 7일차 (대박)
+]
+ATTENDANCE_CYCLE = len(ATTENDANCE_REWARDS)
+
+
+def _cycle_pos(streak: int) -> int:
+    """연속 출석일(1부터)을 7일 주기 인덱스(0~6)로 변환."""
+    return (max(1, streak) - 1) % ATTENDANCE_CYCLE
+
+
+async def check_in(user_id: int) -> dict:
+    """오늘 출석을 처리하고 보상을 지급합니다. (하루 1회, KST 기준)"""
+    today = today_kst()
+    async with get_user_lock(user_id):
+        row = await get_attendance(user_id)
+        last = row["last_date"] if row else None
+        prev_streak = (row["streak"] if row else 0) or 0
+        total = (row["total_days"] if row else 0) or 0
+
+        if last == today:
+            return {"ok": False, "already": True, "error": "오늘은 이미 출석했습니다!",
+                    "streak": prev_streak, "total": total}
+
+        # 어제 출석했으면 연속 유지, 아니면 끊겨서 1일차부터 다시
+        continued = (last == yesterday_kst())
+        streak = prev_streak + 1 if continued else 1
+        total += 1
+
+        rw = ATTENDANCE_REWARDS[_cycle_pos(streak)]
+        await add_item(user_id, "서사급 알", rw["eggs"])
+        if rw.get("bonus_egg"):
+            await add_item(user_id, f"{rw['bonus_egg']}급 알", 1)
+        await add_points(user_id, rw["points"])
+        await set_attendance(user_id, today, streak, total)
+
+    return {"ok": True, "streak": streak, "total": total,
+            "cycle_day": _cycle_pos(streak) + 1,
+            "eggs": rw["eggs"], "points": rw["points"],
+            "bonus_egg": rw.get("bonus_egg"),
+            "reset": (prev_streak > 1 and not continued)}
+
+
+async def get_attendance_status(user_id: int) -> dict:
+    """출석 현황 (표시용): 오늘 출석 여부·연속·누적·보상표·다음 보상일."""
+    row = await get_attendance(user_id)
+    today = today_kst()
+    checked = bool(row and row["last_date"] == today)
+    streak = (row["streak"] if row else 0) or 0
+    total = (row["total_days"] if row else 0) or 0
+
+    if checked:
+        cur_day = _cycle_pos(streak) + 1
+    else:
+        # 다음 출석 시 적용될 연속일수 예측 (어제 출석했으면 +1, 아니면 1일차)
+        next_streak = streak + 1 if (row and row["last_date"] == yesterday_kst()) else 1
+        cur_day = _cycle_pos(next_streak) + 1
+
+    return {"checked_today": checked, "streak": streak, "total": total, "today": today,
+            "cycle": ATTENDANCE_CYCLE, "today_day": cur_day,
+            "rewards": ATTENDANCE_REWARDS}
