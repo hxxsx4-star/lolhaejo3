@@ -32,7 +32,8 @@ from itsdangerous import URLSafeTimedSerializer, BadSignature
 
 import utils.database as udb
 from utils.data import (PET_IMAGES, PET_IMAGES_EVOLVED, RARITY_IMAGES, EQUIPMENTS,
-                        MAX_EQUIP_PER_PET, format_equip_effect, get_pet_total_stats,
+                        MAX_EQUIP_PER_PET, PET_POOLS, RARITY_ORDER,
+                        format_equip_effect, get_pet_total_stats,
                         get_equipment_bonus)
 from utils.database import get_or_migrate_data, get_user_items
 from utils.stats import get_points
@@ -48,6 +49,16 @@ CLIENT_SECRET = WEB.get("client_secret", "")
 REDIRECT_URI = WEB.get("redirect_uri", "")
 SECRET_KEY = WEB.get("secret_key", "")
 OAUTH_READY = all([CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, SECRET_KEY])
+
+# 관리자 디스코드 ID 목록 (config.ini [web] admin_ids = 123, 456). 비어있으면 관리자 없음.
+ADMIN_IDS = set()
+for _a in WEB.get("admin_ids", "").replace(" ", "").split(","):
+    if _a.isdigit():
+        ADMIN_IDS.add(int(_a))
+
+
+def is_admin(user) -> bool:
+    return bool(user) and int(user.get("id", 0)) in ADMIN_IDS
 
 signer = URLSafeTimedSerializer(SECRET_KEY or "placeholder")
 SESSION_MAX_AGE = 7 * 24 * 3600
@@ -176,9 +187,22 @@ def pet_view(pet: dict, idx: int) -> dict:
             "equip_bonus": get_equipment_bonus(pet) if level > 0 else None}
 
 
+def _usable(name: str) -> bool:
+    """보관함에서 '사용' 버튼을 붙일 아이템인지 (장비·자동사용 제외)."""
+    if name in EQUIPMENTS or name == "100회 산책 할인권":
+        return False
+    if game.is_egg_item(name):
+        return True
+    return (name in game.BUFF_ITEMS_24H or name in game.BUFF_EXP_ITEMS
+            or name == "신비한 알약" or name == "전설이 이름 변경권")
+
+
 async def dashboard_state(uid: int) -> dict:
     wrapper = await get_or_migrate_data(uid)
     pets = [pet_view(p, i) for i, p in enumerate(wrapper.get("pets", []))]
+    box = [{"idx": i, "name": p.get("name", "이름없음"), "type": p.get("type", "?"),
+            "rarity": p.get("rarity", "서사"), "level": p.get("level", 0)}
+           for i, p in enumerate(wrapper.get("box", []) or [])]
     items = await get_user_items(uid)
     points = await get_points(uid)
     quest = await game.get_quest_status(uid)
@@ -187,14 +211,21 @@ async def dashboard_state(uid: int) -> dict:
     owned_equips = [{"name": n, "amount": a, "rarity": EQUIPMENTS[n]["rarity"],
                      "effect": format_equip_effect(n)}
                     for n, a in items if n in EQUIPMENTS]
-    egg_count = next((a for n, a in items if n == "서사급 알"), 0)
+    usable_items = [{"name": n, "amount": a, "is_egg": game.is_egg_item(n)}
+                    for n, a in items if _usable(n)]
+    egg_counts = {n: a for n, a in items}
+    egg_count = egg_counts.get("서사급 알", 0)
     synth = await game.synth_candidates(uid)
     attendance = await game.get_attendance_status(uid)
-    return {"pets": pets, "items": [{"name": n, "amount": a} for n, a in items],
+    achievement = await game.achievement_status(uid)
+    return {"pets": pets, "box": box, "items": [{"name": n, "amount": a} for n, a in items],
             "points": points, "quest": quest, "expedition": expedition,
             "durations": game.EXPEDITION_DURATIONS,
-            "owned_equips": owned_equips, "egg_count": egg_count,
+            "owned_equips": owned_equips, "usable_items": usable_items,
+            "egg_count": egg_count, "egg_counts": egg_counts,
+            "egg_exchange": game.egg_exchange_info(),
             "shop": game.shop_catalog(), "synth": synth, "attendance": attendance,
+            "achievement": achievement,
             "max_pets": game.MAX_PETS, "hatch_cost": game.HATCH_COST,
             "pet_count": len(pets)}
 
@@ -243,7 +274,8 @@ async def me(request: Request):
     if not user:
         return RedirectResponse("/login")
     state = await dashboard_state(int(user["id"]))
-    return render("me.html", user=user, s=state, now=time.time(), oauth_ready=OAUTH_READY)
+    return render("me.html", user=user, s=state, now=time.time(), oauth_ready=OAUTH_READY,
+                  is_admin=is_admin(user), pet_pools=PET_POOLS, rarity_order=RARITY_ORDER)
 
 
 # ── 액션 API (전부 세션 유저 본인에게만 적용) ──
@@ -313,6 +345,187 @@ async def api_attendance(request: Request):
     uid, err = _need_login(request)
     if err: return err
     return JSONResponse(await game.check_in(uid))
+
+
+@app.post("/api/exchange")
+async def api_exchange(request: Request):
+    uid, err = _need_login(request)
+    if err: return err
+    b = await request.json()
+    return JSONResponse(await game.exchange_egg(uid, b.get("rarity", ""), int(b.get("count", 1))))
+
+
+@app.post("/api/decompose")
+async def api_decompose(request: Request):
+    uid, err = _need_login(request)
+    if err: return err
+    b = await request.json()
+    return JSONResponse(await game.decompose_egg(uid, b.get("rarity", ""), int(b.get("count", 1))))
+
+
+@app.post("/api/use-item")
+async def api_use_item(request: Request):
+    uid, err = _need_login(request)
+    if err: return err
+    b = await request.json()
+    name = b.get("item", "")
+    # 알 아이템이면 부화 흐름으로 처리 (이름/종류 필요)
+    if game.is_egg_item(name):
+        return JSONResponse(await game.hatch_egg_item(
+            uid, name, b.get("type", ""), b.get("name", "")))
+    return JSONResponse(await game.use_item(
+        uid, name, int(b.get("amount", 1)), int(b.get("pet_idx", 0)), b.get("name", "")))
+
+
+@app.post("/api/box/store")
+async def api_box_store(request: Request):
+    uid, err = _need_login(request)
+    if err: return err
+    b = await request.json()
+    return JSONResponse(await game.box_store(uid, int(b.get("pet_idx", 0))))
+
+
+@app.post("/api/box/retrieve")
+async def api_box_retrieve(request: Request):
+    uid, err = _need_login(request)
+    if err: return err
+    b = await request.json()
+    return JSONResponse(await game.box_retrieve(uid, int(b.get("box_idx", 0))))
+
+
+@app.post("/api/reorder")
+async def api_reorder(request: Request):
+    uid, err = _need_login(request)
+    if err: return err
+    b = await request.json()
+    return JSONResponse(await game.reorder_pets(uid, int(b.get("from", 0)), int(b.get("to", 0))))
+
+
+@app.post("/api/battle-sim")
+async def api_battle_sim(request: Request):
+    """무보상 배틀 시뮬레이터: 내 펫 1마리 vs 지정 상대 펫 1마리 승률·결과."""
+    uid, err = _need_login(request)
+    if err: return err
+    b = await request.json()
+    my = await get_or_migrate_data(uid)
+    my_pets = my.get("pets", [])
+    mi = int(b.get("my_idx", 0))
+    if mi >= len(my_pets) or my_pets[mi].get("level", 0) == 0:
+        return JSONResponse({"ok": False, "error": "출전할 내 전설이를 선택하세요. (알 제외)"})
+    try:
+        enemy_uid = int(b.get("enemy_id", 0))
+    except (TypeError, ValueError):
+        return JSONResponse({"ok": False, "error": "상대 ID가 올바르지 않습니다."})
+    enemy = await get_or_migrate_data(enemy_uid)
+    enemy_pets = enemy.get("pets", [])
+    ei = int(b.get("enemy_idx", 0))
+    if ei >= len(enemy_pets) or enemy_pets[ei].get("level", 0) == 0:
+        return JSONResponse({"ok": False, "error": "상대 전설이를 찾을 수 없습니다."})
+    from cogs.petsystem.combat import calc_win_rate
+    wr, ms, es = calc_win_rate([my_pets[mi]], [enemy_pets[ei]])
+    import random as _r
+    win = _r.random() < wr
+    return JSONResponse({"ok": True, "win_rate": round(wr * 100, 1),
+                         "my_score": round(ms, 1), "enemy_score": round(es, 1),
+                         "result": "승리" if win else "패배",
+                         "my_name": my_pets[mi].get("name"),
+                         "enemy_name": enemy_pets[ei].get("name")})
+
+
+# ── 관리자 패널 API (ADMIN_IDS 만 접근) ──
+def _need_admin(request: Request):
+    user = current_user(request)
+    if not user:
+        return None, JSONResponse({"ok": False, "error": "로그인이 필요합니다."}, status_code=401)
+    if not is_admin(user):
+        return None, JSONResponse({"ok": False, "error": "관리자 권한이 없습니다."}, status_code=403)
+    return user, None
+
+
+def _target(b) -> int:
+    try:
+        return int(b.get("target_id", 0))
+    except (TypeError, ValueError):
+        return 0
+
+
+@app.post("/api/admin/lookup")
+async def api_admin_lookup(request: Request):
+    _, err = _need_admin(request)
+    if err: return err
+    b = await request.json()
+    tid = _target(b)
+    if not tid:
+        return JSONResponse({"ok": False, "error": "유저 ID를 입력하세요."})
+    pets = await game.admin_view_pets(tid)
+    items = await game.admin_view_items(tid)
+    pts = await get_points(tid)
+    return JSONResponse({"ok": True, "points": pts,
+                         "pets": pets["pets"], "box": pets["box"], "items": items["items"]})
+
+
+@app.post("/api/admin/give-egg")
+async def api_admin_give_egg(request: Request):
+    _, err = _need_admin(request)
+    if err: return err
+    b = await request.json()
+    return JSONResponse(await game.admin_give_egg(_target(b), b.get("name", ""), b.get("rarity", ""), b.get("type", "")))
+
+
+@app.post("/api/admin/take-pet")
+async def api_admin_take_pet(request: Request):
+    _, err = _need_admin(request)
+    if err: return err
+    b = await request.json()
+    return JSONResponse(await game.admin_take_pet(_target(b), int(b.get("pet_idx", 0))))
+
+
+@app.post("/api/admin/give-item")
+async def api_admin_give_item(request: Request):
+    _, err = _need_admin(request)
+    if err: return err
+    b = await request.json()
+    return JSONResponse(await game.admin_give_item(_target(b), b.get("item", ""), int(b.get("count", 0))))
+
+
+@app.post("/api/admin/reset-items")
+async def api_admin_reset_items(request: Request):
+    _, err = _need_admin(request)
+    if err: return err
+    b = await request.json()
+    return JSONResponse(await game.admin_reset_items(_target(b)))
+
+
+@app.post("/api/admin/force-hatch")
+async def api_admin_force_hatch(request: Request):
+    _, err = _need_admin(request)
+    if err: return err
+    b = await request.json()
+    return JSONResponse(await game.admin_force_hatch(_target(b), int(b.get("pet_idx", 0))))
+
+
+@app.post("/api/admin/set-star")
+async def api_admin_set_star(request: Request):
+    _, err = _need_admin(request)
+    if err: return err
+    b = await request.json()
+    return JSONResponse(await game.admin_set_star(_target(b), int(b.get("pet_idx", 0)), int(b.get("delta", 0))))
+
+
+@app.post("/api/admin/rename")
+async def api_admin_rename(request: Request):
+    _, err = _need_admin(request)
+    if err: return err
+    b = await request.json()
+    return JSONResponse(await game.admin_rename(_target(b), int(b.get("pet_idx", 0)), b.get("name", "")))
+
+
+@app.post("/api/admin/give-exp")
+async def api_admin_give_exp(request: Request):
+    _, err = _need_admin(request)
+    if err: return err
+    b = await request.json()
+    return JSONResponse(await game.admin_give_exp(_target(b), int(b.get("pet_idx", 0)), int(b.get("amount", 0))))
 
 
 @app.post("/api/equip")

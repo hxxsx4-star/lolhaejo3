@@ -17,7 +17,11 @@ client_secret = 클라이언트시크릿
 redirect_uri = http://서버외부IP:8080/callback
 secret_key = 아무_긴_무작위_문자열_(세션암호화용)
 port = 8080
+admin_ids = 111111111111111111, 222222222222222222
 ```
+`admin_ids` : 웹 관리자 패널(🛠️ 관리자 탭)을 쓸 수 있는 디스코드 유저 ID를
+쉼표로 구분해 나열합니다. (비워두면 관리자 패널은 아무에게도 안 보입니다)
+디스코드 개발자 모드 → 본인 우클릭 → "ID 복사"로 얻을 수 있습니다.
 secret_key 생성 예: `python3 -c "import secrets; print(secrets.token_hex(32))"`
 
 ## 3. 의존성 설치

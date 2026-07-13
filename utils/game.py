@@ -10,11 +10,12 @@ import random
 from datetime import datetime, timezone, timedelta
 
 from utils.data import (ITEMS_INFO, EXP_TABLE, PET_POOLS, EQUIPMENTS, EQUIP_PRICE,
-                        MAX_EQUIP_PER_PET, RARITY_ORDER, format_equip_effect,
+                        MAX_EQUIP_PER_PET, RARITY_ORDER, EGG_EXCHANGE_RATE,
+                        egg_item_name, prev_rarity, format_equip_effect,
                         get_pet_total_stats, get_equipment_bonus)
 from utils.database import (get_or_migrate_data, save_legend_data, get_active_buffs,
                             consume_item, add_item, get_item_amount, add_synth_count,
-                            update_max_star,
+                            get_synth_count, add_buff, update_max_star,
                             start_expedition, get_expedition, clear_expedition,
                             add_quest_progress, get_quest_row, set_quest_claimed,
                             get_attendance, set_attendance)
@@ -641,3 +642,363 @@ async def get_attendance_status(user_id: int) -> dict:
     return {"checked_today": checked, "streak": streak, "total": total, "today": today,
             "cycle": ATTENDANCE_CYCLE, "today_day": cur_day,
             "rewards": ATTENDANCE_REWARDS}
+
+
+# ==========================================
+# 알 환전 / 분해 (봇 /알환전·/알분해 와 동일)
+# ==========================================
+EGG_TIERS = [r for r in RARITY_ORDER if r in EGG_EXCHANGE_RATE]
+
+
+def egg_exchange_info() -> list:
+    """환전/분해 표시용 정보 (등급, 비용알, 개당 비율)."""
+    info = []
+    for r in EGG_TIERS:
+        info.append({"rarity": r, "egg": egg_item_name(r),
+                     "prev": prev_rarity(r), "prev_egg": egg_item_name(prev_rarity(r)),
+                     "rate": EGG_EXCHANGE_RATE[r]})
+    return info
+
+
+async def exchange_egg(user_id: int, target_rarity: str, count: int = 1) -> dict:
+    """하위 등급 알 여러 개 → 상위 등급 알 1개(×count). (원자적 차감)"""
+    if count <= 0:
+        return {"ok": False, "error": "개수는 1개 이상이어야 합니다."}
+    if target_rarity not in EGG_EXCHANGE_RATE:
+        return {"ok": False, "error": "환전할 수 없는 등급입니다."}
+    per = EGG_EXCHANGE_RATE[target_rarity]
+    src_egg = egg_item_name(prev_rarity(target_rarity))
+    tgt_egg = egg_item_name(target_rarity)
+    total_cost = per * count
+    async with get_user_lock(user_id):
+        if not await consume_item(user_id, src_egg, total_cost):
+            return {"ok": False, "error": f"{src_egg}이(가) 부족합니다. (필요 {total_cost}개)"}
+        await add_item(user_id, tgt_egg, count)
+    return {"ok": True, "src_egg": src_egg, "spent": total_cost,
+            "tgt_egg": tgt_egg, "gained": count}
+
+
+async def decompose_egg(user_id: int, src_rarity: str, count: int = 1) -> dict:
+    """상위 등급 알 count개 → 하위 등급 알 여러 개. (원자적 차감)"""
+    if count <= 0:
+        return {"ok": False, "error": "개수는 1개 이상이어야 합니다."}
+    if src_rarity not in EGG_EXCHANGE_RATE:
+        return {"ok": False, "error": "분해할 수 없는 등급입니다."}
+    per = EGG_EXCHANGE_RATE[src_rarity]
+    src_egg = egg_item_name(src_rarity)
+    result_egg = egg_item_name(prev_rarity(src_rarity))
+    async with get_user_lock(user_id):
+        if not await consume_item(user_id, src_egg, count):
+            return {"ok": False, "error": f"{src_egg}이(가) 부족합니다. (보유량 {count}개 미만)"}
+        gained = per * count
+        await add_item(user_id, result_egg, gained)
+    return {"ok": True, "src_egg": src_egg, "spent": count,
+            "result_egg": result_egg, "gained": gained}
+
+
+# ==========================================
+# 아이템 사용 (버프약 / 이름변경권) — 알 부화는 hatch_egg_item 사용
+# ==========================================
+BUFF_ITEMS_24H = ["배부름을 부르는 약", "쌩쌩한약", "트위치 나가라약", "아무무도 인싸로 만드는 약"]
+BUFF_EXP_ITEMS = ["경험치 부스터 X2", "경험치 부스터 X5", "경험치 부스터 X10"]
+
+
+def is_egg_item(name: str) -> bool:
+    return egg_rarity(name) is not None
+
+
+async def use_item(user_id: int, item_name: str, amount: int = 1, pet_idx: int = 0,
+                   new_name: str = "") -> dict:
+    """보관함 아이템 사용. 버프약/신비한알약/경험치부스터/이름변경권 지원.
+    (알 아이템은 웹에서 hatch_egg_item 흐름을 쓰므로 여기서 거부)"""
+    if amount <= 0:
+        return {"ok": False, "error": "수량은 1개 이상이어야 합니다."}
+    if is_egg_item(item_name):
+        return {"ok": False, "error": "알은 '부화' 기능으로 사용하세요."}
+
+    async with get_user_lock(user_id):
+        # 이름 변경권: 대상 펫 + 새 이름 필요
+        if item_name == "전설이 이름 변경권":
+            wrapper = await get_or_migrate_data(user_id)
+            pets = wrapper.get('pets', [])
+            if pet_idx >= len(pets):
+                return {"ok": False, "error": "이름을 바꿀 전설이를 선택하세요."}
+            new_name = (new_name or "").strip()[:20]
+            if not new_name:
+                return {"ok": False, "error": "새 이름을 입력하세요."}
+            if not await consume_item(user_id, item_name, 1):
+                return {"ok": False, "error": "'전설이 이름 변경권'이 부족합니다."}
+            old = pets[pet_idx].get('name', '이름없음')
+            pets[pet_idx]['name'] = new_name
+            await save_legend_data(user_id, wrapper)
+            return {"ok": True, "kind": "rename", "old": old, "new": new_name}
+
+        if item_name == "100회 산책 할인권":
+            return {"ok": False, "error": "이 아이템은 100회 산책 시 자동으로 사용됩니다."}
+
+        # 경험치 부스터: 중복 방지
+        if item_name in BUFF_EXP_ITEMS:
+            active = await get_active_buffs(user_id)
+            if any("경험치 부스터" in b[0] for b in active):
+                return {"ok": False, "error": "이미 적용 중인 경험치 부스터가 있습니다."}
+
+        # 버프 계열 처리
+        if item_name in BUFF_ITEMS_24H:
+            if not await consume_item(user_id, item_name, amount):
+                return {"ok": False, "error": "아이템이 부족합니다."}
+            await add_buff(user_id, buff_name=item_name, duration_sec=86400 * amount)
+            return {"ok": True, "kind": "buff", "item": item_name, "amount": amount,
+                    "desc": f"{24 * amount}시간 동안 해당 스탯 고정"}
+        if item_name == "신비한 알약":
+            if not await consume_item(user_id, item_name, amount):
+                return {"ok": False, "error": "아이템이 부족합니다."}
+            await add_buff(user_id, buff_name=item_name, duration_sec=1209600 * amount)
+            return {"ok": True, "kind": "buff", "item": item_name, "amount": amount,
+                    "desc": f"{14 * amount}일 동안 모든 스탯 최상 고정"}
+        if item_name in BUFF_EXP_ITEMS:
+            if not await consume_item(user_id, item_name, amount):
+                return {"ok": False, "error": "아이템이 부족합니다."}
+            await add_buff(user_id, buff_name=item_name, duration_sec=0, vc_sec=10800 * amount)
+            return {"ok": True, "kind": "buff", "item": item_name, "amount": amount,
+                    "desc": f"통화방에서 {3 * amount}시간 경험치 증가"}
+
+    return {"ok": False, "error": "사용할 수 없는 아이템입니다. (장비는 장비 탭에서 장착)"}
+
+
+# ==========================================
+# 박스 (파티 ↔ 보관)
+# ==========================================
+async def box_store(user_id: int, pet_idx: int) -> dict:
+    """파티의 전설이를 박스에 보관 (스탯 최대치로 보존)."""
+    async with get_user_lock(user_id):
+        wrapper = await get_or_migrate_data(user_id)
+        pets = wrapper.get('pets', [])
+        if pet_idx >= len(pets):
+            return {"ok": False, "error": "보관할 전설이를 선택하세요."}
+        pet = pets.pop(pet_idx)
+        pet['fullness'] = 100; pet['cleanliness'] = 100
+        pet['fatigue'] = 0; pet['intimacy'] = 100
+        pet['last_fatigue_calc'] = time.time()
+        wrapper.setdefault('box', []).append(pet)
+        wrapper['active_idx'] = max(0, len(pets) - 1)
+        await save_legend_data(user_id, wrapper)
+    return {"ok": True, "name": pet.get('name', '이름없음')}
+
+
+async def box_retrieve(user_id: int, box_idx: int) -> dict:
+    """박스의 전설이를 파티로 복귀 (파티 최대 MAX_PETS)."""
+    async with get_user_lock(user_id):
+        wrapper = await get_or_migrate_data(user_id)
+        box = wrapper.get('box', [])
+        if box_idx >= len(box):
+            return {"ok": False, "error": "복귀할 전설이를 선택하세요."}
+        if len(wrapper.get('pets', [])) >= MAX_PETS:
+            return {"ok": False, "error": f"파티가 꽉 찼습니다! (최대 {MAX_PETS}마리)"}
+        pet = box.pop(box_idx)
+        pet['last_fatigue_calc'] = time.time()
+        wrapper.setdefault('pets', []).append(pet)
+        wrapper['active_idx'] = len(wrapper['pets']) - 1
+        await save_legend_data(user_id, wrapper)
+    return {"ok": True, "name": pet.get('name', '이름없음')}
+
+
+async def reorder_pets(user_id: int, from_idx: int, to_idx: int) -> dict:
+    """파티 슬롯 순서 교환."""
+    if from_idx == to_idx:
+        return {"ok": False, "error": "같은 슬롯입니다."}
+    async with get_user_lock(user_id):
+        wrapper = await get_or_migrate_data(user_id)
+        pets = wrapper.get('pets', [])
+        if from_idx >= len(pets) or to_idx >= len(pets):
+            return {"ok": False, "error": "선택한 슬롯에 전설이가 없습니다."}
+        active = wrapper.get('active_idx', 0)
+        active_pet = pets[active] if active < len(pets) else pets[0]
+        pets[from_idx], pets[to_idx] = pets[to_idx], pets[from_idx]
+        wrapper['active_idx'] = pets.index(active_pet)
+        await save_legend_data(user_id, wrapper)
+    return {"ok": True, "a": pets[to_idx].get('name'), "b": pets[from_idx].get('name')}
+
+
+# ==========================================
+# 업적 현황 (수집 진행도 — 역할 타이틀은 디스코드 전용)
+# ==========================================
+async def achievement_status(user_id: int) -> dict:
+    wrapper = await get_or_migrate_data(user_id)
+    all_pets = (wrapper.get('pets', []) or []) + (wrapper.get('box', []) or [])
+    owned_types = {p.get('type') for p in all_pets}
+    owned_3 = {p.get('type') for p in all_pets if p.get('level', 0) >= 3}
+    synth = await get_synth_count(user_id)
+
+    rows = []
+    for rarity in RARITY_ORDER:
+        pool = set(PET_POOLS.get(rarity, []))
+        if not pool:
+            continue
+        have = len(pool & owned_3)
+        rows.append({"rarity": rarity, "have": have, "total": len(pool),
+                     "done": have >= len(pool)})
+    all_types = set(sum([list(v) for v in PET_POOLS.values()], []))
+    total_all = len(all_types)
+    return {
+        "collector": {"have": len(owned_types & all_types), "total": total_all,
+                      "done": all_types.issubset(owned_types)},
+        "all_pets_3": {"have": len(owned_3 & all_types), "total": total_all,
+                       "done": all_types.issubset(owned_3)},
+        "by_rarity": rows,
+        "synth": {"have": min(synth, 50), "total": 50, "done": synth >= 50},
+    }
+
+
+# ==========================================
+# 관리자 조작 (웹 관리자 패널 전용) — 대상 유저에 대해 동작
+# ==========================================
+async def admin_give_egg(target_id: int, name: str, rarity: str, ptype: str) -> dict:
+    if rarity not in PET_POOLS:
+        return {"ok": False, "error": "잘못된 등급입니다."}
+    if ptype not in PET_POOLS[rarity]:
+        return {"ok": False, "error": "해당 등급에 없는 전설이입니다."}
+    async with get_user_lock(target_id):
+        wrapper = await get_or_migrate_data(target_id)
+        if len(wrapper.get('pets', [])) >= MAX_PETS:
+            return {"ok": False, "error": f"대상이 이미 {MAX_PETS}마리를 보유 중입니다."}
+        pet = _new_pet((name or "").strip()[:20] or f"{rarity} 전설이", ptype, rarity)
+        wrapper.setdefault('pets', []).append(pet)
+        if len(wrapper['pets']) == 1:
+            wrapper['active_idx'] = 0
+        await save_legend_data(target_id, wrapper)
+    return {"ok": True, "name": pet['name'], "rarity": rarity, "type": ptype}
+
+
+async def admin_take_pet(target_id: int, pet_idx: int) -> dict:
+    async with get_user_lock(target_id):
+        wrapper = await get_or_migrate_data(target_id)
+        pets = wrapper.get('pets', [])
+        if pet_idx >= len(pets):
+            return {"ok": False, "error": "해당 전설이가 없습니다."}
+        removed = pets.pop(pet_idx)
+        wrapper['active_idx'] = max(0, len(pets) - 1)
+        await save_legend_data(target_id, wrapper)
+    return {"ok": True, "name": removed.get('name'), "rarity": removed.get('rarity'),
+            "type": removed.get('type')}
+
+
+async def admin_give_item(target_id: int, item: str, count: int) -> dict:
+    if not item or count == 0:
+        return {"ok": False, "error": "아이템/개수를 확인하세요."}
+    if count > 0:
+        await add_item(target_id, item, count)
+        return {"ok": True, "item": item, "count": count, "op": "give"}
+    ok = await consume_item(target_id, item, -count)
+    return ({"ok": True, "item": item, "count": -count, "op": "take"} if ok
+            else {"ok": False, "error": "회수할 수량이 부족합니다."})
+
+
+async def admin_take_item(target_id: int, item: str, count: int) -> dict:
+    if count <= 0:
+        return {"ok": False, "error": "개수는 1 이상."}
+    ok = await consume_item(target_id, item, count)
+    return ({"ok": True, "item": item, "count": count} if ok
+            else {"ok": False, "error": "회수할 수량이 부족합니다."})
+
+
+async def admin_reset_items(target_id: int) -> dict:
+    import aiosqlite
+    from utils.database import DB_PATH
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("DELETE FROM user_items WHERE user_id = ?", (target_id,))
+        await db.commit()
+    return {"ok": True}
+
+
+async def admin_view_items(target_id: int) -> dict:
+    from utils.database import get_user_items
+    items = await get_user_items(target_id)
+    return {"ok": True, "items": [{"name": n, "amount": a} for n, a in items]}
+
+
+async def admin_view_pets(target_id: int) -> dict:
+    wrapper = await get_or_migrate_data(target_id)
+    def _v(p, i):
+        return {"idx": i, "name": p.get('name'), "type": p.get('type'),
+                "rarity": p.get('rarity'), "level": p.get('level', 0)}
+    return {"ok": True,
+            "pets": [_v(p, i) for i, p in enumerate(wrapper.get('pets', []))],
+            "box": [_v(p, i) for i, p in enumerate(wrapper.get('box', []))]}
+
+
+async def admin_force_hatch(target_id: int, pet_idx: int) -> dict:
+    async with get_user_lock(target_id):
+        wrapper = await get_or_migrate_data(target_id)
+        pets = wrapper.get('pets', [])
+        if pet_idx >= len(pets):
+            return {"ok": False, "error": "해당 전설이가 없습니다."}
+        if pets[pet_idx].get('level', 0) > 0:
+            return {"ok": False, "error": "이미 부화한 전설이입니다."}
+        pets[pet_idx]['level'] = 1
+        pets[pet_idx]['exp'] = 0
+        await save_legend_data(target_id, wrapper)
+    return {"ok": True, "name": pets[pet_idx].get('name')}
+
+
+async def admin_set_star(target_id: int, pet_idx: int, delta: int) -> dict:
+    async with get_user_lock(target_id):
+        wrapper = await get_or_migrate_data(target_id)
+        pets = wrapper.get('pets', [])
+        if pet_idx >= len(pets):
+            return {"ok": False, "error": "해당 전설이가 없습니다."}
+        lvl = pets[pet_idx].get('level', 0)
+        new = lvl + delta
+        if new < 0:
+            return {"ok": False, "error": "이미 알 상태입니다."}
+        if new > 3:
+            return {"ok": False, "error": "이미 최대 성급(3성)입니다."}
+        pets[pet_idx]['level'] = new
+        pets[pet_idx]['exp'] = 0
+        if new >= 3:
+            await update_max_star(target_id, 3)
+        await save_legend_data(target_id, wrapper)
+    return {"ok": True, "name": pets[pet_idx].get('name'), "level": new}
+
+
+async def admin_rename(target_id: int, pet_idx: int, new_name: str) -> dict:
+    new_name = (new_name or "").strip()[:20]
+    if not new_name:
+        return {"ok": False, "error": "새 이름을 입력하세요."}
+    async with get_user_lock(target_id):
+        wrapper = await get_or_migrate_data(target_id)
+        pets = wrapper.get('pets', [])
+        if pet_idx >= len(pets):
+            return {"ok": False, "error": "해당 전설이가 없습니다."}
+        old = pets[pet_idx].get('name')
+        pets[pet_idx]['name'] = new_name
+        await save_legend_data(target_id, wrapper)
+    return {"ok": True, "old": old, "new": new_name}
+
+
+async def admin_give_exp(target_id: int, pet_idx: int, amount: int) -> dict:
+    if amount <= 0:
+        return {"ok": False, "error": "경험치는 1 이상."}
+    async with get_user_lock(target_id):
+        wrapper = await get_or_migrate_data(target_id)
+        pets = wrapper.get('pets', [])
+        if pet_idx >= len(pets):
+            return {"ok": False, "error": "해당 전설이가 없습니다."}
+        data = pets[pet_idx]
+        if data.get('level', 0) >= 3:
+            return {"ok": False, "error": "이미 최대 성급(3성)입니다."}
+        before = data.get('level', 0)
+        data['exp'] = data.get('exp', 0) + amount
+        rarity = data.get('rarity', '서사')
+        while data.get('level', 0) < 3:
+            cur = data.get('level', 0)
+            req = EXP_TABLE.get(rarity, {}).get(cur, 100)
+            if data.get('exp', 0) >= req:
+                data['level'] = cur + 1
+                data['exp'] -= req
+            else:
+                break
+        if data.get('level', 0) >= 3:
+            await update_max_star(target_id, 3)
+        await save_legend_data(target_id, wrapper)
+    return {"ok": True, "name": data.get('name'), "amount": amount,
+            "before": before, "after": data.get('level', 0)}
