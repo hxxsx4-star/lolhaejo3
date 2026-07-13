@@ -574,17 +574,20 @@ async def synthesize(user_id: int, idx1: int, idx2: int) -> dict:
 # ==========================================
 # 출석체크 (연속 출석 보너스, 7일 주기)
 # ==========================================
-# 7일 주기 보상. 연속 출석일이 늘수록 커지고, 7일차는 대박(전설급 알 포함).
+# 7일 주기 보상. 서사급 알만 지급(포인트 없음). 특정 일차엔 상위 알 보너스.
 ATTENDANCE_REWARDS = [
-    {"eggs": 10,  "points": 100},                      # 1일차
-    {"eggs": 15,  "points": 150},                      # 2일차
-    {"eggs": 20,  "points": 200},                      # 3일차
-    {"eggs": 25,  "points": 250},                      # 4일차
-    {"eggs": 30,  "points": 300},                      # 5일차
-    {"eggs": 40,  "points": 400},                      # 6일차
-    {"eggs": 100, "points": 1000, "bonus_egg": "전설"},  # 7일차 (대박)
+    {"eggs": 200},                     # 1일차
+    {"eggs": 300},                     # 2일차
+    {"eggs": 400, "bonus": ["전설"]},   # 3일차 (전설급 알 +1)
+    {"eggs": 500},                     # 4일차
+    {"eggs": 600},                     # 5일차
+    {"eggs": 800},                     # 6일차
+    {"eggs": 2000, "bonus": ["신화"]},  # 7일차 (신화급 알 +1)
 ]
 ATTENDANCE_CYCLE = len(ATTENDANCE_REWARDS)
+
+# 연속 출석 N일마다 지급하는 마일스톤 보너스 알 (주기 무관, 연속일수 기준)
+STREAK_MILESTONES = {14: "프레스티지"}
 
 
 def _cycle_pos(streak: int) -> int:
@@ -611,16 +614,20 @@ async def check_in(user_id: int) -> dict:
         total += 1
 
         rw = ATTENDANCE_REWARDS[_cycle_pos(streak)]
-        await add_item(user_id, "서사급 알", rw["eggs"])
-        if rw.get("bonus_egg"):
-            await add_item(user_id, f"{rw['bonus_egg']}급 알", 1)
-        await add_points(user_id, rw["points"])
+        eggs = rw["eggs"]
+        await add_item(user_id, "서사급 알", eggs)
+        bonus_eggs = list(rw.get("bonus", []))
+        # 연속 출석 마일스톤(14일마다 프레스티지 등)
+        for n, rarity in STREAK_MILESTONES.items():
+            if streak % n == 0:
+                bonus_eggs.append(rarity)
+        for rarity in bonus_eggs:
+            await add_item(user_id, f"{rarity}급 알", 1)
         await set_attendance(user_id, today, streak, total)
 
     return {"ok": True, "streak": streak, "total": total,
             "cycle_day": _cycle_pos(streak) + 1,
-            "eggs": rw["eggs"], "points": rw["points"],
-            "bonus_egg": rw.get("bonus_egg"),
+            "eggs": eggs, "bonus_eggs": bonus_eggs,
             "reset": (prev_streak > 1 and not continued)}
 
 
@@ -641,7 +648,8 @@ async def get_attendance_status(user_id: int) -> dict:
 
     return {"checked_today": checked, "streak": streak, "total": total, "today": today,
             "cycle": ATTENDANCE_CYCLE, "today_day": cur_day,
-            "rewards": ATTENDANCE_REWARDS}
+            "rewards": ATTENDANCE_REWARDS,
+            "milestones": [{"days": n, "rarity": r} for n, r in STREAK_MILESTONES.items()]}
 
 
 # ==========================================

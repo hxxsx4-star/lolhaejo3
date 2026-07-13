@@ -115,11 +115,15 @@ select,input[type=text]{padding:9px 12px;border-radius:10px;border:1px solid var
     <div class="attday {% if day == s.attendance.today_day %}{% if s.attendance.checked_today %}att-done{% else %}att-now{% endif %}{% endif %}">
       <div class="attd">{{ day }}일차</div>
       <div class="atte">🥚{{ rw.eggs }}</div>
-      <div class="attp">{{ rw.points }}P</div>
-      {% if rw.bonus_egg %}<div class="attb">+{{ rw.bonus_egg }}알</div>{% endif %}
+      {% for b in rw.get('bonus', []) %}<div class="attb">+{{ b }}알</div>{% endfor %}
     </div>
     {% endfor %}
   </div>
+  {% if s.attendance.milestones %}
+  <div class="faint" style="margin-top:10px">🎯 연속 마일스톤:
+    {% for m in s.attendance.milestones %}{{ m.days }}일 연속 → {{ m.rarity }}급 알 +1{% if not loop.last %} · {% endif %}{% endfor %}
+  </div>
+  {% endif %}
 </div>
 
 <h2 class="sec"><span class="bar"></span>🐣 내 전설이 <span class="faint">버튼으로 바로 돌보기!</span></h2>
@@ -535,9 +539,9 @@ function checkIn(){
   touched();
   api('/api/attendance',{}).then(r=>{
     if(!r.ok){ toast(r.error || '출석 실패'); return; }
-    let msg = `🎉 ${r.streak}일 연속 출석! 🥚+${r.eggs} · +${r.points}P`;
-    if(r.bonus_egg) msg += `\n✨ ${r.bonus_egg}급 알 +1 (7일차 보너스!)`;
-    if(r.reset) msg = `😢 연속이 끊겨 1일차부터! 🥚+${r.eggs} · +${r.points}P`;
+    let msg = `🎉 ${r.streak}일 연속 출석! 🥚 서사알 +${r.eggs.toLocaleString()}`;
+    if(r.bonus_eggs && r.bonus_eggs.length) msg += `\n✨ ${r.bonus_eggs.map(b=>b+'급 알 +1').join(' · ')}`;
+    if(r.reset) msg = `😢 연속이 끊겨 1일차부터! 🥚 서사알 +${r.eggs.toLocaleString()}`;
     toast(msg, 3600);
     reloadSoon();
   });
