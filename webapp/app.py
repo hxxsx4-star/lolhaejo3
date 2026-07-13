@@ -26,8 +26,7 @@ os.chdir(ROOT)  # legends.db, config.ini 상대경로 일치
 import aiohttp
 import aiosqlite
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from itsdangerous import URLSafeTimedSerializer, BadSignature
 
@@ -66,26 +65,6 @@ signer = URLSafeTimedSerializer(SECRET_KEY or "placeholder")
 SESSION_MAX_AGE = 7 * 24 * 3600
 
 app = FastAPI(title="전설이 키우기")
-
-# PWA 정적 자원 (아이콘 등)
-_STATIC_DIR = os.path.join(ROOT, "webapp", "static")
-if os.path.isdir(_STATIC_DIR):
-    app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
-
-
-@app.get("/manifest.webmanifest")
-async def manifest():
-    return FileResponse(os.path.join(_STATIC_DIR, "manifest.webmanifest"),
-                        media_type="application/manifest+json")
-
-
-@app.get("/sw.js")
-async def service_worker():
-    # 서비스 워커는 루트 스코프(/)를 가져야 앱 전체를 제어할 수 있습니다.
-    return FileResponse(os.path.join(_STATIC_DIR, "sw.js"), media_type="application/javascript",
-                        headers={"Cache-Control": "no-cache", "Service-Worker-Allowed": "/"})
-
-
 _jinja = Environment(
     loader=FileSystemLoader(os.path.join(ROOT, "webapp", "templates")),
     autoescape=select_autoescape(["html"]),
