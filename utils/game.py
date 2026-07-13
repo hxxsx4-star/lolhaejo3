@@ -479,6 +479,37 @@ async def hatch_pick(user_id: int, ptype: str) -> dict:
     return {"ok": True, "rarity": rarity, "type": ptype, "name": pend["name"]}
 
 
+def egg_rarity(egg_name: str):
+    """'서사급 알' → '서사'. 유효한 알이 아니면 None."""
+    if not egg_name or "급 알" not in egg_name:
+        return None
+    rarity = egg_name.replace("급 알", "").strip()
+    return rarity if rarity in PET_POOLS else None
+
+
+async def hatch_egg_item(user_id: int, egg_name: str, pet_type: str, pet_name: str) -> dict:
+    """보관함의 '○○급 알' 아이템을 사용해 그 등급의 전설이(알)를 파티에 추가합니다.
+    알까기 가챠와 달리 등급은 알로 고정되며, 종류/이름은 유저가 선택합니다."""
+    rarity = egg_rarity(egg_name)
+    if not rarity:
+        return {"ok": False, "error": "부화할 수 있는 알이 아닙니다."}
+    if pet_type not in PET_POOLS.get(rarity, []):
+        return {"ok": False, "error": "해당 등급에 없는 전설이입니다."}
+    pet_name = (pet_name or "").strip()[:20] or f"{rarity} 전설이"
+    async with get_user_lock(user_id):
+        wrapper = await get_or_migrate_data(user_id)
+        if len(wrapper.get('pets', [])) >= MAX_PETS:
+            return {"ok": False, "error": f"전설이는 최대 {MAX_PETS}마리까지만 파티에 둘 수 있습니다. (박스에 보관 후 사용하세요)"}
+        # 실제 생성 직전에 원자적으로 알 1개 소모 (동시 사용 시 초과 부화 방지)
+        if not await consume_item(user_id, egg_name, 1):
+            return {"ok": False, "error": "해당 알을 보유하고 있지 않습니다."}
+        pet = _new_pet(pet_name, pet_type, rarity)
+        wrapper.setdefault('pets', []).append(pet)
+        wrapper['active_idx'] = len(wrapper['pets']) - 1
+        await save_legend_data(user_id, wrapper)
+    return {"ok": True, "rarity": rarity, "type": pet_type, "name": pet_name}
+
+
 async def synth_candidates(user_id: int) -> dict:
     """합성 가능한 등급별 3성 전설이 목록 (웹 선택 UI 용)."""
     wrapper = await get_or_migrate_data(user_id)

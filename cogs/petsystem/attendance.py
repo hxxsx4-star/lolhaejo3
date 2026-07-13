@@ -36,7 +36,7 @@ class AttendanceCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name="출석", description="하루 1회 출석하고 연속 출석 보상을 받습니다. (KST 기준)")
+    @app_commands.command(name="출석보상", description="하루 1회 출석하고 연속 출석 보상을 받습니다. (KST 기준)")
     async def attendance(self, interaction: discord.Interaction):
         res = await check_in(interaction.user.id)
 

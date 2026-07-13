@@ -1,8 +1,69 @@
 import discord
 from utils.database import get_legend_data, get_or_migrate_data, save_legend_data, consume_item, add_buff, get_active_buffs
-from utils.data import ITEMS_INFO
-from utils.logs import ITEM_USE_LOG_CH, send_log_embed
+from utils.data import ITEMS_INFO, PET_POOLS
+from utils.logs import ITEM_USE_LOG_CH, HATCH_LOG_CH, send_log_embed
 from utils.stats import add_points
+from utils.game import egg_rarity, hatch_egg_item
+
+
+class EggTypeView(discord.ui.View):
+    """알 사용 2단계: 이름 입력 후, 해당 등급 안에서 원하는 종류를 골라 부화합니다."""
+    def __init__(self, user_id: int, egg_name: str, pet_name: str):
+        super().__init__(timeout=120)
+        self.user_id = user_id
+        self.egg_name = egg_name
+        self.pet_name = pet_name
+        self.done = False
+
+        rarity = egg_rarity(egg_name)
+        pool = PET_POOLS.get(rarity, [])[:25]
+        options = [discord.SelectOption(label=t, value=t) for t in pool]
+        self.select = discord.ui.Select(placeholder=f"부화할 {rarity}급 전설이를 선택하세요", options=options)
+        self.select.callback = self.on_select
+        self.add_item(self.select)
+
+    async def on_select(self, interaction: discord.Interaction):
+        if interaction.user.id != self.user_id:
+            return await interaction.response.send_message("❌ 본인만 선택할 수 있습니다.", ephemeral=True)
+        # 연타로 인한 중복 부화 방지
+        if self.done:
+            return await interaction.response.send_message("⏳ 이미 부화 처리된 알입니다.", ephemeral=True)
+        self.done = True
+        pet_type = self.select.values[0]
+
+        res = await hatch_egg_item(self.user_id, self.egg_name, pet_type, self.pet_name)
+        if not res["ok"]:
+            self.done = False  # 실패 시 다시 시도 가능하도록
+            return await interaction.response.send_message(f"❌ {res['error']}", ephemeral=True)
+
+        embed = discord.Embed(
+            title="🥚 알 부화 성공!",
+            description=f"[{res['rarity']}급] {res['type']} 알을 얻었습니다!\n이름: `{res['name']}`\n`/상태창`으로 돌봐주세요.",
+            color=discord.Color.green())
+        await interaction.response.edit_message(embed=embed, view=None)
+        await send_log_embed(interaction.client, HATCH_LOG_CH, "🥚 알 사용 부화 로그",
+                             f"{res['name']} ({res['type']} - {res['rarity']}급) 부화! (보관함 알 사용)",
+                             interaction.user, discord.Color.purple())
+
+
+class EggNameModal(discord.ui.Modal):
+    """알 사용 1단계: 전설이 이름 입력."""
+    def __init__(self, user_id: int, egg_name: str):
+        super().__init__(title=f"{egg_name} 부화")
+        self.user_id = user_id
+        self.egg_name = egg_name
+        self.pet_name = discord.ui.TextInput(label="새로 태어날 전설이의 이름", placeholder="예: 멍멍이",
+                                             min_length=1, max_length=20, required=True)
+        self.add_item(self.pet_name)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        rarity = egg_rarity(self.egg_name)
+        view = EggTypeView(self.user_id, self.egg_name, self.pet_name.value)
+        embed = discord.Embed(
+            title=f"🥚 {self.egg_name} 부화",
+            description=f"이름: `{self.pet_name.value}`\n아래에서 원하는 **{rarity}급** 전설이 종류를 선택하세요!",
+            color=discord.Color.gold())
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
 class NameChangeModal(discord.ui.Modal):
     def __init__(self):
@@ -92,13 +153,11 @@ class InventoryView(discord.ui.View):
         elif self.selected_item == "전설이 이름 변경권":
             modal = NameChangeModal()
             return await interaction.response.send_modal(modal)
-        elif "급 알" in self.selected_item:
-            success = await consume_item(self.user_id, self.selected_item, 1)
-            if not success: return await interaction.response.send_message("❌ 알이 부족합니다.", ephemeral=True)
-            app_info = await interaction.client.application_info()
-            try: await app_info.owner.send(f"🚨 알림: {interaction.user.display_name}님이 보관함에서 `{self.selected_item}`을(를) 사용했습니다!")
-            except Exception as e: print(f"DM 전송 실패: {e}")
-            return await interaction.response.send_message("✅ 봇 관리자에게 DM을 보냈습니다. (해당 알 1개 소모됨)", ephemeral=True)
+        elif egg_rarity(self.selected_item):
+            # 알을 사용하면 유저가 직접 이름을 짓고 종류를 골라 부화합니다.
+            # (알 소모는 종류 선택 완료 시점에 원자적으로 처리)
+            modal = EggNameModal(self.user_id, self.selected_item)
+            return await interaction.response.send_modal(modal)
 
         modal = ItemQuantityModal(self.selected_item, self.items[self.selected_item])
         await interaction.response.send_modal(modal)
