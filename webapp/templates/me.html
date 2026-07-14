@@ -13,24 +13,25 @@ background:var(--surface);border:1px solid var(--border);color:var(--dim);}
 .panel{display:none;}
 .panel.on{display:block;}
 .petgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
-.pet{display:flex;flex-direction:column;gap:10px;position:relative;border-color:transparent;overflow:hidden;}
-/* 고급형 카드: 등급색 그라데이션 테두리 + 은은한 글로우 */
-.pet.r-서사{--pg:linear-gradient(135deg,#3d8bf0,#8fc0ff);--pc:#3d8bf0;}
-.pet.r-전설{--pg:linear-gradient(135deg,#e5484d,#ff9a7a);--pc:#e5484d;}
-.pet.r-신화{--pg:linear-gradient(135deg,#a855f7,#e59bff);--pc:#a855f7;}
-.pet.r-프레스티지{--pg:linear-gradient(135deg,#f0b73f,#ffe6a0);--pc:#f0b73f;}
-.pet.r-고귀{--pg:linear-gradient(135deg,#f2d24c,#2fb8a8);--pc:#39c9b5;}
-.pet.r-초월{--pg:linear-gradient(90deg,#ff5f6d,#ffc371,#47e0b0,#4f9dff,#a56bff);--pc:#a56bff;}
-.pet::after{content:'';position:absolute;inset:0;border-radius:16px;padding:1.6px;
-  background:var(--pg,linear-gradient(135deg,var(--gold),var(--gold2)));
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-  -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;}
-.pet{box-shadow:0 8px 26px -10px var(--pc,rgba(0,0,0,.4));}
-/* 초월: 무지개 흐르는 애니메이션 */
-.pet.r-초월::after{background:linear-gradient(90deg,#ff5f6d,#ffc371,#47e0b0,#4f9dff,#a56bff,#ff5f6d);
-  background-size:220% 100%;animation:rainbow 5s linear infinite;}
-@keyframes rainbow{to{background-position:220% 0;}}
-@media (prefers-reduced-motion: reduce){.pet.r-초월::after{animation:none;}}
+.pet{display:flex;flex-direction:column;gap:10px;position:relative;overflow:hidden;}
+/* 고급형 카드: 샘플 카드처럼 어두운 배경 + 등급색 라디얼 글로우 */
+.pet.r-서사{background:radial-gradient(115% 80% at 50% 0%,color-mix(in srgb,#3d8bf0 34%,var(--surface)),var(--surface) 68%);border-color:color-mix(in srgb,#3d8bf0 42%,transparent);--pc:#3d8bf0;}
+.pet.r-전설{background:radial-gradient(115% 80% at 50% 0%,color-mix(in srgb,#e5484d 34%,var(--surface)),var(--surface) 68%);border-color:color-mix(in srgb,#e5484d 42%,transparent);--pc:#e5484d;}
+.pet.r-신화{background:radial-gradient(115% 80% at 50% 0%,color-mix(in srgb,#a855f7 34%,var(--surface)),var(--surface) 68%);border-color:color-mix(in srgb,#a855f7 42%,transparent);--pc:#a855f7;}
+.pet.r-프레스티지{background:radial-gradient(115% 80% at 50% 0%,color-mix(in srgb,#f0b73f 36%,var(--surface)),var(--surface) 68%);border-color:color-mix(in srgb,#f0b73f 44%,transparent);--pc:#f0b73f;}
+/* 고귀: 위쪽 노랑 글로우 + 아래쪽 청록 글로우 */
+.pet.r-고귀{background:
+  radial-gradient(100% 65% at 50% 0%,color-mix(in srgb,#f2d24c 40%,transparent),transparent 62%),
+  radial-gradient(110% 75% at 50% 108%,color-mix(in srgb,#2fb8a8 42%,transparent),transparent 66%),
+  var(--surface);border-color:color-mix(in srgb,#2fb8a8 46%,transparent);--pc:#39c9b5;}
+/* 초월: 무지개 라디얼 글로우 (여러 색이 은은하게) */
+.pet.r-초월{background:
+  radial-gradient(75% 60% at 18% 0%,color-mix(in srgb,#ff5f6d 34%,transparent),transparent 60%),
+  radial-gradient(75% 60% at 82% 6%,color-mix(in srgb,#4f9dff 32%,transparent),transparent 60%),
+  radial-gradient(80% 60% at 50% 108%,color-mix(in srgb,#a56bff 38%,transparent),transparent 64%),
+  radial-gradient(60% 45% at 50% 45%,color-mix(in srgb,#47e0b0 24%,transparent),transparent 60%),
+  var(--surface);border-color:color-mix(in srgb,#a56bff 48%,transparent);--pc:#a56bff;}
+.pet{box-shadow:0 8px 28px -12px var(--pc,rgba(0,0,0,.4));}
 .pethead{display:flex;gap:12px;align-items:center;}
 .pimg{width:74px;height:74px;border-radius:14px;object-fit:cover;background:#0e0b1a;border:1px solid var(--border);}
 .pname{font-weight:900;font-size:16px;}
