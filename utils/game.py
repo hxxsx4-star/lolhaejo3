@@ -422,7 +422,7 @@ async def buy_shop_item(user_id: int, item_name: str) -> dict:
 # 알까기(가챠) / 합성
 # ==========================================
 MAX_PETS = 5
-HATCH_COST = 1000
+HATCH_COST = 10
 # 확률 순서: 서사, 전설, 신화, 프레스티지, 고귀, 초월
 # 고귀=0.001%, 초월은 알까기로 획득 불가(합성 전용)
 HATCH_WEIGHTS = [85, 14, 0.9, 0.1, 0.001, 0.0]

@@ -50,12 +50,21 @@ REDIRECT_URI = WEB.get("redirect_uri", "")
 SECRET_KEY = WEB.get("secret_key", "")
 OAUTH_READY = all([CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, SECRET_KEY])
 
-# 관리자 디스코드 ID 목록. 기본 관리자 + config.ini [web] admin_ids = 123, 456 로 추가.
-DEFAULT_ADMIN_IDS = {1505506970361139210, 1517544497817583739}
+# 권한 체계: 소유주(owner) > 관리자(admin). 둘 다 관리자 패널을 쓸 수 있고,
+# 소유주는 별도 타이틀로 표시됩니다.
+OWNER_IDS = {1505506970361139210, 1517544497817583739}
+# 일반 관리자 (기본 + config.ini [web] admin_ids = 123, 456 로 추가 가능)
+DEFAULT_ADMIN_IDS = {1514057131987308685}
 ADMIN_IDS = set(DEFAULT_ADMIN_IDS)
 for _a in WEB.get("admin_ids", "").replace(" ", "").split(","):
     if _a.isdigit():
         ADMIN_IDS.add(int(_a))
+# 소유주도 관리자 권한을 포함
+ADMIN_IDS |= OWNER_IDS
+
+
+def is_owner(user) -> bool:
+    return bool(user) and int(user.get("id", 0)) in OWNER_IDS
 
 
 def is_admin(user) -> bool:
@@ -312,7 +321,8 @@ async def me(request: Request):
         return RedirectResponse("/login")
     state = await dashboard_state(int(user["id"]))
     return render("me.html", user=user, s=state, now=time.time(), oauth_ready=OAUTH_READY,
-                  is_admin=is_admin(user), pet_pools=PET_POOLS, rarity_order=RARITY_ORDER)
+                  is_admin=is_admin(user), is_owner=is_owner(user),
+                  pet_pools=PET_POOLS, rarity_order=RARITY_ORDER)
 
 
 # ── 액션 API (전부 세션 유저 본인에게만 적용) ──

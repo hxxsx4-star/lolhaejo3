@@ -79,7 +79,11 @@ select,input[type=text]{padding:9px 12px;border-radius:10px;border:1px solid var
 </div>
 {% if is_admin %}
 <div class="card" style="margin-top:10px;border-color:var(--red);background:color-mix(in srgb,var(--red) 12%,var(--surface))">
+  {% if is_owner %}
+  <b style="color:var(--gold)">👑 소유주님, 환영합니다!</b>
+  {% else %}
   <b style="color:var(--red)">🛠️ 관리자님, 환영합니다!</b>
+  {% endif %}
   <span class="faint">— 우측 <b>🛠️ 관리자</b> 탭에서 전체 유저를 조회·관리할 수 있습니다.</span>
 </div>
 {% endif %}
