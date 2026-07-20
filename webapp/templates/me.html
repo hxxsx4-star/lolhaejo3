@@ -1,0 +1,899 @@
+{% extends "base.html" %}
+{% block title %}내 전설이 · 전설이 키우기{% endblock %}
+{% block head %}
+<style>
+.summary{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+.summary .pill{padding:9px 16px;border-radius:100px;background:var(--surface2);border:1px solid var(--border2);font-weight:800;font-size:14px;}
+.pill b{color:var(--gold);}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:22px 0 6px;position:sticky;top:0;z-index:20;
+background:linear-gradient(180deg,var(--bg) 70%,transparent);padding:8px 0;}
+.tab{padding:9px 15px;border-radius:100px;font-weight:800;font-size:13.5px;cursor:pointer;
+background:var(--surface);border:1px solid var(--border);color:var(--dim);}
+.tab.on{background:color-mix(in srgb,var(--gold) 16%,var(--surface));border-color:color-mix(in srgb,var(--gold) 45%,transparent);color:var(--gold);}
+.panel{display:none;}
+.panel.on{display:block;}
+.petgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
+.pet{display:flex;flex-direction:column;gap:10px;position:relative;overflow:hidden;border-color:transparent;}
+/* 고급형 카드: 어두운 배경 + 등급색 라디얼 글로우 + 그라데이션 테두리 */
+.pet.r-서사{background:radial-gradient(115% 80% at 50% 0%,color-mix(in srgb,#3d8bf0 34%,var(--surface)),var(--surface) 68%);--pg:linear-gradient(135deg,#3d8bf0,#8fc0ff);--pc:#3d8bf0;}
+.pet.r-전설{background:radial-gradient(115% 80% at 50% 0%,color-mix(in srgb,#e5484d 34%,var(--surface)),var(--surface) 68%);--pg:linear-gradient(135deg,#e5484d,#ff9a7a);--pc:#e5484d;}
+.pet.r-신화{background:radial-gradient(115% 80% at 50% 0%,color-mix(in srgb,#a855f7 34%,var(--surface)),var(--surface) 68%);--pg:linear-gradient(135deg,#a855f7,#e59bff);--pc:#a855f7;}
+.pet.r-프레스티지{background:radial-gradient(115% 80% at 50% 0%,color-mix(in srgb,#f0b73f 36%,var(--surface)),var(--surface) 68%);--pg:linear-gradient(135deg,#f0b73f,#ffe6a0);--pc:#f0b73f;}
+/* 고귀: 위쪽 노랑 글로우 + 아래쪽 청록 글로우 / 테두리 노랑→청록 */
+.pet.r-고귀{background:
+  radial-gradient(100% 65% at 50% 0%,color-mix(in srgb,#f2d24c 40%,transparent),transparent 62%),
+  radial-gradient(110% 75% at 50% 108%,color-mix(in srgb,#2fb8a8 42%,transparent),transparent 66%),
+  var(--surface);--pg:linear-gradient(135deg,#f2d24c,#2fb8a8);--pc:#39c9b5;}
+/* 초월: 무지개 라디얼 글로우 + 무지개 테두리(흐르는 애니메이션) */
+.pet.r-초월{background:
+  radial-gradient(75% 60% at 18% 0%,color-mix(in srgb,#ff5f6d 34%,transparent),transparent 60%),
+  radial-gradient(75% 60% at 82% 6%,color-mix(in srgb,#4f9dff 32%,transparent),transparent 60%),
+  radial-gradient(80% 60% at 50% 108%,color-mix(in srgb,#a56bff 38%,transparent),transparent 64%),
+  radial-gradient(60% 45% at 50% 45%,color-mix(in srgb,#47e0b0 24%,transparent),transparent 60%),
+  var(--surface);--pg:linear-gradient(90deg,#ff5f6d,#ffc371,#47e0b0,#4f9dff,#a56bff);--pc:#a56bff;}
+.pet{box-shadow:0 8px 28px -12px var(--pc,rgba(0,0,0,.4));}
+/* 그라데이션 테두리 링 */
+.pet::after{content:'';position:absolute;inset:0;border-radius:16px;padding:1.7px;
+  background:var(--pg,linear-gradient(135deg,var(--gold),var(--gold2)));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;}
+.pet.r-초월::after{background:linear-gradient(90deg,#ff5f6d,#ffc371,#47e0b0,#4f9dff,#a56bff,#ff5f6d);
+  background-size:220% 100%;animation:rainbow 5s linear infinite;}
+@keyframes rainbow{to{background-position:220% 0;}}
+@media (prefers-reduced-motion: reduce){.pet.r-초월::after{animation:none;}}
+.pethead{display:flex;gap:12px;align-items:center;}
+.pimg{width:74px;height:74px;border-radius:14px;object-fit:cover;background:#0e0b1a;border:1px solid var(--border);}
+.pname{font-weight:900;font-size:16px;}
+.ptag{font-size:12.5px;color:var(--dim);}
+.rchip{display:inline-block;padding:2px 10px;border-radius:100px;font-size:11px;font-weight:800;
+background:color-mix(in srgb,var(--rc) 16%,transparent);border:1px solid color-mix(in srgb,var(--rc) 45%,transparent);color:var(--rc);}
+.gauges{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:12.5px;}
+.g label{color:var(--dim);display:flex;justify-content:space-between;}
+.gbar{height:7px;border-radius:100px;background:#0e0b1a;overflow:hidden;border:1px solid var(--border);}
+.gbar i{display:block;height:100%;border-radius:100px;}
+.pstats{font-size:12.5px;color:var(--dim);}
+.pstats b{color:var(--text);}
+.actions{display:flex;gap:6px;flex-wrap:wrap;}
+.actions .btn{padding:8px 12px;font-size:12.5px;}
+.qrow{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--border);font-size:14.5px;}
+.qrow:first-of-type{border-top:none;}
+.qbar{flex:1;height:9px;border-radius:100px;background:#0e0b1a;border:1px solid var(--border);overflow:hidden;min-width:80px;}
+.qbar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--teal));}
+.qdone{color:var(--teal);font-weight:800;}
+.expbox{display:flex;gap:16px;align-items:center;flex-wrap:wrap;}
+.itemlist{display:flex;flex-wrap:wrap;gap:8px;}
+.item{padding:7px 13px;border-radius:100px;background:var(--surface2);border:1px solid var(--border);font-size:13px;}
+.item b{color:var(--gold);}
+select,input[type=text]{padding:9px 12px;border-radius:10px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:inherit;font-size:14px;}
+.eqchip{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:100px;background:var(--surface2);border:1px solid var(--border2);font-size:12.5px;margin:3px 4px 0 0;}
+.eqchip button{background:none;border:none;color:var(--red);cursor:pointer;font-weight:900;font-size:14px;padding:0;}
+.eqrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px;}
+.shopgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;}
+.shopitem{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 13px;border-radius:12px;background:var(--surface2);border:1px solid var(--border);font-size:13px;}
+.shopitem .nm{font-weight:800;}
+.shopitem .ef{color:var(--dim);font-size:11.5px;}
+.shopitem .btn{padding:6px 12px;font-size:12px;white-space:nowrap;}
+.sub{color:var(--dim);font-size:13px;margin:2px 0 10px;}
+.synthcard{margin-bottom:12px;}
+.synthcard .head{font-weight:900;margin-bottom:8px;}
+.attgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;}
+@media(max-width:620px){.attgrid{grid-template-columns:repeat(4,1fr);}}
+.attday{text-align:center;padding:10px 4px;border-radius:12px;background:var(--surface2);border:1px solid var(--border);font-size:12px;}
+.attday .attd{font-weight:800;font-size:12px;color:var(--dim);}
+.attday .atte{color:var(--gold);font-weight:800;margin-top:3px;}
+.attday .attp{color:var(--faint);font-size:11px;}
+.attday .attb{color:var(--teal);font-size:11px;font-weight:800;margin-top:2px;}
+.utable{width:100%;border-collapse:collapse;font-size:13px;}
+.utable th,.utable td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+.utable th{color:var(--faint);font-weight:700;font-size:12px;}
+.utable tbody tr{cursor:pointer;}
+.utable tbody tr:hover{background:var(--surface2);}
+.utable .num{text-align:right;font-variant-numeric:tabular-nums;}
+.att-now{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset;}
+.att-done{opacity:.55;border-color:var(--teal);}
+.live{margin-left:auto;font-size:12px;color:var(--teal);display:flex;align-items:center;gap:6px;}
+.live .dot{width:8px;height:8px;border-radius:50%;background:var(--teal);animation:pulse 1.8s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="summary card">
+  <span style="font-weight:900;font-size:17px">👋 {{ user.username }}님의 목장</span>
+  <span class="pill">💰 <b>{{ '{:,}'.format(s.points) }}P</b></span>
+  <span class="pill">🥚 서사알 <b>{{ '{:,}'.format(s.egg_count) }}</b></span>
+  <span class="pill">🐣 전설이 <b>{{ s.pets|length }}</b>/{{ s.max_pets }}</span>
+  <span class="live"><span class="dot"></span>실시간 동기화 켜짐</span>
+</div>
+{% if is_admin %}
+<div class="card" style="margin-top:10px;border-color:var(--red);background:color-mix(in srgb,var(--red) 12%,var(--surface))">
+  {% if is_owner %}
+  <b style="color:var(--gold)">👑 소유주님, 환영합니다!</b>
+  {% else %}
+  <b style="color:var(--red)">🛠️ 관리자님, 환영합니다!</b>
+  {% endif %}
+  <span class="faint">— 우측 <b>🛠️ 관리자</b> 탭에서 전체 유저를 조회·관리할 수 있습니다.</span>
+</div>
+{% endif %}
+
+<div class="tabs">
+  <div class="tab on" data-tab="farm">🐣 목장</div>
+  <div class="tab" data-tab="equip">🎽 장비</div>
+  <div class="tab" data-tab="synth">✨ 합성·부화</div>
+  <div class="tab" data-tab="shop">🛒 상점</div>
+  <div class="tab" data-tab="bag">🎒 보관함</div>
+  <div class="tab" data-tab="box">📦 박스</div>
+  <div class="tab" data-tab="achv">🏆 업적</div>
+  <div class="tab" data-tab="battle">⚔️ 배틀</div>
+  {% if is_admin %}<div class="tab" data-tab="admin" style="color:var(--red)">🛠️ 관리자</div>{% endif %}
+</div>
+
+<!-- ===== 목장 ===== -->
+<div class="panel on" id="panel-farm">
+<h2 class="sec"><span class="bar"></span>📅 출석체크 <span class="faint">매일 0시(KST) 초기화 · 연속 출석 보상!</span></h2>
+<div class="card">
+  <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+    <span>🔥 연속 <b style="color:var(--gold)">{{ s.attendance.streak }}일</b></span>
+    <span>📅 누적 <b style="color:var(--gold)">{{ s.attendance.total }}일</b></span>
+    {% if s.attendance.checked_today %}
+      <span class="qdone">✅ 오늘 출석 완료!</span>
+    {% else %}
+      <button class="btn gold" onclick="checkIn()">📅 출석하기</button>
+    {% endif %}
+  </div>
+  <div class="attgrid">
+    {% for rw in s.attendance.rewards %}
+    {% set day = loop.index %}
+    <div class="attday {% if day == s.attendance.today_day %}{% if s.attendance.checked_today %}att-done{% else %}att-now{% endif %}{% endif %}">
+      <div class="attd">{{ day }}일차</div>
+      <div class="atte">🥚{{ rw.eggs }}</div>
+      {% for b in rw.get('bonus', []) %}<div class="attb">+{{ b }}알</div>{% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  {% if s.attendance.milestones %}
+  <div class="faint" style="margin-top:10px">🎯 연속 마일스톤:
+    {% for m in s.attendance.milestones %}{{ m.days }}일 연속 → {{ m.rarity }}급 알 +1{% if not loop.last %} · {% endif %}{% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<h2 class="sec"><span class="bar"></span>🐣 내 전설이 <span class="faint">버튼으로 바로 돌보기!</span></h2>
+{% if s.pets %}
+<div class="petgrid">
+  {% for p in s.pets %}
+  <div class="card pet r-{{ p.rarity }}">
+    <div class="pethead">
+      {% if p.img %}<img class="pimg" src="{{ p.img }}" alt="">{% else %}<div class="pimg" style="display:grid;place-items:center">🥚</div>{% endif %}
+      <div>
+        <div class="pname">{{ p.name }}</div>
+        <div class="ptag"><span class="rchip" style="--rc:var(--r-{{ p.rarity }})">{{ p.rarity }}</span>
+          {{ p.level }}성 · {{ p.type }}</div>
+        {% if p.stats %}<div class="ptag">⚔️ 전투력 <b style="color:var(--gold)">{{ '{:,}'.format(p.power) }}</b>
+          {% if p.equipment %} · 🎽 {{ p.equipment|length }}/{{ p.max_equip }}{% endif %}</div>{% endif %}
+      </div>
+    </div>
+    {% if p.level > 0 %}
+    <div class="gauges">
+      <div class="g"><label>🍚 포만도 <span>{{ p.fullness }}</span></label><div class="gbar"><i style="width:{{ p.fullness }}%;background:#f0b73f"></i></div></div>
+      <div class="g"><label>🚿 청결도 <span>{{ p.cleanliness }}</span></label><div class="gbar"><i style="width:{{ p.cleanliness }}%;background:#4f9dff"></i></div></div>
+      <div class="g"><label>💖 친밀도 <span>{{ p.intimacy }}</span></label><div class="gbar"><i style="width:{{ p.intimacy }}%;background:#ec6fae"></i></div></div>
+      <div class="g"><label>💤 피로도 <span>{{ p.fatigue }}</span></label><div class="gbar"><i style="width:{{ p.fatigue }}%;background:#8a7f74"></i></div></div>
+    </div>
+    <div class="pstats">AD <b>{{ p.stats.AD }}</b> · DF <b>{{ p.stats.DF }}</b> · AP <b>{{ p.stats.AP }}</b> · MR <b>{{ p.stats.MR }}</b></div>
+    <div class="actions">
+      <button class="btn" onclick="act('/api/feed',{pet_idx:{{ p.idx }}})">🍚 밥 (5P)</button>
+      <button class="btn" onclick="act('/api/shower',{pet_idx:{{ p.idx }}})">🚿 샤워 (10P)</button>
+      <button class="btn teal" onclick="act('/api/walk',{pet_idx:{{ p.idx }},n:1})">🚶 산책1</button>
+      <button class="btn teal" onclick="act('/api/walk',{pet_idx:{{ p.idx }},n:10})">🚶 산책10</button>
+      <button class="btn teal" onclick="act('/api/walk',{pet_idx:{{ p.idx }},n:100})">🏃 산책100</button>
+    </div>
+    {% else %}
+    <div class="faint">🥚 아직 부화하지 않은 알입니다. 디스코드 통화방에서 경험치를 모아 부화시켜 주세요!</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card">아직 전설이가 없어요. 아래 <b>✨ 합성·부화</b> 탭에서 알까기로 시작하세요!</div>
+{% endif %}
+{% if s.pets|length >= 2 %}
+<div class="card" style="margin-top:12px">
+  <div class="ptag" style="margin-bottom:6px">🔄 파티 순서 변경</div>
+  <div class="eqrow">
+    <select id="ro-from">{% for p in s.pets %}<option value="{{ p.idx }}">{{ loop.index }}번: {{ p.name }}</option>{% endfor %}</select>
+    <span>↔</span>
+    <select id="ro-to">{% for p in s.pets %}<option value="{{ p.idx }}" {% if loop.index==2 %}selected{% endif %}>{{ loop.index }}번: {{ p.name }}</option>{% endfor %}</select>
+    <button class="btn" onclick="reorder()">순서 바꾸기</button>
+  </div>
+</div>
+{% endif %}
+
+<h2 class="sec"><span class="bar"></span>🏕️ 원정</h2>
+<div class="card expbox">
+  {% if s.expedition %}
+    {% if s.expedition.done %}
+      <span>🎉 <b>{{ s.expedition.pet_name }}</b>(이)가 원정에서 돌아왔습니다!</span>
+      <button class="btn gold" onclick="act('/api/expedition/claim',{})">🎁 보상 받기</button>
+    {% else %}
+      <span>⏰ <b>{{ s.expedition.pet_name }}</b> 원정 중 — 남은 시간 <b id="exptimer" data-end="{{ s.expedition.end_ts }}">계산 중...</b></span>
+    {% endif %}
+  {% else %}
+    <span>전설이를 보내 알·포인트를 획득하세요! (시간당 서사알 + 상위알 확률 + 20P)</span>
+    <select id="exp-pet">
+      {% for p in s.pets if p.level > 0 %}<option value="{{ p.idx }}">{{ p.name }} (전투력 {{ p.power }})</option>{% endfor %}
+    </select>
+    <select id="exp-hours">
+      {% for h in s.durations %}<option value="{{ h }}">{{ h }}시간</option>{% endfor %}
+    </select>
+    <button class="btn gold" onclick="expStart()">🏕️ 원정 보내기</button>
+  {% endif %}
+</div>
+
+<h2 class="sec"><span class="bar"></span>📋 오늘의 퀘스트 <span class="faint">{{ s.quest.date }}</span></h2>
+<div class="card">
+  {% for q in s.quest.quests %}
+  <div class="qrow">
+    <span style="min-width:180px">{{ q.title }}</span>
+    <div class="qbar"><i style="width:{{ (q.cur / q.goal * 100)|round }}%"></i></div>
+    <span style="min-width:64px;text-align:right;font-variant-numeric:tabular-nums">{{ q.cur }}/{{ q.goal }}</span>
+    <span style="min-width:96px;text-align:right">{% if q.claimed %}<span class="faint">수령완료</span>{% elif q.done %}<span class="qdone">완료!</span>{% else %}🥚{{ q.reward }}{% endif %}</span>
+  </div>
+  {% endfor %}
+  <div class="qrow">
+    <span style="min-width:180px">🌟 올클리어 보너스</span>
+    <div style="flex:1"></div>
+    <span>{% if s.quest.all_clear_claimed %}<span class="faint">수령완료</span>{% elif s.quest.all_clear %}<span class="qdone">완료!</span>{% else %}🥚{{ s.quest.all_clear_bonus }}{% endif %}</span>
+  </div>
+  <div style="margin-top:12px"><button class="btn gold" onclick="act('/api/quest/claim',{})">🎁 완료 보상 받기</button></div>
+</div>
+</div>
+
+<!-- ===== 장비 ===== -->
+<div class="panel" id="panel-equip">
+<h2 class="sec"><span class="bar"></span>🎽 장비 관리 <span class="faint">한 마리당 최대 {{ s.pets and s.pets[0].max_equip or 3 }}개</span></h2>
+<p class="sub">보유 장비를 전설이에게 장착·해제합니다. 장비는 <b>🛒 상점</b>에서 서사급 알로 구매하세요.</p>
+{% set equippable = s.pets|selectattr('level','greaterthan',0)|list %}
+{% if not equippable %}
+<div class="card faint">장비를 장착할 부화한 전설이가 없습니다.</div>
+{% else %}
+<div class="petgrid">
+  {% for p in equippable %}
+  <div class="card pet r-{{ p.rarity }}">
+    <div class="pethead">
+      {% if p.img %}<img class="pimg" src="{{ p.img }}" alt="">{% endif %}
+      <div>
+        <div class="pname">{{ p.name }}</div>
+        <div class="ptag"><span class="rchip" style="--rc:var(--r-{{ p.rarity }})">{{ p.rarity }}</span> {{ p.level }}성 · {{ p.type }}</div>
+        <div class="ptag">⚔️ 전투력 <b style="color:var(--gold)">{{ '{:,}'.format(p.power) }}</b>
+          {% if p.equip_bonus %} · 장비보너스 AD+{{ p.equip_bonus.AD }} DF+{{ p.equip_bonus.DF }} AP+{{ p.equip_bonus.AP }} MR+{{ p.equip_bonus.MR }}{% endif %}</div>
+      </div>
+    </div>
+    <div>
+      <div class="ptag">장착 중 ({{ p.equipment|length }}/{{ p.max_equip }})</div>
+      {% for e in p.equipment %}
+      <span class="eqchip" title="{{ e.effect }}">{{ e.name }} <button onclick="act('/api/unequip',{pet_idx:{{ p.idx }},equip:'{{ e.name }}'})">✕</button></span>
+      {% else %}<span class="faint">없음</span>{% endfor %}
+    </div>
+    {% if p.equipment|length < p.max_equip and s.owned_equips %}
+    <div class="eqrow">
+      <select id="eqsel-{{ p.idx }}">
+        {% for e in s.owned_equips %}<option value="{{ e.name }}">{{ e.name }} ×{{ e.amount }} — {{ e.effect }}</option>{% endfor %}
+      </select>
+      <button class="btn teal" onclick="equip({{ p.idx }})">장착</button>
+    </div>
+    {% elif p.equipment|length >= p.max_equip %}
+    <div class="faint">장비 슬롯이 가득 찼습니다.</div>
+    {% else %}
+    <div class="faint">보유한 장비가 없습니다. 상점에서 구매하세요.</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<h2 class="sec"><span class="bar"></span>🎒 보유 장비</h2>
+<div class="card itemlist">
+  {% for e in s.owned_equips %}<span class="item">{{ e.name }} <b>×{{ e.amount }}</b> <span class="faint">({{ e.effect }})</span></span>
+  {% else %}<span class="faint">보유한 장비가 없습니다.</span>{% endfor %}
+</div>
+</div>
+
+<!-- ===== 합성·부화 ===== -->
+<div class="panel" id="panel-synth">
+<h2 class="sec"><span class="bar"></span>🥚 알까기 (가챠)</h2>
+<div class="card">
+  <p class="sub">첫 전설이는 무료, 이후 <b>{{ '{:,}'.format(s.hatch_cost) }}P</b>. 등급이 뽑히면 원하는 종류를 고를 수 있어요. (파티 {{ s.pet_count }}/{{ s.max_pets }})</p>
+  {% if s.pet_count >= s.max_pets %}
+  <div class="faint">파티가 가득 찼습니다. 합성하거나 디스코드 박스에 보관 후 이용하세요.</div>
+  {% else %}
+  <div class="eqrow">
+    <input type="text" id="hatch-name" placeholder="전설이 이름" maxlength="20" style="flex:1;min-width:160px">
+    <button class="btn gold" onclick="hatchRoll()">🥚 알까기</button>
+  </div>
+  <div id="hatch-result" style="margin-top:12px"></div>
+  {% endif %}
+</div>
+
+<h2 class="sec"><span class="bar"></span>✨ 전설이 합성 <span class="faint">3성 2마리 → 상위 등급</span></h2>
+<p class="sub">같은 등급 <b>3성</b> 서로 다른 종류 2마리를 합성합니다. 실패 시 재료 소멸 — <b>합성 방어권</b>({{ '{:,}'.format(s.synth.protect_tickets) }}개 보유) 있으면 실패해도 보존!</p>
+{% set any_synth = s.synth.grades|selectattr('enough')|list %}
+{% if not any_synth %}
+<div class="card faint">합성 가능한 3성 전설이 2마리가 없습니다. (같은 등급·서로 다른 종류 필요)</div>
+{% endif %}
+{% for g in s.synth.grades %}
+{% if g.enough %}
+<div class="card synthcard">
+  <div class="head"><span class="rchip" style="--rc:var(--r-{{ g.rarity }})">{{ g.rarity }}</span>
+    → <span class="rchip" style="--rc:var(--r-{{ g.target }})">{{ g.target }}</span> 성공확률 {{ (g.prob*100)|round(1) }}%</div>
+  <div class="eqrow">
+    <select id="syn1-{{ g.rarity }}">
+      {% for c in g.candidates %}<option value="{{ c.idx }}">{{ c.name }} ({{ c.type }})</option>{% endfor %}
+    </select>
+    <span>+</span>
+    <select id="syn2-{{ g.rarity }}">
+      {% for c in g.candidates %}<option value="{{ c.idx }}" {% if loop.index==2 %}selected{% endif %}>{{ c.name }} ({{ c.type }})</option>{% endfor %}
+    </select>
+    <button class="btn gold" onclick="synth('{{ g.rarity }}')">✨ 합성</button>
+  </div>
+</div>
+{% endif %}
+{% endfor %}
+</div>
+
+<!-- ===== 상점 ===== -->
+<div class="panel" id="panel-shop">
+<h2 class="sec"><span class="bar"></span>🛒 알 상점 <span class="faint">보유 서사알 {{ '{:,}'.format(s.egg_count) }}개</span></h2>
+<p class="sub">모아둔 <b>서사급 알</b>로 장비와 합성 방어권을 구매합니다.</p>
+{% for cat in s.shop %}
+<h2 class="sec" style="font-size:16px;margin:18px 0 8px"><span class="bar" style="background:var(--r-{{ cat.rarity if cat.rarity != '특수' else '고귀' }})"></span>{{ cat.rarity }} {% if cat.rarity != '특수' %}장비{% endif %}</h2>
+<div class="shopgrid">
+  {% for it in cat['items'] %}
+  <div class="shopitem">
+    <div>
+      <div class="nm">{{ it.name }}</div>
+      <div class="ef">{{ it.effect }}</div>
+      <div class="ef">🥚 {{ '{:,}'.format(it.price) }}</div>
+    </div>
+    <button class="btn {% if s.egg_count >= it.price %}gold{% endif %}" {% if s.egg_count < it.price %}disabled{% endif %} onclick="buy('{{ it.name }}')">구매</button>
+  </div>
+  {% endfor %}
+</div>
+{% endfor %}
+</div>
+
+<!-- ===== 보관함 ===== -->
+<div class="panel" id="panel-bag">
+<h2 class="sec"><span class="bar"></span>🎒 아이템 사용</h2>
+{% set use_items = s.usable_items|rejectattr('is_egg')|list %}
+{% if use_items %}
+<div class="card">
+  {% for it in use_items %}
+  <div class="qrow" style="border-top:1px solid var(--border)">
+    <span style="min-width:180px">{{ it.name }} <span class="faint">×{{ it.amount }}</span></span>
+    {% if it.name == '전설이 이름 변경권' %}
+      <select id="rn-pet">{% for p in s.pets %}<option value="{{ p.idx }}">{{ p.name }}</option>{% endfor %}</select>
+      <input type="text" id="rn-name" placeholder="새 이름" maxlength="20" style="width:120px">
+      <button class="btn teal" onclick="useRename()">사용</button>
+    {% else %}
+      <button class="btn teal" onclick="useItem('{{ it.name }}')">사용</button>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card faint">사용할 수 있는 아이템이 없습니다.</div>
+{% endif %}
+
+<h2 class="sec"><span class="bar"></span>🥚 알 부화 <span class="faint">알을 종류·이름 정해 부화</span></h2>
+{% set egg_items = s.usable_items|selectattr('is_egg')|list %}
+{% if egg_items %}
+<div class="card">
+  {% for it in egg_items %}
+  {% set rarity = it.name.replace('급 알','') %}
+  <div class="eqrow" style="border-top:1px solid var(--border);padding-top:10px">
+    <span style="min-width:120px"><span class="rchip" style="--rc:var(--r-{{ rarity }})">{{ rarity }}</span> 알 ×{{ it.amount }}</span>
+    <input type="text" id="egg-name-{{ rarity }}" placeholder="전설이 이름" maxlength="20" style="width:130px">
+    <select id="egg-type-{{ rarity }}">{% for t in pet_pools[rarity] %}<option value="{{ t }}">{{ t }}</option>{% endfor %}</select>
+    <button class="btn gold" onclick="hatchItem('{{ it.name }}','{{ rarity }}')">부화</button>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card faint">보유한 알이 없습니다. (원정·산책·출석·상점에서 획득)</div>
+{% endif %}
+
+<h2 class="sec"><span class="bar"></span>♻️ 알 환전 / 분해</h2>
+<p class="sub">하위 알을 모아 상위 알로 환전하거나, 상위 알을 분해해 하위 알로 되돌립니다.</p>
+<div class="card">
+  {% for e in s.egg_exchange %}
+  <div class="eqrow" style="border-top:1px solid var(--border);padding-top:10px">
+    <span style="min-width:150px"><span class="rchip" style="--rc:var(--r-{{ e.rarity }})">{{ e.rarity }}</span>
+      = {{ e.prev }}알 {{ e.rate }}개</span>
+    <input type="number" id="ex-cnt-{{ e.rarity }}" value="1" min="1" style="width:70px">
+    <button class="btn teal" onclick="exchange('{{ e.rarity }}')">환전 (→{{ e.rarity }})</button>
+    <button class="btn" onclick="decompose('{{ e.rarity }}')">분해 (→{{ e.prev }})</button>
+    <span class="faint">보유 {{ e.rarity }}알 {{ s.egg_counts.get(e.egg, 0) }} · {{ e.prev }}알 {{ s.egg_counts.get(e.prev_egg, 0) }}</span>
+  </div>
+  {% endfor %}
+</div>
+
+<h2 class="sec"><span class="bar"></span>📋 전체 보관함</h2>
+<div class="card itemlist">
+  {% for it in s['items'] %}<span class="item">{{ it.name }} <b>×{{ '{:,}'.format(it.amount) }}</b></span>
+  {% else %}<span class="faint">보관함이 비어있습니다.</span>{% endfor %}
+</div>
+</div>
+
+<!-- ===== 박스 ===== -->
+<div class="panel" id="panel-box">
+<h2 class="sec"><span class="bar"></span>📦 전설이 박스 <span class="faint">보관 중 스탯 최대치 보존</span></h2>
+<p class="sub">파티({{ s.pet_count }}/{{ s.max_pets }})가 꽉 차면 박스에 보관했다가 필요할 때 꺼내세요.</p>
+<div class="card">
+  <div class="ptag" style="margin-bottom:6px">📥 파티 → 박스 보관</div>
+  {% if s.pets %}
+  <div class="eqrow">
+    <select id="box-store-sel">{% for p in s.pets %}<option value="{{ p.idx }}">{{ p.name }} ({{ p.rarity }} {{ p.type }})</option>{% endfor %}</select>
+    <button class="btn" onclick="boxStore()">📦 보관</button>
+  </div>
+  {% else %}<span class="faint">파티에 전설이가 없습니다.</span>{% endif %}
+</div>
+<div class="card" style="margin-top:12px">
+  <div class="ptag" style="margin-bottom:6px">📤 박스 → 파티 복귀 ({{ s.box|length }}마리 보관 중)</div>
+  {% if s.box %}
+  <div class="eqrow">
+    <select id="box-ret-sel">{% for p in s.box %}<option value="{{ p.idx }}">{{ p.name }} ({{ p.rarity }} {{ p.type }}{% if p.level %} · {{ p.level }}성{% endif %})</option>{% endfor %}</select>
+    <button class="btn teal" onclick="boxRetrieve()">🐾 복귀</button>
+  </div>
+  {% else %}<span class="faint">박스가 비어있습니다.</span>{% endif %}
+</div>
+</div>
+
+<!-- ===== 업적 ===== -->
+<div class="panel" id="panel-achv">
+<h2 class="sec"><span class="bar"></span>🏆 업적 현황 <span class="faint">수집 진행도</span></h2>
+<p class="sub">파티 + 박스의 전설이를 합산한 수집 진행도입니다. (역할 타이틀은 디스코드 <code>/업적</code>에서 확인)</p>
+<div class="card">
+  {% macro arow(label, d) %}
+  <div class="qrow">
+    <span style="min-width:170px">{{ label }}</span>
+    <div class="qbar"><i style="width:{{ (d.have / d.total * 100)|round }}%"></i></div>
+    <span style="min-width:80px;text-align:right;font-variant-numeric:tabular-nums">{{ d.have }}/{{ d.total }}</span>
+    <span style="min-width:50px;text-align:right">{% if d.done %}<span class="qdone">✅</span>{% endif %}</span>
+  </div>
+  {% endmacro %}
+  {{ arow('🐾 전설이 수집가', s.achievement.collector) }}
+  {% for r in s.achievement.by_rarity %}
+    {{ arow('⭐ 모든 ' ~ r.rarity ~ ' 3성', {'have':r.have,'total':r.total,'done':r.done}) }}
+  {% endfor %}
+  {{ arow('🏅 모든 전설이 3성', s.achievement.all_pets_3) }}
+  {{ arow('🔮 합성 장인', s.achievement.synth) }}
+</div>
+</div>
+
+<!-- ===== 배틀 ===== -->
+<div class="panel" id="panel-battle">
+<h2 class="sec"><span class="bar"></span>⚔️ 배틀 시뮬레이터 <span class="faint">무보상 · 승률 미리보기</span></h2>
+<p class="sub">내 전설이와 상대 전설이의 스탯 상성으로 승률을 계산합니다. (실제 보상 배틀은 디스코드 <code>/배틀1vs1</code>)</p>
+<div class="card">
+  <div class="eqrow">
+    <span style="min-width:90px">내 전설이</span>
+    <select id="bt-my">{% for p in s.pets if p.level > 0 %}<option value="{{ p.idx }}">{{ p.name }} (전투력 {{ p.power }})</option>{% endfor %}</select>
+  </div>
+  <div class="eqrow" style="margin-top:8px">
+    <span style="min-width:90px">상대 ID</span>
+    <input type="text" id="bt-eid" placeholder="상대 디스코드 유저 ID" style="width:200px">
+    <span>펫 번호</span>
+    <input type="number" id="bt-eidx" value="1" min="1" style="width:64px">
+    <button class="btn gold" onclick="battleSim()">⚔️ 시뮬레이션</button>
+  </div>
+  <div id="bt-result" style="margin-top:12px"></div>
+  <div class="faint" style="margin-top:6px">상대 ID는 디스코드 개발자모드 → 유저 우클릭 → "ID 복사"로 얻을 수 있어요.</div>
+</div>
+</div>
+
+{% if is_admin %}
+<!-- ===== 관리자 ===== -->
+<div class="panel" id="panel-admin">
+<h2 class="sec"><span class="bar" style="background:var(--red)"></span>👥 전체 유저 <span class="faint">클릭하면 아래에서 관리</span></h2>
+<div class="card">
+  <div class="eqrow" style="margin-bottom:8px">
+    <input type="text" id="ad-search" placeholder="이름/ID 검색" style="flex:1;min-width:140px" oninput="renderUsers()">
+    <button class="btn" onclick="loadUsers()">🔄 새로고침</button>
+    <span id="ad-usercount" class="faint"></span>
+  </div>
+  <div style="overflow-x:auto">
+    <table class="utable" id="ad-users"><thead>
+      <tr><th>유저</th><th>ID</th><th>💰P</th><th>🥚서사알</th><th>🐣펫</th><th>📦박스</th><th></th></tr>
+    </thead><tbody></tbody></table>
+  </div>
+</div>
+
+<h2 class="sec"><span class="bar" style="background:var(--red)"></span>🛠️ 유저 관리</h2>
+<p class="sub">위 목록에서 유저를 클릭하거나, ID를 직접 입력해 조회하세요. 모든 작업은 즉시 반영됩니다.</p>
+<div class="card">
+  <div class="eqrow">
+    <input type="text" id="ad-target" placeholder="대상 유저 디스코드 ID" style="width:220px">
+    <button class="btn" onclick="adminLookup()">🔍 조회</button>
+    <span id="ad-summary" class="faint"></span>
+  </div>
+  <div id="ad-body" style="margin-top:12px"></div>
+</div>
+<div class="card" style="margin-top:12px">
+  <div class="ptag" style="margin-bottom:6px">🥚 알(전설이) 지급</div>
+  <div class="eqrow">
+    <input type="text" id="ad-egg-name" placeholder="전설이 이름" maxlength="20" style="width:120px">
+    <select id="ad-egg-rarity" onchange="adminFillTypes()">{% for r in rarity_order %}<option value="{{ r }}">{{ r }}</option>{% endfor %}</select>
+    <select id="ad-egg-type"></select>
+    <button class="btn teal" onclick="adminGiveEgg()">지급</button>
+  </div>
+</div>
+<div class="card" style="margin-top:12px">
+  <div class="ptag" style="margin-bottom:6px">🎁 아이템 지급/회수</div>
+  <div class="eqrow">
+    <input type="text" id="ad-item-name" placeholder="아이템 이름" style="width:180px">
+    <input type="number" id="ad-item-cnt" value="1" style="width:80px">
+    <button class="btn teal" onclick="adminItem(1)">지급</button>
+    <button class="btn" onclick="adminItem(-1)">회수</button>
+    <button class="btn" style="color:var(--red)" onclick="adminResetItems()">전체 초기화</button>
+  </div>
+</div>
+<script type="application/json" id="pet-pools-data">{{ pet_pools|tojson }}</script>
+</div>
+{% endif %}
+{% endblock %}
+{% block script %}
+<script>
+let lastAction = 0;               // 마지막 사용자 조작 시각 (자동 새로고침 억제용)
+function touched(){ lastAction = Date.now(); }
+
+async function act(path, body){
+  touched();
+  const r = await api(path, body);
+  if(!r.ok){ toast(r.error || '실패했습니다.'); return; }
+  let msg = '✅ 완료!';
+  if(path==='/api/walk'){
+    msg = `🐾 산책 완료! (-${r.cost}P${r.has_ticket?' · 할인권 적용':''})`;
+    if(r.gained_exp) msg += `\n📈 경험치 +${r.gained_exp}`;
+    if(r.found_eggs && r.found_eggs.length) msg += `\n🥚 발견: ${r.found_eggs.map(e=>e+'급 알').join(', ')}`;
+    if(r.found_items && r.found_items.length) msg += `\n🎁 아이템: ${r.found_items.map(i=>i[1]).join(', ')}`;
+  } else if(path==='/api/feed') msg = `🍚 냠냠! 포만도 ${r.fullness}`;
+  else if(path==='/api/shower') msg = `🚿 반짝반짝! 청결도 ${r.cleanliness}`;
+  else if(path==='/api/unequip') msg = `🎽 ${r.equip} 해제! 보관함으로 돌아갔습니다.`;
+  else if(path==='/api/expedition/claim') msg = `🎉 원정 보상! 서사알 +${r.epic_eggs}${r.bonus_eggs.length?' · '+r.bonus_eggs.map(e=>e+'급 알').join(', '):''} · +${r.points}P`;
+  else if(path==='/api/quest/claim') msg = `🎉 퀘스트 보상! 서사알 +${r.total_eggs}`;
+  toast(msg, 3400);
+  reloadSoon();
+}
+function reloadSoon(ms=1300){ setTimeout(()=>location.reload(), ms); }
+
+function checkIn(){
+  touched();
+  api('/api/attendance',{}).then(r=>{
+    if(!r.ok){ toast(r.error || '출석 실패'); return; }
+    let msg = `🎉 ${r.streak}일 연속 출석! 🥚 서사알 +${r.eggs.toLocaleString()}`;
+    if(r.bonus_eggs && r.bonus_eggs.length) msg += `\n✨ ${r.bonus_eggs.map(b=>b+'급 알 +1').join(' · ')}`;
+    if(r.reset) msg = `😢 연속이 끊겨 1일차부터! 🥚 서사알 +${r.eggs.toLocaleString()}`;
+    toast(msg, 3600);
+    reloadSoon();
+  });
+}
+
+function expStart(){
+  touched();
+  const pet = document.getElementById('exp-pet');
+  if(!pet || pet.value===''){ toast('원정 보낼 전설이가 없습니다.'); return; }
+  const hours = +document.getElementById('exp-hours').value;
+  api('/api/expedition/start',{pet_idx:+pet.value,hours}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    toast(`🏕️ ${r.name} ${r.hours}시간 원정 출발! (예상 서사알 ~${r.est_eggs})`, 3200);
+    reloadSoon();
+  });
+}
+function equip(idx){
+  touched();
+  const sel = document.getElementById('eqsel-'+idx);
+  if(!sel){ return; }
+  api('/api/equip',{pet_idx:idx,equip:sel.value}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    toast(`🎽 ${r.equip} 장착 완료!`, 3000); reloadSoon();
+  });
+}
+function buy(name){
+  touched();
+  api('/api/buy',{item:name}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    toast(`✅ ${r.item} 구매! (서사알 -${r.price.toLocaleString()} · 잔여 ${r.remain.toLocaleString()})`, 3400);
+    reloadSoon();
+  });
+}
+function synth(rarity){
+  touched();
+  const i1 = +document.getElementById('syn1-'+rarity).value;
+  const i2 = +document.getElementById('syn2-'+rarity).value;
+  if(i1===i2){ toast('서로 다른 두 마리를 선택하세요.'); return; }
+  api('/api/synthesize',{idx1:i1,idx2:i2}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    if(r.success) toast(`✨ 합성 대성공! [${r.target}급] ${r.new_type} 알 탄생!`, 4200);
+    else if(r.protected) toast(`🛡️ 합성 실패… 하지만 방어권으로 재료 보존!`, 4000);
+    else toast(`💥 합성 실패… 재료 두 마리가 소멸했습니다.`, 4000);
+    reloadSoon(1800);
+  });
+}
+
+// ── 알까기 (2단계: 등급 뽑기 → 종류 선택) ──
+let hatching = false;
+function hatchRoll(){
+  touched();
+  const name = (document.getElementById('hatch-name').value||'').trim();
+  if(!name){ toast('전설이 이름을 입력하세요.'); return; }
+  api('/api/hatch/roll',{name}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    hatching = true;
+    const box = document.getElementById('hatch-result');
+    const opts = r.pool.map(t=>`<option value="${t}">${t}</option>`).join('');
+    box.innerHTML = `<div class="card"><b>🎉 [${r.rarity}급] 알 당첨!</b> ${r.cost?('(-'+r.cost.toLocaleString()+'P)'):'(무료)'}<div class="eqrow" style="margin-top:8px">`
+      + `<select id="hatch-pick">${opts}</select>`
+      + `<button class="btn gold" onclick="hatchPick()">이 전설이로 부화!</button></div>`
+      + `<div class="faint" style="margin-top:6px">종류를 고르고 부화하면 파티에 알이 추가됩니다.</div></div>`;
+  });
+}
+function hatchPick(){
+  touched();
+  const t = document.getElementById('hatch-pick').value;
+  api('/api/hatch/pick',{type:t}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    hatching = false;
+    toast(`🥚 [${r.rarity}급] ${r.type} 알 "${r.name}" 부화 완료!`, 3600);
+    reloadSoon();
+  });
+}
+
+function reorder(){
+  touched();
+  const f=+document.getElementById('ro-from').value, t=+document.getElementById('ro-to').value;
+  if(f===t){ toast('다른 슬롯을 선택하세요.'); return; }
+  api('/api/reorder',{from:f,to:t}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    toast('🔄 순서를 바꿨습니다.'); reloadSoon();
+  });
+}
+function useItem(name){
+  touched();
+  api('/api/use-item',{item:name,amount:1}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    toast(`✅ ${name} 사용! ${r.desc||''}`, 3200); reloadSoon();
+  });
+}
+function useRename(){
+  touched();
+  const idx=+document.getElementById('rn-pet').value;
+  const nm=(document.getElementById('rn-name').value||'').trim();
+  if(!nm){ toast('새 이름을 입력하세요.'); return; }
+  api('/api/use-item',{item:'전설이 이름 변경권',pet_idx:idx,name:nm}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    toast(`✨ '${r.old}' → '${r.new}' 이름 변경!`, 3200); reloadSoon();
+  });
+}
+function hatchItem(egg, rarity){
+  touched();
+  const nm=(document.getElementById('egg-name-'+rarity).value||'').trim();
+  const tp=document.getElementById('egg-type-'+rarity).value;
+  if(!nm){ toast('전설이 이름을 입력하세요.'); return; }
+  api('/api/use-item',{item:egg,type:tp,name:nm}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    toast(`🥚 [${r.rarity}급] ${r.type} "${r.name}" 부화 완료!`, 3600); reloadSoon();
+  });
+}
+function exchange(rarity){
+  touched();
+  const c=+document.getElementById('ex-cnt-'+rarity).value||1;
+  api('/api/exchange',{rarity,count:c}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    toast(`♻️ ${r.src_egg} -${r.spent} → ${r.tgt_egg} +${r.gained}`, 3200); reloadSoon();
+  });
+}
+function decompose(rarity){
+  touched();
+  const c=+document.getElementById('ex-cnt-'+rarity).value||1;
+  api('/api/decompose',{rarity,count:c}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    toast(`🔨 ${r.src_egg} -${r.spent} → ${r.result_egg} +${r.gained}`, 3200); reloadSoon();
+  });
+}
+function boxStore(){
+  touched();
+  const i=+document.getElementById('box-store-sel').value;
+  api('/api/box/store',{pet_idx:i}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    toast(`📦 ${r.name} 보관 완료!`); reloadSoon();
+  });
+}
+function boxRetrieve(){
+  touched();
+  const i=+document.getElementById('box-ret-sel').value;
+  api('/api/box/retrieve',{box_idx:i}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    toast(`🐾 ${r.name} 파티 복귀!`); reloadSoon();
+  });
+}
+function battleSim(){
+  touched();
+  const my=document.getElementById('bt-my');
+  if(!my || my.value===''){ toast('출전할 내 전설이가 없습니다.'); return; }
+  const eid=(document.getElementById('bt-eid').value||'').trim();
+  const eidx=(+document.getElementById('bt-eidx').value||1)-1;
+  if(!eid){ toast('상대 ID를 입력하세요.'); return; }
+  api('/api/battle-sim',{my_idx:+my.value,enemy_id:eid,enemy_idx:eidx}).then(r=>{
+    const box=document.getElementById('bt-result');
+    if(!r.ok){ box.innerHTML='<span class="faint">'+(r.error||'실패')+'</span>'; return; }
+    const cls = r.result==='승리' ? 'qdone' : '';
+    box.innerHTML = `<div class="card"><b class="${cls}">${r.result}!</b> 예상 승률 <b style="color:var(--gold)">${r.win_rate}%</b><br>`
+      + `<span class="faint">${r.my_name} (유효전투력 ${r.my_score}) vs ${r.enemy_name} (${r.enemy_score})</span></div>`;
+  });
+}
+
+// ── 관리자 ──
+{% if is_admin %}
+let PET_POOLS_JS = {};
+try{ PET_POOLS_JS = JSON.parse(document.getElementById('pet-pools-data').textContent); }catch(e){}
+function adminFillTypes(){
+  const r=document.getElementById('ad-egg-rarity').value;
+  const sel=document.getElementById('ad-egg-type');
+  sel.innerHTML=(PET_POOLS_JS[r]||[]).map(t=>`<option value="${t}">${t}</option>`).join('');
+}
+function adTarget(){ return (document.getElementById('ad-target').value||'').trim(); }
+let AD_USERS=[];
+function loadUsers(){
+  api('/api/admin/users',{}).then(r=>{
+    if(!r.ok){ toast(r.error||'실패'); return; }
+    AD_USERS=r.users||[]; renderUsers();
+  });
+}
+function renderUsers(){
+  const q=(document.getElementById('ad-search').value||'').trim().toLowerCase();
+  const rows=AD_USERS.filter(u=>!q || u.name.toLowerCase().includes(q) || u.id.includes(q));
+  document.getElementById('ad-usercount').textContent=`${rows.length}명`;
+  const tb=document.querySelector('#ad-users tbody');
+  tb.innerHTML=rows.map(u=>`<tr onclick="pickUser('${u.id}')">`
+    +`<td>${u.name}</td><td class="faint">${u.id}</td>`
+    +`<td class="num">${u.points.toLocaleString()}</td><td class="num">${u.eggs.toLocaleString()}</td>`
+    +`<td class="num">${u.pets}</td><td class="num">${u.box}</td>`
+    +`<td><button class="btn" style="padding:4px 10px;font-size:11px">관리</button></td></tr>`).join('')
+    || '<tr><td colspan="7" class="faint">유저가 없습니다.</td></tr>';
+}
+function pickUser(id){
+  document.getElementById('ad-target').value=id;
+  adminLookup();
+  document.getElementById('ad-target').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function adminLookup(){
+  const tid=adTarget(); if(!tid){ toast('유저 ID를 입력하세요.'); return; }
+  api('/api/admin/lookup',{target_id:tid}).then(r=>{
+    if(!r.ok){ toast(r.error); document.getElementById('ad-summary').textContent=''; return; }
+    document.getElementById('ad-summary').textContent = `💰 ${r.points.toLocaleString()}P · 파티 ${r.pets.length} · 박스 ${r.box.length} · 아이템 ${r.items.length}종`;
+    let h='<div class="ptag">파티</div>';
+    if(!r.pets.length) h+='<span class="faint">없음</span>';
+    r.pets.forEach(p=>{
+      h+=`<div class="eqrow" style="border-top:1px solid var(--border);padding-top:6px">`
+        +`<span style="min-width:150px">${p.name} <span class="faint">(${p.rarity} ${p.type} ${p.level}성)</span></span>`
+        +`<button class="btn" onclick="adPet('force-hatch',${p.idx})">부화</button>`
+        +`<button class="btn" onclick="adStar(${p.idx},1)">성급+</button>`
+        +`<button class="btn" onclick="adStar(${p.idx},-1)">성급-</button>`
+        +`<button class="btn" onclick="adExp(${p.idx})">경험치</button>`
+        +`<button class="btn" onclick="adRename(${p.idx})">이름</button>`
+        +`<button class="btn" style="color:var(--red)" onclick="adPet('take-pet',${p.idx})">회수</button></div>`;
+    });
+    h+='<div class="ptag" style="margin-top:10px">아이템</div><div class="itemlist">'
+      + (r.items.map(it=>`<span class="item">${it.name} ×${it.amount}</span>`).join('')||'<span class="faint">없음</span>')+'</div>';
+    document.getElementById('ad-body').innerHTML=h;
+  });
+}
+function adPet(action, idx){
+  api('/api/admin/'+action,{target_id:adTarget(),pet_idx:idx}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    toast('✅ 완료: '+(r.name||'')); adminLookup();
+  });
+}
+function adStar(idx, delta){
+  api('/api/admin/set-star',{target_id:adTarget(),pet_idx:idx,delta}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    toast(`✅ ${r.name} → ${r.level}성`); adminLookup();
+  });
+}
+function adExp(idx){
+  const v=prompt('지급할 경험치(XP)를 입력하세요','100'); if(v===null) return;
+  api('/api/admin/give-exp',{target_id:adTarget(),pet_idx:idx,amount:+v}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    toast(`✅ ${r.name} 경험치 +${r.amount} (${r.before}→${r.after}성)`); adminLookup();
+  });
+}
+function adRename(idx){
+  const v=prompt('새 이름을 입력하세요',''); if(!v) return;
+  api('/api/admin/rename',{target_id:adTarget(),pet_idx:idx,name:v}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    toast(`✅ '${r.old}'→'${r.new}'`); adminLookup();
+  });
+}
+function adminGiveEgg(){
+  const nm=(document.getElementById('ad-egg-name').value||'').trim();
+  const rarity=document.getElementById('ad-egg-rarity').value;
+  const type=document.getElementById('ad-egg-type').value;
+  api('/api/admin/give-egg',{target_id:adTarget(),name:nm,rarity,type}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    toast(`✅ ${r.name} (${r.rarity} ${r.type}) 지급!`); adminLookup();
+  });
+}
+function adminItem(sign){
+  const name=(document.getElementById('ad-item-name').value||'').trim();
+  const cnt=(+document.getElementById('ad-item-cnt').value||0)*sign;
+  if(!name||cnt===0){ toast('아이템/개수를 확인하세요.'); return; }
+  api('/api/admin/give-item',{target_id:adTarget(),item:name,count:cnt}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    toast(`✅ ${r.item} ${r.op==='give'?'+':'-'}${r.count}`); adminLookup();
+  });
+}
+function adminResetItems(){
+  if(!confirm('정말 이 유저의 모든 아이템을 삭제할까요?')) return;
+  api('/api/admin/reset-items',{target_id:adTarget()}).then(r=>{
+    if(!r.ok){ toast(r.error); return; }
+    toast('💥 아이템 초기화 완료'); adminLookup();
+  });
+}
+adminFillTypes();
+loadUsers();
+{% endif %}
+
+// ── 탭 전환 ──
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.onclick = ()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+    tab.classList.add('on');
+    document.getElementById('panel-'+tab.dataset.tab).classList.add('on');
+    location.hash = tab.dataset.tab;
+  };
+});
+if(location.hash){ const t=document.querySelector('.tab[data-tab="'+location.hash.slice(1)+'"]'); if(t) t.click(); }
+
+// ── 원정 타이머 ──
+const timerEl = document.getElementById('exptimer');
+if(timerEl){
+  const end = +timerEl.dataset.end;
+  const tick = ()=>{
+    const s = Math.max(0, Math.floor(end - Date.now()/1000));
+    if(s<=0){ location.reload(); return; }
+    timerEl.textContent = `${Math.floor(s/3600)}시간 ${Math.floor(s%3600/60)}분 ${s%60}초`;
+  };
+  tick(); setInterval(tick, 1000);
+}
+
+// ── 실시간 자동 동기화: 봇이나 다른 창에서 바뀐 내용을 감지해 새로고침 ──
+let sig = null;
+function stateSig(s){
+  return JSON.stringify([s.points, s.egg_count, s.pet_count,
+    s.expedition ? [s.expedition.done, s.expedition.pet_name] : 0,
+    s.pets.map(p=>[p.level, p.fullness, p.cleanliness, p.intimacy, p.fatigue, p.power, p.equipment.length]),
+    s.owned_equips.map(e=>[e.name,e.amount]),
+    s.attendance ? [s.attendance.checked_today, s.attendance.streak] : 0,
+    s.quest.quests.map(q=>[q.cur, q.claimed])]);
+}
+async function poll(){
+  try{
+    const r = await fetch('/api/state', {headers:{'Cache-Control':'no-cache'}});
+    if(!r.ok) return;
+    const s = await r.json();
+    const ns = stateSig(s);
+    if(sig === null){ sig = ns; return; }
+    if(ns !== sig){
+      sig = ns;
+      // 사용자가 방금 조작했거나 알까기 진행 중이면 방해하지 않고 잠시 뒤 반영
+      if(hatching || Date.now()-lastAction < 6000) return;
+      toast('🔄 새 변경 사항을 동기화했습니다.', 1500);
+      reloadSoon(700);
+    }
+  }catch(e){}
+}
+setInterval(poll, 12000);
+poll();
+</script>
+{% endblock %}

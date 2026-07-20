@@ -156,11 +156,15 @@ class BetInputModal(discord.ui.Modal):
 
         await local_add_bet_record(self.topic, user_id, self.option, bet_amount)
 
-        session = await local_get_bet_session(self.topic)
-        new_embed = await generate_bet_embed(self.topic, session['option_a'], session['option_b'], session['status'])
-
-        await interaction.message.edit(embed=new_embed, view=self.view)
+        # 먼저 유저에게 성공 응답(3초 제한/상호작용 실패 방지), 그다음 공개 임베드 갱신을 시도
         await interaction.response.send_message(f"✅ 성공적으로 `{bet_amount}`개의 서사급 알을 베팅했습니다!", ephemeral=True)
+        try:
+            session = await local_get_bet_session(self.topic)
+            if session and interaction.message:
+                new_embed = await generate_bet_embed(self.topic, session['option_a'], session['option_b'], session['status'])
+                await interaction.message.edit(embed=new_embed, view=self.view)
+        except Exception as e:
+            print(f"⚠️ 베팅 임베드 갱신 실패: {e}")
 
 class BettingView(discord.ui.View):
     def __init__(self, topic: str, opt_a_name: str, opt_b_name: str, disabled: bool = False):
@@ -175,13 +179,13 @@ class BettingView(discord.ui.View):
     @discord.ui.button(label="옵션 A 베팅", style=discord.ButtonStyle.danger, emoji="🟥", custom_id="bet_a")
     async def bet_a_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         session = await local_get_bet_session(self.topic)
-        if session['status'] != 'active':
-            return await interaction.response.send_message("❌ 이미 마감된 예측입니다.", ephemeral=True)
+        if not session or session['status'] != 'active':
+            return await interaction.response.send_message("❌ 이미 마감되었거나 존재하지 않는 예측입니다.", ephemeral=True)
         await interaction.response.send_modal(BetInputModal(self.topic, 'A', self.opt_a_name, self))
 
     @discord.ui.button(label="옵션 B 베팅", style=discord.ButtonStyle.primary, emoji="🟦", custom_id="bet_b")
     async def bet_b_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         session = await local_get_bet_session(self.topic)
-        if session['status'] != 'active':
-            return await interaction.response.send_message("❌ 이미 마감된 예측입니다.", ephemeral=True)
+        if not session or session['status'] != 'active':
+            return await interaction.response.send_message("❌ 이미 마감되었거나 존재하지 않는 예측입니다.", ephemeral=True)
         await interaction.response.send_modal(BetInputModal(self.topic, 'B', self.opt_b_name, self))

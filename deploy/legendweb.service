@@ -1,0 +1,14 @@
+[Unit]
+Description=전설이 키우기 웹앱 (FastAPI)
+After=network.target
+
+[Service]
+Type=simple
+User=hxxsx4
+WorkingDirectory=/home/hxxsx4/lolhaejo3
+ExecStart=/home/hxxsx4/lolhaejo3/venv/bin/uvicorn webapp.app:app --host 0.0.0.0 --port 8080
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

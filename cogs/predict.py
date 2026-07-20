@@ -56,6 +56,32 @@ class PredictCog(commands.Cog):
                          (topic TEXT, user_id INTEGER, option TEXT, amount INTEGER, PRIMARY KEY (topic, user_id))''')
             await db.commit()
 
+        # 💡 봇 재시작 후에도 기존 예측 메시지의 버튼이 계속 작동하도록 persistent View 재등록
+        # (이게 없으면 재시작 시 예전 예측 버튼이 죽어 "상호작용 실패"가 발생함)
+        await self.register_persistent_views()
+
+    async def register_persistent_views(self):
+        try:
+            async with aiosqlite.connect('predictions.db') as db:
+                db.row_factory = aiosqlite.Row
+                async with db.execute("SELECT * FROM betting_sessions WHERE status != 'finished'") as cursor:
+                    sessions = await cursor.fetchall()
+
+            count = 0
+            for s in sessions:
+                if not s['message_id']:
+                    continue
+                disabled = (s['status'] != 'active')  # 마감된 예측은 버튼 비활성 상태로 복원
+                self.bot.add_view(
+                    BettingView(s['topic'], s['option_a'], s['option_b'], disabled=disabled),
+                    message_id=s['message_id'],
+                )
+                count += 1
+            if count:
+                print(f"🔄 예측 버튼(View) {count}개를 재등록했습니다.")
+        except Exception as e:
+            print(f"🚨 예측 버튼(View) 재등록 실패: {e}")
+
     @app_commands.command(name="예측생성", description="새로운 예측을 생성합니다. (관리자 전용)")
     @app_commands.checks.has_permissions(administrator=True)
     async def create_bet(self, interaction: discord.Interaction, 주제: str, 옵션a: str, 옵션b: str):

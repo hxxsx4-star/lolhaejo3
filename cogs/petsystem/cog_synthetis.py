@@ -5,7 +5,11 @@ import random
 import time
 
 from utils.data import PET_POOLS
-from utils.database import get_or_migrate_data, save_legend_data, add_synth_count
+from utils.database import get_or_migrate_data, save_legend_data, add_synth_count, consume_item, get_item_amount
+from .locks import get_user_lock
+
+# 합성 실패 시 재료를 지켜주는 방어 아이템 이름 (/알상점 에서 판매)
+SYNTH_PROTECT_ITEM = "합성 방어권"
 
 class SynthesisCog(commands.Cog):
     def __init__(self, bot):
@@ -15,7 +19,9 @@ class SynthesisCog(commands.Cog):
     @app_commands.choices(등급=[
         app_commands.Choice(name="서사 (전설급 확률 80%)", value="서사"),
         app_commands.Choice(name="전설 (신화급 확률 50%)", value="전설"),
-        app_commands.Choice(name="신화 (프레스티지급 확률 20%)", value="신화")
+        app_commands.Choice(name="신화 (프레스티지급 확률 20%)", value="신화"),
+        app_commands.Choice(name="프레스티지 (고귀급 확률 5%)", value="프레스티지"),
+        app_commands.Choice(name="고귀 (초월급 확률 1%)", value="고귀")
     ])
     async def synthesis_cmd(self, interaction: discord.Interaction, 등급: str):
         wrapper = await get_or_migrate_data(interaction.user.id)
@@ -37,60 +43,82 @@ class SynthesisCog(commands.Cog):
                 return await sel_inter.response.send_message("❌ 본인만 선택할 수 있습니다.", ephemeral=True)
 
             idx1, idx2 = int(select.values[0]), int(select.values[1])
-            wrapper = await get_or_migrate_data(interaction.user.id)
 
-            if max(idx1, idx2) >= len(wrapper['pets']):
-                return await sel_inter.response.send_message("❌ 펫 데이터가 변경되었습니다. 명령어를 다시 실행해주세요.", ephemeral=True)
+            # 연타/중복 제출로 인한 전설이 중복 생성·잘못된 소멸을 막기 위해 유저 단위로 직렬화.
+            # (wrapper 읽기부터 저장까지를 하나의 잠금 구간으로 처리해 stale 데이터 사용을 방지)
+            async with get_user_lock(interaction.user.id):
+                wrapper = await get_or_migrate_data(interaction.user.id)
 
-            pet1 = wrapper['pets'][idx1]
-            pet2 = wrapper['pets'][idx2]
+                if max(idx1, idx2) >= len(wrapper['pets']):
+                    return await sel_inter.response.send_message("❌ 펫 데이터가 변경되었습니다. 명령어를 다시 실행해주세요.", ephemeral=True)
 
-            if pet1.get('type') == pet2.get('type'):
-                return await sel_inter.response.send_message("❌ 합성에 쓰이는 두 전설이는 서로 다른 종류여야 합니다!", ephemeral=True)
+                pet1 = wrapper['pets'][idx1]
+                pet2 = wrapper['pets'][idx2]
 
-            target_rarity = ""
-            prob = 0.0
-            if 등급 == "서사":
-                target_rarity = "전설"; prob = 0.8
-            elif 등급 == "전설":
-                target_rarity = "신화"; prob = 0.5
-            elif 등급 == "신화":
-                target_rarity = "프레스티지"; prob = 0.2
+                if pet1.get('type') == pet2.get('type'):
+                    return await sel_inter.response.send_message("❌ 합성에 쓰이는 두 전설이는 서로 다른 종류여야 합니다!", ephemeral=True)
 
-            indices_to_remove = sorted([idx1, idx2], reverse=True)
-            for i in indices_to_remove:
-                wrapper['pets'].pop(i)
+                target_rarity = ""
+                prob = 0.0
+                if 등급 == "서사":
+                    target_rarity = "전설"; prob = 0.8
+                elif 등급 == "전설":
+                    target_rarity = "신화"; prob = 0.5
+                elif 등급 == "신화":
+                    target_rarity = "프레스티지"; prob = 0.2
+                elif 등급 == "프레스티지":
+                    target_rarity = "고귀"; prob = 0.05
+                elif 등급 == "고귀":
+                    target_rarity = "초월"; prob = 0.01
 
-            wrapper['active_idx'] = max(0, len(wrapper['pets']) - 1)
-            is_success = random.random() < prob
+                is_success = random.random() < prob
 
-            if is_success:
-                new_type = random.choice(PET_POOLS[target_rarity])
-                new_pet_data = {
-                    'name': f"합성된 {new_type} 알", 'type': new_type, 'rarity': target_rarity, 'level': 0, 'exp': 0, 'fullness': 100,
-                    'intimacy': 50, 'fatigue': 0, 'cleanliness': 100, 'walk_count': 0, 'total_walk_count': 0,
-                    'last_fatigue_calc': time.time()
-                }
-                wrapper['pets'].append(new_pet_data)
+                # 실패했을 때만 합성 방어권을 시도 소모 (성공 시엔 소모하지 않음)
+                protected = False
+                if not is_success:
+                    protected = await consume_item(interaction.user.id, SYNTH_PROTECT_ITEM, 1)
 
-                # 💡 합성 50회 달성을 위한 업적 카운트 연동
-                await add_synth_count(interaction.user.id)
+                # 성공했거나(재료 소멸 후 상위 등급 획득), 방어에 실패한 경우에만 재료를 소멸시킴
+                if is_success or not protected:
+                    indices_to_remove = sorted([idx1, idx2], reverse=True)
+                    for i in indices_to_remove:
+                        wrapper['pets'].pop(i)
+                    wrapper['active_idx'] = max(0, len(wrapper['pets']) - 1)
 
-                embed = discord.Embed(title="✨ 전설이 합성 대성공!! ✨", color=discord.Color.gold())
-                embed.description = f"희생된 두 마리의 힘이 모여...\n\n🎉 [{target_rarity}급] {new_type} 알이 탄생했습니다!\n*(새로운 알이 파티에 합류했습니다)*"
-                embed.set_thumbnail(url="https://i.imgur.com/2sR9O1j.gif")
-            else:
-                embed = discord.Embed(title="💥 합성 실패...", color=discord.Color.dark_gray())
-                embed.description = "두 전설이의 힘이 엇갈려 폭발해버렸습니다...\n\n💀 합성에 사용된 두 마리의 전설이가 모두 소멸했습니다."
+                if is_success:
+                    new_type = random.choice(PET_POOLS[target_rarity])
+                    new_pet_data = {
+                        'name': f"합성된 {new_type} 알", 'type': new_type, 'rarity': target_rarity, 'level': 0, 'exp': 0, 'fullness': 100,
+                        'intimacy': 50, 'fatigue': 0, 'cleanliness': 100, 'walk_count': 0, 'total_walk_count': 0,
+                        'last_fatigue_calc': time.time()
+                    }
+                    wrapper['pets'].append(new_pet_data)
 
-            await save_legend_data(interaction.user.id, wrapper)
-            await sel_inter.response.edit_message(embed=embed, view=None)
+                    # 💡 합성 50회 달성을 위한 업적 카운트 연동
+                    await add_synth_count(interaction.user.id)
+
+                    embed = discord.Embed(title="✨ 전설이 합성 대성공!! ✨", color=discord.Color.gold())
+                    embed.description = f"희생된 두 마리의 힘이 모여...\n\n🎉 [{target_rarity}급] {new_type} 알이 탄생했습니다!\n*(새로운 알이 파티에 합류했습니다)*"
+                    embed.set_thumbnail(url="https://i.imgur.com/2sR9O1j.gif")
+                elif protected:
+                    embed = discord.Embed(title="🛡️ 합성 실패... 하지만 방어 성공!", color=discord.Color.blue())
+                    embed.description = (
+                        "합성에 실패했지만 `합성 방어권`이 발동하여\n"
+                        "재료 전설이 두 마리가 무사히 보호되었습니다!\n"
+                        "*(합성 방어권 1개가 소모되었습니다)*"
+                    )
+                else:
+                    embed = discord.Embed(title="💥 합성 실패...", color=discord.Color.dark_gray())
+                    embed.description = "두 전설이의 힘이 엇갈려 폭발해버렸습니다...\n\n💀 합성에 사용된 두 마리의 전설이가 모두 소멸했습니다."
+
+                await save_legend_data(interaction.user.id, wrapper)
+                await sel_inter.response.edit_message(embed=embed, view=None)
 
         select.callback = select_callback
         view = discord.ui.View(timeout=60)
         view.add_item(select)
 
-        await interaction.response.send_message("합성로에 넣을 전설이 두 마리를 선택하세요.\n⚠️ 주의: 합성 성공 여부와 상관없이 선택한 두 마리는 소멸합니다!", view=view, ephemeral=True)
+        await interaction.response.send_message("합성로에 넣을 전설이 두 마리를 선택하세요.\n⚠️ 주의: 합성 시 선택한 두 마리는 소멸합니다! (단, `합성 방어권` 보유 시 실패해도 재료가 보존됩니다)", view=view, ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(SynthesisCog(bot))

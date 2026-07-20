@@ -1,12 +1,34 @@
 # 💡 획득 가능한 전설이 목록
 PET_POOLS = {
     "서사": ["🐧 펭구", "🗡️ 깃털기사", "🦄 뿔보", "👻 말랑이", "🐢 꾸릉이"],
-    "전설": ["🥷 미니 아칼리", "⚔️ 미니 요네", "✨ 미니 럭스", "🎸 미니 유나라", "🦊 미니 아리"],
-    "신화": ["🍌 미니 바나나 소라카", "🌹 미니 수정 장미 그웬", "🏆 미니 T1 요네", "🗡️ 미니 불멸의 영웅 이렐리아", "🐮 내가 젖소 포로"],
-    "프레스티지": ["👼 프레스티지 미니 빛의 인도자 요네", "🌸 프레스티지 미니 영혼의 꽃 아리", "☕ 프레스티지 미니 귀염둥이 카페 그웬"],
-    "고귀": [], # 신규 등급 추가
-    "초월": []  # 신규 등급 추가
+    "전설": ["🥷 미니 아칼리", "⚔️ 미니 요네", "✨ 미니 럭스", "🎸 미니 유나라", "🦊 미니 아리", "🍙 해방된 포로 뭉치", "🍄‍🟫 미니 티모", "👮‍♀️ 미니 케이틀린", "🗡️ 미니 카타리나", "🥱 미니 조이", "🪖 미니 이렐리아", "🐱 미니 유미", "⚙️ 미니 오리아나"],
+    "신화": ["🍌 미니 바나나 소라카", "🌹 미니 수정 장미 그웬", "🏆 미니 T1 요네", "🗡️ 미니 불멸의 영웅 이렐리아", "🐮 내가 젖소 포로", "🌕 미니 핏빛 달 아트록스", "🎵 미니 칠현금 소나", "⚔️ 미니 전투사관학교 카타리나", "😈 미니 작은 악마 티모", "🤖 미니 우주 그루브 블리츠크랭크"],
+    "프레스티지": ["👼 프레스티지 미니 빛의 인도자 요네", "🌸 프레스티지 미니 영혼의 꽃 아리", "☕ 프레스티지 미니 귀염둥이 카페 그웬", "🎧 미니 헤드라이너 K/DA POP/STAR 카이사", "🔫 미니 프레스티지 핏빛 달 미스포츈", "🐉 미니 프레스티지 용의 권 리신", "🤺 미니 프레스티지 용술사 야스오", "🧙 미니 프레스티지 아케인 열혈 팬 애니", "🦸 미니 프레스티지 불멸의 영웅 리븐", "💛 미니 프레스티지 도자기 수호자 이즈리얼"],
+    "고귀": ["🔫 아케인 분열 징크스", "🌊 찬란한 바다뱀 세트", "🧑🏻‍🦲 산-우잘 모데카이저", "💮 영혼의 꽃 모르가나", "⚰️ 망령의 지배자 비에고"],
+    "초월": ["♥️ 불멸의 전설 아리", "💜 불멸의 전설 카이사"]
 }
+
+# 💡 등급 순서(하위 -> 상위). 가챠 가중치·알 환전/분해가 이 순서를 공유하는 단일 소스입니다.
+RARITY_ORDER = list(PET_POOLS.keys())
+
+# 💡 상위 알 1개 = 직전 하위 알 N개 (알환전/알분해 공용 비율)
+#    예) 서사 50개 = 전설 1개, 프레스티지 10개 = 고귀 1개, 고귀 10개 = 초월 1개
+EGG_EXCHANGE_RATE = {
+    "전설": 50,
+    "신화": 20,
+    "프레스티지": 10,
+    "고귀": 10,
+    "초월": 10,
+}
+
+def egg_item_name(rarity: str) -> str:
+    """등급명 -> 알 아이템 이름 (예: '고귀' -> '고귀급 알')"""
+    return f"{rarity}급 알"
+
+def prev_rarity(rarity: str):
+    """한 단계 낮은 등급을 반환 (가장 낮은 등급이면 None)"""
+    idx = RARITY_ORDER.index(rarity)
+    return RARITY_ORDER[idx - 1] if idx > 0 else None
 
 # 💡 전설이 기본 스탯
 PET_STATS = {
@@ -15,20 +37,148 @@ PET_STATS = {
     "🦄 뿔보": {"AD": 10, "DF": 25, "AP": 5, "MR": 20},
     "👻 말랑이": {"AD": 5, "DF": 10, "AP": 25, "MR": 15},
     "🐢 꾸릉이": {"AD": 10, "DF": 30, "AP": 5, "MR": 20},
-    "🥷 미니 아칼리": {"AD": 40, "DF": 15, "AP": 35, "MR": 15},
-    "⚔️ 미니 요네": {"AD": 45, "DF": 20, "AP": 10, "MR": 20},
-    "✨ 미니 럭스": {"AD": 10, "DF": 15, "AP": 50, "MR": 20},
-    "🎸 미니 유나라": {"AD": 35, "DF": 20, "AP": 30, "MR": 20},
-    "🦊 미니 아리": {"AD": 15, "DF": 15, "AP": 45, "MR": 25},
-    "🍌 미니 바나나 소라카": {"AD": 20, "DF": 30, "AP": 70, "MR": 40},
+    "🥷 미니 아칼리": {"AD": 48, "DF": 18, "AP": 42, "MR": 19},
+    "⚔️ 미니 요네": {"AD": 60, "DF": 27, "AP": 13, "MR": 27},
+    "✨ 미니 럭스": {"AD": 13, "DF": 20, "AP": 67, "MR": 27},
+    "🎸 미니 유나라": {"AD": 43, "DF": 24, "AP": 37, "MR": 24},
+    "🦊 미니 아리": {"AD": 19, "DF": 19, "AP": 58, "MR": 32},
+    "🍙 해방된 포로 뭉치": {"AD": 18, "DF": 45, "AP": 15, "MR": 45},
+    "🍄‍🟫 미니 티모": {"AD": 25, "DF": 14, "AP": 75, "MR": 13},
+    "👮‍♀️ 미니 케이틀린": {"AD": 88, "DF": 15, "AP": 10, "MR": 15},
+    "🗡️ 미니 카타리나": {"AD": 25, "DF": 13, "AP": 78, "MR": 13},
+    "🥱 미니 조이": {"AD": 22, "DF": 14, "AP": 80, "MR": 13},
+    "🪖 미니 이렐리아": {"AD": 46, "DF": 36, "AP": 12, "MR": 36},
+    "🐱 미니 유미": {"AD": 5, "DF": 13, "AP": 95, "MR": 12},
+    "⚙️ 미니 오리아나": {"AD": 18, "DF": 10, "AP": 92, "MR": 9},
+    "🍌 미니 바나나 소라카": {"AD": 26, "DF": 39, "AP": 92, "MR": 53},
     "🌹 미니 수정 장미 그웬": {"AD": 50, "DF": 40, "AP": 50, "MR": 40},
-    "🏆 미니 T1 요네": {"AD": 80, "DF": 30, "AP": 20, "MR": 30},
+    "🏆 미니 T1 요네": {"AD": 115, "DF": 43, "AP": 29, "MR": 43},
     "🗡️ 미니 불멸의 영웅 이렐리아": {"AD": 75, "DF": 35, "AP": 25, "MR": 35},
     "🐮 내가 젖소 포로": {"AD": 30, "DF": 80, "AP": 30, "MR": 80},
-    "👼 프레스티지 미니 빛의 인도자 요네": {"AD": 120, "DF": 50, "AP": 30, "MR": 50},
-    "🌸 프레스티지 미니 영혼의 꽃 아리": {"AD": 30, "DF": 40, "AP": 120, "MR": 60},
-    "☕ 프레스티지 미니 귀염둥이 카페 그웬": {"AD": 90, "DF": 60, "AP": 90, "MR": 60}
+    "🌕 미니 핏빛 달 아트록스": {"AD": 55, "DF": 50, "AP": 50, "MR": 55},
+    "🎵 미니 칠현금 소나": {"AD": 25, "DF": 28, "AP": 145, "MR": 28},
+    "⚔️ 미니 전투사관학교 카타리나": {"AD": 45, "DF": 23, "AP": 140, "MR": 22},
+    "😈 미니 작은 악마 티모": {"AD": 30, "DF": 27, "AP": 145, "MR": 26},
+    "🤖 미니 우주 그루브 블리츠크랭크": {"AD": 45, "DF": 80, "AP": 25, "MR": 80},
+    "👼 프레스티지 미니 빛의 인도자 요네": {"AD": 173, "DF": 72, "AP": 43, "MR": 72},
+    "🌸 프레스티지 미니 영혼의 꽃 아리": {"AD": 43, "DF": 58, "AP": 173, "MR": 87},
+    "☕ 프레스티지 미니 귀염둥이 카페 그웬": {"AD": 109, "DF": 72, "AP": 109, "MR": 72},
+    "🎧 미니 헤드라이너 K/DA POP/STAR 카이사": {"AD": 120, "DF": 60, "AP": 120, "MR": 63},
+    "🔫 미니 프레스티지 핏빛 달 미스포츈": {"AD": 220, "DF": 55, "AP": 34, "MR": 55},
+    "🐉 미니 프레스티지 용의 권 리신": {"AD": 165, "DF": 90, "AP": 20, "MR": 90},
+    "🤺 미니 프레스티지 용술사 야스오": {"AD": 180, "DF": 83, "AP": 20, "MR": 83},
+    "🧙 미니 프레스티지 아케인 열혈 팬 애니": {"AD": 34, "DF": 50, "AP": 220, "MR": 60},
+    "🦸 미니 프레스티지 불멸의 영웅 리븐": {"AD": 150, "DF": 98, "AP": 20, "MR": 98},
+    "💛 미니 프레스티지 도자기 수호자 이즈리얼": {"AD": 200, "DF": 36, "AP": 90, "MR": 36},
+    "🔫 아케인 분열 징크스": {"AD": 400, "DF": 50, "AP": 0, "MR": 50},
+    "🌊 찬란한 바다뱀 세트": {"AD": 64, "DF": 220, "AP": 0, "MR": 220},
+    "🧑🏻‍🦲 산-우잘 모데카이저": {"AD": 120, "DF": 120, "AP": 150, "MR": 113},
+    "💮 영혼의 꽃 모르가나": {"AD": 40, "DF": 60, "AP": 340, "MR": 60},
+    "⚰️ 망령의 지배자 비에고": {"AD": 200, "DF": 152, "AP": 0, "MR": 151},
+    "♥️ 불멸의 전설 아리": {"AD": 60, "DF": 100, "AP": 520, "MR": 120},
+    "💜 불멸의 전설 카이사": {"AD": 300, "DF": 100, "AP": 297, "MR": 100}
 }
+
+def get_pet_stats(pet_type: str, level: int) -> dict:
+    """전설이 종류/레벨에 따른 기본 스탯을 계산합니다. (장비 미포함)
+
+    💡 성급이 오를 때마다 모든 능력치가 2배가 됩니다.
+       (1성 = 기본 스탯, 2성 = ×2, 3성 = ×4)
+    """
+    base = PET_STATS.get(pet_type, {"AD": 5, "DF": 5, "AP": 5, "MR": 5})
+    multiplier = 2 ** (level - 1) if level > 0 else 1  # 0성(알)은 기본 스탯 그대로
+    return {stat: int(value * multiplier) for stat, value in base.items()}
+
+# ==========================================
+# 💡 장비 시스템
+# ==========================================
+# 전설이 한 마리당 장비는 최대 MAX_EQUIP_PER_PET 개, 등급 무관하게 아무거나 장착 가능.
+MAX_EQUIP_PER_PET = 3
+
+# 장비 정보: 이름 -> {rarity, stats, (special)}
+#   special = {"stat": 증가스탯, "per_win": 배틀 승리 1회당 증가량} (메자이/오만 전용 누적)
+EQUIPMENTS = {
+    # --- 서사 ---
+    "천 갑옷": {"rarity": "서사", "stats": {"DF": 10}},
+    "롱소드": {"rarity": "서사", "stats": {"AD": 10}},
+    "마법무효화의 망토": {"rarity": "서사", "stats": {"MR": 10}},
+    "증폭의 고서": {"rarity": "서사", "stats": {"AP": 10}},
+    # --- 전설 ---
+    "도란의 검": {"rarity": "전설", "stats": {"AD": 25}},
+    "도란의 반지": {"rarity": "전설", "stats": {"AP": 25}},
+    "도란의 투구": {"rarity": "전설", "stats": {"MR": 25}},
+    "도란의 방패": {"rarity": "전설", "stats": {"DF": 25}},
+    # --- 신화 ---
+    "톱날 단검": {"rarity": "신화", "stats": {"AD": 63}},
+    "사라진 양피지": {"rarity": "신화", "stats": {"AP": 63}},
+    "덤불 조끼": {"rarity": "신화", "stats": {"DF": 63}},
+    "음전자 망토": {"rarity": "신화", "stats": {"MR": 63}},
+    # --- 프레스티지 ---
+    "삼위일체": {"rarity": "프레스티지", "stats": {"AD": 70, "DF": 70, "MR": 70}},
+    "징수의 총": {"rarity": "프레스티지", "stats": {"AD": 210}},
+    "지평선의 초점": {"rarity": "프레스티지", "stats": {"AP": 210}},
+    "존야의 모래시계": {"rarity": "프레스티지", "stats": {"AP": 105, "DF": 105}},
+    "해신 작쇼": {"rarity": "프레스티지", "stats": {"DF": 105, "MR": 105}},
+    "공허한 광휘": {"rarity": "프레스티지", "stats": {"MR": 210}},
+    "태양불꽃 방패": {"rarity": "프레스티지", "stats": {"DF": 210}},
+    # --- 고귀 ---
+    "메자이의 영혼약탈자": {"rarity": "고귀", "stats": {"AP": 200}, "special": {"stat": "AP", "per_win": 5}},
+    "오만": {"rarity": "고귀", "stats": {"AD": 200}, "special": {"stat": "AD", "per_win": 5}},
+    "자객의 발톱": {"rarity": "고귀", "stats": {"AD": 500}},
+    "거대한 히드라": {"rarity": "고귀", "stats": {"AD": 200, "DF": 200, "MR": 100}},
+    "승천의 부적": {"rarity": "고귀", "stats": {"AD": 150, "DF": 150, "MR": 200}},
+    "라이트쉴드 문장": {"rarity": "고귀", "stats": {"DF": 250, "MR": 250}},
+    # --- 초월 ---
+    "우글렛의 마녀 모자": {"rarity": "초월", "stats": {"AP": 1000}},
+    "황금 뒤집개": {"rarity": "초월", "stats": {"AD": 250, "DF": 250, "AP": 250, "MR": 250}},
+}
+
+# 장비 구매 가격 (등급별, 서사급 알로 결제)
+EQUIP_PRICE = {
+    "서사": 100,
+    "전설": 1000,
+    "신화": 10000,
+    "프레스티지": 50000,
+    "고귀": 100000,
+    "초월": 500000,
+}
+
+def format_equip_effect(name: str) -> str:
+    """장비 효과를 사람이 읽기 좋은 문자열로 변환합니다."""
+    info = EQUIPMENTS.get(name)
+    if not info:
+        return "-"
+    parts = [f"{stat} +{val}" for stat, val in info["stats"].items()]
+    sp = info.get("special")
+    if sp:
+        parts.append(f"배틀 승리당 {sp['stat']} +{sp['per_win']} 누적")
+    return ", ".join(parts)
+
+def get_equipment_bonus(pet: dict) -> dict:
+    """전설이가 장착한 장비들의 합산 스탯 보너스(특수 누적 포함)를 반환합니다."""
+    bonus = {"AD": 0, "DF": 0, "AP": 0, "MR": 0}
+    equipped = pet.get("equipment", []) or []
+    stacks = pet.get("equip_stacks", {}) or {}
+    for name in equipped:
+        info = EQUIPMENTS.get(name)
+        if not info:
+            continue
+        for stat, val in info["stats"].items():
+            bonus[stat] = bonus.get(stat, 0) + val
+        sp = info.get("special")
+        if sp:
+            n = stacks.get(name, 0)
+            bonus[sp["stat"]] = bonus.get(sp["stat"], 0) + sp["per_win"] * n
+    return bonus
+
+def get_pet_total_stats(pet: dict) -> dict:
+    """기본 스탯(성급 배율) + 장비 보너스를 합친 전설이의 최종 스탯입니다.
+
+    스탯 명령·상태창·배틀이 모두 이 함수를 공유합니다.
+    """
+    base = get_pet_stats(pet.get("type"), pet.get("level", 0))
+    bonus = get_equipment_bonus(pet)
+    return {stat: base.get(stat, 0) + bonus.get(stat, 0) for stat in ("AD", "DF", "AP", "MR")}
 
 # 💡 레벨별 필요 경험치 (고귀, 초월 가용 테이블 연동)
 EXP_TABLE = {
@@ -36,8 +186,8 @@ EXP_TABLE = {
     "전설": {0: 100, 1: 20000, 2: 30000, 3: 0},
     "신화": {0: 100, 1: 30000, 2: 60000, 3: 0},
     "프레스티지": {0: 100, 1: 50000, 2: 100000, 3: 0},
-    "고귀": {0: 100, 1: 80000, 2: 150000, 3: 0},
-    "초월": {0: 100, 1: 120000, 2: 200000, 3: 0}
+    "고귀": {0: 100, 1: 100000, 2: 200000, 3: 0},
+    "초월": {0: 100, 1: 200000, 2: 300000, 3: 0}
 }
 
 # 💡 전설이 이미지 URL
@@ -59,7 +209,42 @@ PET_IMAGES = {
     "🐮 내가 젖소 포로": "https://i.ibb.co/Dg9Bgv5g/image.png",
     "👼 프레스티지 미니 빛의 인도자 요네": "https://i.ibb.co/0VfHhQ75/image.png",
     "🌸 프레스티지 미니 영혼의 꽃 아리": "https://i.ibb.co/WWBPvH7Y/image.png",
-    "☕ 프레스티지 미니 귀염둥이 카페 그웬": "https://i.ibb.co/tM8rCsyg/image.png"
+    "☕ 프레스티지 미니 귀염둥이 카페 그웬": "https://i.ibb.co/tM8rCsyg/image.png",
+    "🍙 해방된 포로 뭉치": "https://i.ibb.co/zHtBHg7J/image.webp",
+    "🍄‍🟫 미니 티모": "https://i.ibb.co/XxTGZDwK/image.webp",
+    "👮‍♀️ 미니 케이틀린": "https://i.ibb.co/qMdfB1jG/image.webp",
+    "🗡️ 미니 카타리나": "https://i.ibb.co/7dx3jqwH/image.webp",
+    "🥱 미니 조이": "https://i.ibb.co/ZRjkHDtf/image.webp",
+    "🪖 미니 이렐리아": "https://i.ibb.co/JWRk7Kzb/image.webp",
+    "🐱 미니 유미": "https://i.ibb.co/bgJ5t3nV/image.webp",
+    "⚙️ 미니 오리아나": "https://i.ibb.co/jPCRK30P/image.png",
+    "🌕 미니 핏빛 달 아트록스": "https://i.ibb.co/FkkwtB6F/image.png",
+    "🎵 미니 칠현금 소나": "https://i.ibb.co/99tPpP1R/image.png",
+    "⚔️ 미니 전투사관학교 카타리나": "https://i.ibb.co/n9fcLZX/image.png",
+    "😈 미니 작은 악마 티모": "https://i.ibb.co/397t9QmW/image.png",
+    "🤖 미니 우주 그루브 블리츠크랭크": "https://i.ibb.co/7xv4nJhF/image.png",
+    "🎧 미니 헤드라이너 K/DA POP/STAR 카이사": "https://i.ibb.co/pvD00D1g/KDA-POP-STAR.png",
+    "🔫 미니 프레스티지 핏빛 달 미스포츈": "https://i.ibb.co/cS0Zz5Kq/image.png",
+    "🐉 미니 프레스티지 용의 권 리신": "https://i.ibb.co/cXQbPPLZ/image.webp",
+    "🤺 미니 프레스티지 용술사 야스오": "https://i.ibb.co/5hymsGwf/image.webp",
+    "🧙 미니 프레스티지 아케인 열혈 팬 애니": "https://i.ibb.co/rDj1dbn/image.png",
+    "🦸 미니 프레스티지 불멸의 영웅 리븐": "https://i.ibb.co/C5n6KrqW/image.png",
+    "💛 미니 프레스티지 도자기 수호자 이즈리얼": "https://i.ibb.co/R4PjQ68F/image.png",
+    "🔫 아케인 분열 징크스": "https://i.ibb.co/d4MhfQbt/image.png",
+    "🌊 찬란한 바다뱀 세트": "https://i.ibb.co/LXFBtbYs/image.png",
+    "🧑🏻‍🦲 산-우잘 모데카이저": "https://i.ibb.co/hRnfcX5R/image.png",
+    "💮 영혼의 꽃 모르가나": "https://i.ibb.co/KxxX6qWz/image.png",
+    "⚰️ 망령의 지배자 비에고": "https://i.ibb.co/YTDbY3R6/image.png",
+    # 초월 등급은 1·2성 이미지를 여기에, 3성 진화 이미지는 아래 PET_IMAGES_EVOLVED에 등록
+    "♥️ 불멸의 전설 아리": "https://i.ibb.co/NngzhVgS/1-2.png",
+    "💜 불멸의 전설 카이사": "https://i.ibb.co/qLpTR7B1/1-2.png"
+}
+
+# 💡 3성 도달 시 이미지가 바뀌는 전설이(초월 등급)의 진화 이미지 URL
+# key가 여기에 있으면 3성일 때 이 이미지를, 그 외 레벨은 위 PET_IMAGES를 사용합니다.
+PET_IMAGES_EVOLVED = {
+    "♥️ 불멸의 전설 아리": "https://i.ibb.co/HfCGNx9M/3.png",
+    "💜 불멸의 전설 카이사": "https://i.ibb.co/d4rZgtzy/3.png"
 }
 
 # 💡 아이템 정보 및 효과
@@ -73,7 +258,9 @@ ITEMS_INFO = {
     "경험치 부스터 X5": {"rarity": "신화", "desc": "사용 시 통화방 3시간 동안 경험치 획득량이 5배가 됩니다."},
     "경험치 부스터 X10": {"rarity": "프레스티지", "desc": "사용 시 통화방 3시간 동안 경험치 획득량이 10배가 됩니다."},
     "신비한 알약": {"rarity": "프레스티지", "desc": "사용 시 2주(14일) 동안 모든 상태가 최상으로 고정됩니다."},
-    "전설이 이름 변경권": {"rarity":"신화", "desc": "전설이의 이름을 새로 지어줄 수 있는 신비한 변경권입니다."}
+    "전설이 이름 변경권": {"rarity":"신화", "desc": "전설이의 이름을 새로 지어줄 수 있는 신비한 변경권입니다."},
+    # rarity "특수" -> 산책 아이템 드랍 대상에서 제외됨(상점 전용). /알상점 에서만 구매 가능.
+    "합성 방어권": {"rarity": "특수", "desc": "보유 시 전설이 합성에 실패해도 재료 전설이가 소멸하지 않습니다. (합성 실패 시 1개 자동 소모)"}
 }
 
 # 💡 등급 아이콘 이미지 URL (요청하신 신규/변경 이미지로 전면 교체)
@@ -82,6 +269,6 @@ RARITY_IMAGES = {
     "전설": "https://i.ibb.co/fz8C42ZT/image.webp",
     "신화": "https://i.ibb.co/23mnQTzC/image.webp",
     "프레스티지": "https://i.ibb.co/QFbvp8Rw/image.png",
-    "고귀": "https://i.ibb.co/x88pZ5V2/image.png",
-    "초월": "https://i.ibb.co/W4HhFLGZ/image.png"
+    "고귀": "https://i.ibb.co/7xXqRnMf/image.png",
+    "초월": "https://i.ibb.co/PGKqDdXF/image.png"
 }
