@@ -73,20 +73,20 @@ class LegendActionView(discord.ui.View):
         # 원본 메시지의 첨부파일과 뷰 업데이트
         await interaction.message.edit(attachments=[status_image_file], embed=None, view=self)
 
-    @discord.ui.button(label="밥주기 (5P)", style=discord.ButtonStyle.primary, emoji="🍚", row=0)
+    @discord.ui.button(label="밥주기 (알 1개)", style=discord.ButtonStyle.primary, emoji="🍚", row=0)
     async def feed(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer() # 🌟 3초 타임아웃 방지
         # 게임 로직은 utils/game.py 공용 함수에 위임 (내부에서 유저 락 처리)
         res = await feed_pet(self.user_id, self.current_idx)
         if not res["ok"]: return await interaction.followup.send(res["error"], ephemeral=True)
-        await self.update_status_message(interaction, res["data"], popup_msg=f"🍚 {res['name']}(이)가 맛있게 밥을 먹었습니다! (포만도 +20, 밥값 -5P)")
+        await self.update_status_message(interaction, res["data"], popup_msg=f"🍚 {res['name']}(이)가 맛있게 밥을 먹었습니다! (포만도 +20, 서사급 알 -1)")
 
-    @discord.ui.button(label="샤워하기 (10P)", style=discord.ButtonStyle.primary, emoji="🚿", row=0)
+    @discord.ui.button(label="샤워하기 (알 1개)", style=discord.ButtonStyle.primary, emoji="🚿", row=0)
     async def shower(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer() # 🌟 3초 타임아웃 방지
         res = await shower_pet(self.user_id, self.current_idx)
         if not res["ok"]: return await interaction.followup.send(res["error"], ephemeral=True)
-        await self.update_status_message(interaction, res["data"], popup_msg=f"🚿 {res['name']}(이)가 깨끗해졌습니다! (청결도 +20, 수도세 -10P)")
+        await self.update_status_message(interaction, res["data"], popup_msg=f"🚿 {res['name']}(이)가 깨끗해졌습니다! (청결도 +20, 서사급 알 -1)")
 
     async def handle_walk(self, interaction: discord.Interaction, num_walks: int):
         await interaction.response.defer() # 🌟 3초 타임아웃 방지
@@ -97,8 +97,8 @@ class LegendActionView(discord.ui.View):
         data = res["data"]
         result_embed = discord.Embed(title="🐾 산책 결과", color=discord.Color.green())
         desc = f"{res['name']}(와)과 {num_walks}회 산책했습니다!\n"
-        if res["has_ticket"]: desc += "🎫 `100회 산책 할인권`이 적용되어 30P만 소모되었습니다.\n"
-        else: desc += f"💸 소모된 유지비: -{res['cost']}P\n"
+        if res["has_ticket"]: desc += "🎫 `100회 산책 할인권`이 적용되어 서사급 알 30개만 소모되었습니다.\n"
+        else: desc += f"🥚 소모된 서사급 알: -{res['cost']}개\n"
         desc += "━━━━━━━━━━━━━━━━━━━━\n"
         if res["gained_exp"] > 0: desc += f"📈 산책을 하며 경험치를 얻었다! (+{res['gained_exp']} XP)\n"
         for egg in res["found_eggs"]: desc += f"🥚 {egg}급 알을 발견했다!\n"
@@ -110,19 +110,19 @@ class LegendActionView(discord.ui.View):
 
         await self.update_status_message(interaction, data, popup_embed=result_embed)
 
-        log_desc = f"🐾 {res['name']} 산책\n💸 소모 유지비: -{res['cost']}P\n"
+        log_desc = f"🐾 {res['name']} 산책\n🥚 소모 서사급 알: -{res['cost']}개\n"
         if res["gained_exp"] > 0: log_desc += f"📈 획득 경험치: +{res['gained_exp']} XP\n"
         if res["found_eggs"]: log_desc += f"🥚 획득한 알: {', '.join(res['found_eggs'])}급 알\n"
         if res["found_items"]: log_desc += f"🎁 획득한 아이템: {', '.join([i[1] for i in res['found_items']])}\n"
         await send_log_embed(interaction.client, WALK_LOG_CH, "👟 산책 로그", log_desc.strip(), interaction.user, discord.Color.green(), f"구분: {num_walks}회 산책")
 
-    @discord.ui.button(label="1회 산책 (1P)", style=discord.ButtonStyle.success, emoji="🚶", row=1)
+    @discord.ui.button(label="1회 산책 (알 1개)", style=discord.ButtonStyle.success, emoji="🚶", row=1)
     async def walk_1(self, interaction: discord.Interaction, button: discord.ui.Button): await self.handle_walk(interaction, 1)
 
-    @discord.ui.button(label="10회 산책 (10P)", style=discord.ButtonStyle.success, emoji="🚶‍♂️", row=1)
+    @discord.ui.button(label="10회 산책 (알 10개)", style=discord.ButtonStyle.success, emoji="🚶‍♂️", row=1)
     async def walk_10(self, interaction: discord.Interaction, button: discord.ui.Button): await self.handle_walk(interaction, 10)
 
-    @discord.ui.button(label="100회 산책 (100P)", style=discord.ButtonStyle.success, emoji="🏃", row=1)
+    @discord.ui.button(label="100회 산책 (알 100개)", style=discord.ButtonStyle.success, emoji="🏃", row=1)
     async def walk_100(self, interaction: discord.Interaction, button: discord.ui.Button): await self.handle_walk(interaction, 100)
 
     @discord.ui.button(label="이전 펫", style=discord.ButtonStyle.secondary, emoji="◀️", row=2)

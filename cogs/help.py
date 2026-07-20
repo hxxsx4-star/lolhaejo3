@@ -61,7 +61,7 @@ class HelpCog(commands.Cog):
     async def post_guide(self, interaction: discord.Interaction, channel: discord.TextChannel):
         guide_embed = discord.Embed(title="🐾 전설이 키우기 가이드 🐾", description="나만의 작은 전설이를 키워보세요!", color=discord.Color.gold())
         guide_embed.add_field(name="1️⃣ 시작하기", value="`/알까기`로 첫 전설이 알을 받으세요. 음성 채널에 접속해 경험치를 모으면 알이 부화합니다.", inline=False)
-        guide_embed.add_field(name="2️⃣ 돌보기", value="`/상태창`에서 전설이를 돌보세요. 샤워(10P), 밥주기(5P), 산책(10P)이 가능합니다.", inline=False)
+        guide_embed.add_field(name="2️⃣ 돌보기", value="`/상태창`에서 전설이를 돌보세요. 샤워·밥주기(각 서사급 알 1개), 산책(1회당 서사급 알 1개)이 가능합니다.", inline=False)
         guide_embed.add_field(name="3️⃣ 성장과 버프", value="음성 채널에 접속하면 시간이 지남에 따라 경험치가 오릅니다. 친밀도가 높으면 획득량이 2배가 됩니다.", inline=False)
         guide_embed.add_field(name="4️⃣ 업적과 배틀", value="`/업적`을 달성해 역할을 얻고, `/배틀5vs5`를 통해 친구들과 승부를 겨뤄보세요!", inline=False)
 

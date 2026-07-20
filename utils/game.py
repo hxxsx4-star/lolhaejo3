@@ -110,8 +110,8 @@ async def feed_pet(user_id: int, pet_idx: int) -> dict:
         data = pets[pet_idx]
         if data.get('level', 0) == 0:
             return {"ok": False, "error": "알은 아직 밥을 먹을 수 없습니다."}
-        if not await spend_points(user_id, 5):
-            return {"ok": False, "error": "❌ 밥값(5P)이 부족합니다!"}
+        if not await consume_item(user_id, "서사급 알", 1):
+            return {"ok": False, "error": "❌ 밥값(서사급 알 1개)이 부족합니다!"}
         data['fullness'] = min(100, data.get('fullness', 0) + 20)
         await save_legend_data(user_id, wrapper)
         await quest_progress(user_id, 'care', 1)
@@ -127,8 +127,8 @@ async def shower_pet(user_id: int, pet_idx: int) -> dict:
         data = pets[pet_idx]
         if data.get('level', 0) == 0:
             return {"ok": False, "error": "알은 아직 샤워할 수 없습니다."}
-        if not await spend_points(user_id, 10):
-            return {"ok": False, "error": "❌ 수도세(10P)가 부족합니다!"}
+        if not await consume_item(user_id, "서사급 알", 1):
+            return {"ok": False, "error": "❌ 수도세(서사급 알 1개)가 부족합니다!"}
         data['cleanliness'] = min(100, data.get('cleanliness', 0) + 20)
         await save_legend_data(user_id, wrapper)
         await quest_progress(user_id, 'care', 1)
@@ -156,10 +156,10 @@ async def do_walk(user_id: int, pet_idx: int, num_walks: int) -> dict:
             has_ticket = False
             cost = num_walks * 1
 
-        if not await spend_points(user_id, cost):
+        if not await consume_item(user_id, "서사급 알", cost):
             if has_ticket:
                 await add_item(user_id, "100회 산책 할인권", 1)
-            return {"ok": False, "error": f"❌ 산책 유지비({cost}P)가 부족합니다!"}
+            return {"ok": False, "error": f"❌ 산책 유지비(서사급 알 {cost}개)가 부족합니다!"}
 
         active_buffs = await get_active_buffs(user_id)
         buffs = {b[0] for b in active_buffs}
