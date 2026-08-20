@@ -1,2 +1,4 @@
 discord.py
 filelock
+Pillow
+aiosqlite

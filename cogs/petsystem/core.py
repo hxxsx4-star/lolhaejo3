@@ -8,7 +8,7 @@ import aiosqlite
 from utils.data import PET_POOLS, EXP_TABLE
 from utils.database import get_or_migrate_data, get_active_buffs, save_legend_data, update_max_star
 # 변경된 모듈 임포트
-from .ui_action import LegendActionView, get_pet_stats
+from .ui_action import LegendButton, build_status_view, get_pet_stats
 from utils.image_generator import generate_status_image
 from utils.logs import HATCH_LOG_CH, send_log_embed
 from utils.stats import get_points, add_points
@@ -52,7 +52,7 @@ class HatchView(discord.ui.View):
         embed = discord.Embed(title="🥚 알 부화 성공!", description=f"[{self.rarity}급] {selected_type} 알을 얻었습니다!\n이름: `{self.pet_name}`\n`/상태창`으로 돌봐주세요.", color=discord.Color.green())
         await interaction.response.edit_message(embed=embed, view=None)
 
-        cost = 0 if self.is_first_time else 1000
+        cost = 0 if self.is_first_time else 10
         await send_log_embed(interaction.client, HATCH_LOG_CH, "🥚 알까기 로그", f"{self.pet_name} ({selected_type} - {self.rarity}급) 부화 완료!\n💸 소모 비용: {cost}P", interaction.user, discord.Color.purple())
 
     async def on_timeout(self):
@@ -80,6 +80,10 @@ class PetSystemCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.voice_sessions = {}
+        # 상태창 버튼을 영구(persistent) 컴포넌트로 등록합니다.
+        # 이렇게 하면 봇이 재시작되거나 오래된 메시지여도 버튼이 죽지 않아
+        # '상호작용 실패'가 발생하지 않습니다.
+        self.bot.add_dynamic_items(LegendButton)
         self.bot.loop.create_task(self.init_voice_sessions())
         self.voice_exp_loop.start()
 
@@ -226,7 +230,7 @@ class PetSystemCog(commands.Cog):
             return await interaction.response.send_message("❌ 전설이는 최대 5마리까지만 키울 수 있습니다! (박스에 보관하세요)", ephemeral=True)
 
         current_points = await get_points(user_id)
-        cost = 0 if is_first_time else 1000
+        cost = 0 if is_first_time else 10
         if current_points < cost: return await interaction.response.send_message(f"가챠 비용이 부족합니다! (필요: {cost}P)", ephemeral=True)
 
         if not is_first_time: await add_points(user_id, -cost)
@@ -322,7 +326,7 @@ class PetSystemCog(commands.Cog):
             data, current_points, buffs, is_annoyed, is_diseased, active_idx, total_pets
         )
 
-        view = LegendActionView(interaction.user.id, current_idx=active_idx, total_pets=total_pets, pet_level=data.get('level', 0))
+        view = build_status_view(interaction.user.id, data.get('level', 0), total_pets)
         await interaction.followup.send(file=status_image_file, view=view)
 
 async def setup(bot):
