@@ -52,7 +52,7 @@ class HatchView(discord.ui.View):
         embed = discord.Embed(title="🥚 알 부화 성공!", description=f"[{self.rarity}급] {selected_type} 알을 얻었습니다!\n이름: `{self.pet_name}`\n`/상태창`으로 돌봐주세요.", color=discord.Color.green())
         await interaction.response.edit_message(embed=embed, view=None)
 
-        cost = 0 if self.is_first_time else 1000
+        cost = 0 if self.is_first_time else 10
         await send_log_embed(interaction.client, HATCH_LOG_CH, "🥚 알까기 로그", f"{self.pet_name} ({selected_type} - {self.rarity}급) 부화 완료!\n💸 소모 비용: {cost}P", interaction.user, discord.Color.purple())
 
     async def on_timeout(self):
@@ -230,7 +230,7 @@ class PetSystemCog(commands.Cog):
             return await interaction.response.send_message("❌ 전설이는 최대 5마리까지만 키울 수 있습니다! (박스에 보관하세요)", ephemeral=True)
 
         current_points = await get_points(user_id)
-        cost = 0 if is_first_time else 1000
+        cost = 0 if is_first_time else 10
         if current_points < cost: return await interaction.response.send_message(f"가챠 비용이 부족합니다! (필요: {cost}P)", ephemeral=True)
 
         if not is_first_time: await add_points(user_id, -cost)
